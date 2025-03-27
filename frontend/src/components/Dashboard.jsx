@@ -18,6 +18,7 @@ import { IoMdClose } from "react-icons/io";
 import { useInView } from "react-intersection-observer";
 import styled from "styled-components";
 import { isMobile } from "react-device-detect";
+import { Link, useNavigate } from "react-router-dom";
 
 // Theme Configuration
 const theme = {
@@ -145,6 +146,8 @@ function MovexDashboard() {
   const [overlayType, setOverlayType] = useState("");
   const [showProfile, setShowProfile] = useState(false);
   const [solvesInView, solvesVisible] = useInView({ threshold: 0.2 });
+
+  const navigate = useNavigate();
 
   // 3D Globe Component
   const Globe = () => {
@@ -353,9 +356,10 @@ function MovexDashboard() {
             <GradientButton
               whileHover={{ scale: 1.15, rotate: 2 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() =>
-                setOverlayType("compliance") || setShowOverlay(true)
-              }
+              onClick={() => {
+                setOverlayType("compliance") || setShowOverlay(true);
+                navigate("/compliance-check");
+              }}
             >
               <FaCheckCircle className="inline mr-2" /> Compliance Check
             </GradientButton>

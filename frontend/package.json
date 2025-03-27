@@ -16,6 +16,7 @@
     "@mui/icons-material": "^6.4.8",
     "@mui/material": "^6.4.8",
     "@react-oauth/google": "^0.12.1",
+    "@react-pdf/renderer": "^4.3.0",
     "@react-three/drei": "^10.0.5",
     "@react-three/fiber": "^9.1.0",
     "@tailwindcss/vite": "^4.0.16",
