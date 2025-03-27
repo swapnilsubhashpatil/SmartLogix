@@ -577,19 +577,28 @@ const ComplianceForm = () => {
   const handleSubmit = async () => {
     setLoading(true);
     try {
+      const token = localStorage.getItem("token"); // Retrieve token from localStorage
+      if (!token) {
+        throw new Error("No authentication token found. Please log in.");
+      }
+
       const res = await axios.post(
         "http://localhost:5000/api/compliance-check",
         formData, // Send the entire formData object directly
         {
           headers: {
             "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`, // Add Authorization header with Bearer token
           },
         }
       );
       setResponse(res.data);
     } catch (error) {
       console.error("Error submitting compliance check:", error);
-      setResponse({ message: "Failed to submit compliance check" });
+      setResponse({
+        message:
+          error.response?.data?.message || "Failed to submit compliance check",
+      });
     } finally {
       setLoading(false);
     }

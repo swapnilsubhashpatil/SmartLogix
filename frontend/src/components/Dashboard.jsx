@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Sphere, Stars } from "@react-three/drei";
@@ -17,8 +17,8 @@ import {
 import { IoMdClose } from "react-icons/io";
 import { useInView } from "react-intersection-observer";
 import styled from "styled-components";
-import { isMobile } from "react-device-detect";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 // Theme Configuration
 const theme = {
@@ -30,7 +30,7 @@ const theme = {
   cardBg: "#F9FAFB",
 };
 
-// Styled Components
+// Styled Components (unchanged, keeping brevity)
 const StyledApp = styled.div`
   background: ${theme.primary};
   color: ${theme.text};
@@ -145,11 +145,39 @@ function MovexDashboard() {
   const [showOverlay, setShowOverlay] = useState(false);
   const [overlayType, setOverlayType] = useState("");
   const [showProfile, setShowProfile] = useState(false);
+  const [user, setUser] = useState({ firstName: "", lastName: "", email: "" });
   const [solvesInView, solvesVisible] = useInView({ threshold: 0.2 });
 
   const navigate = useNavigate();
 
-  // 3D Globe Component
+  useEffect(() => {
+    const fetchUserData = async () => {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        navigate("/");
+        return;
+      }
+      try {
+        const response = await axios.get(
+          "http://localhost:5000/protectedRoute",
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        setUser({
+          firstName: response.data.user.firstName,
+          lastName: response.data.user.lastName,
+          email: response.data.user.emailAddress, // Updated to match backend response
+        });
+      } catch (error) {
+        console.error("Error fetching user data:", error);
+        localStorage.clear();
+        navigate("/");
+      }
+    };
+    fetchUserData();
+  }, [navigate]);
+
   const Globe = () => {
     const texture = useLoader(
       TextureLoader,
@@ -162,9 +190,13 @@ function MovexDashboard() {
     );
   };
 
+  const handleProfileClick = () => {
+    navigate("/profile");
+    setShowProfile(false);
+  };
+
   return (
     <StyledApp>
-      {/* Full-Screen Canvas Background */}
       <CanvasBackground>
         <Canvas>
           <ambientLight intensity={0.5} />
@@ -182,7 +214,6 @@ function MovexDashboard() {
         </Canvas>
       </CanvasBackground>
 
-      {/* Navbar */}
       <GlassNav>
         <motion.h1
           initial={{ opacity: 0, x: -50 }}
@@ -212,7 +243,7 @@ function MovexDashboard() {
           ))}
           <div className="relative">
             <button
-              onClick={() => setShowProfile(!showProfile)}
+              onClick={handleProfileClick}
               className="flex items-center gap-2"
               style={{ color: theme.tertiary }}
             >
@@ -228,19 +259,19 @@ function MovexDashboard() {
                   className="absolute right-0 mt-2 w-56 p-4 bg-cardBg rounded-lg shadow-lg"
                 >
                   <p className="font-semibold" style={{ color: theme.text }}>
-                    John Doe
+                    {user.firstName} {user.lastName}
                   </p>
                   <p
                     className="text-sm opacity-80"
                     style={{ color: theme.text }}
                   >
-                    john.doe@smartlogix.com
+                    {user.email}
                   </p>
                   <motion.button
                     whileHover={{ scale: 1.05 }}
                     onClick={() => {
                       localStorage.clear();
-                      window.location.href = "/";
+                      navigate("/");
                     }}
                     className="mt-4 flex items-center gap-2"
                     style={{ color: theme.tertiary }}
@@ -254,7 +285,6 @@ function MovexDashboard() {
         </div>
       </GlassNav>
 
-      {/* Mobile Sidebar */}
       <AnimatePresence>
         {showSidebar && (
           <motion.div
@@ -280,7 +310,7 @@ function MovexDashboard() {
             ))}
             <div className="mt-6">
               <button
-                onClick={() => setShowProfile(!showProfile)}
+                onClick={handleProfileClick}
                 className="flex items-center gap-2"
                 style={{ color: theme.tertiary }}
               >
@@ -296,19 +326,19 @@ function MovexDashboard() {
                     className="mt-2 w-full p-4 bg-cardBg rounded-lg shadow-lg"
                   >
                     <p className="font-semibold" style={{ color: theme.text }}>
-                      John Doe
+                      {user.firstName} {user.lastName}
                     </p>
                     <p
                       className="text-sm opacity-80"
                       style={{ color: theme.text }}
                     >
-                      john.doe@smartlogix.com
+                      {user.email}
                     </p>
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       onClick={() => {
                         localStorage.clear();
-                        window.location.href = "/";
+                        navigate("/");
                       }}
                       className="mt-4 flex items-center gap-2"
                       style={{ color: theme.tertiary }}
@@ -323,7 +353,6 @@ function MovexDashboard() {
         )}
       </AnimatePresence>
 
-      {/* Intro Section */}
       <section className="relative h-screen flex items-center justify-center z-10">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
@@ -357,7 +386,8 @@ function MovexDashboard() {
               whileHover={{ scale: 1.15, rotate: 2 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => {
-                setOverlayType("compliance") || setShowOverlay(true);
+                setOverlayType("compliance");
+                setShowOverlay(true);
                 navigate("/compliance-check");
               }}
             >
@@ -366,7 +396,10 @@ function MovexDashboard() {
             <GradientButton
               whileHover={{ scale: 1.15, rotate: -2 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => setOverlayType("route") || setShowOverlay(true)}
+              onClick={() => {
+                setOverlayType("route");
+                setShowOverlay(true);
+              }}
             >
               <FaRoute className="inline mr-2" /> Route Optimization
             </GradientButton>
@@ -374,7 +407,6 @@ function MovexDashboard() {
         </motion.div>
       </section>
 
-      {/* About Section */}
       <AboutSection id="about">
         <DynamicPattern
           initial={{ opacity: 0, rotate: 0 }}
@@ -409,7 +441,6 @@ function MovexDashboard() {
         </AboutContent>
       </AboutSection>
 
-      {/* Problems -> Solutions Section */}
       <section
         ref={solvesInView}
         className="py-20 px-6 relative z-10"
@@ -486,7 +517,6 @@ function MovexDashboard() {
         </div>
       </section>
 
-      {/* Overlay */}
       <AnimatePresence>
         {showOverlay && (
           <motion.div
@@ -527,7 +557,6 @@ function MovexDashboard() {
         )}
       </AnimatePresence>
 
-      {/* Footer */}
       <footer
         className="py-6 px-6 text-center relative z-10"
         style={{ background: theme.cardBg }}
