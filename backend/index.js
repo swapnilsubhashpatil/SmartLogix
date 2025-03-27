@@ -9,6 +9,7 @@ const jwt = require("jsonwebtoken");
 const bodyParser = require("body-parser");
 const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
+const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 dotenv.config();
 connectMongoDB();
@@ -169,6 +170,168 @@ app.get("/protectedRoute", verifyToken, (req, res) => {
     message: "Access granted to protected route!",
     user: req.user,
   });
+});
+
+const GOOGLE_API_KEY =
+  process.env.GOOGLE_API_KEY || "AIzaSyAuVwzksyAl-eATP99mxACJq1Z1MLOscZc";
+
+app.post("/api/compliance-check", async (req, res) => {
+  try {
+    // Extract data from the request body
+    const { complianceData, documentVerification } = req.body;
+    console.log(complianceData);
+    // Destructure complianceData for use in the prompt
+    const {
+      product: {
+        hsCode,
+        safetyCert,
+        dualUse,
+        isPerishable,
+        tempControl,
+        manufacturer,
+        weight,
+        quantity,
+        value,
+      },
+      trade: {
+        originCountry,
+        destinationCountry,
+        incoterms,
+        tradeAgreement,
+        exportLicense,
+        eori,
+      },
+      financial: { currency },
+      transportation: {
+        transportMeans,
+        portLoading,
+        portDischarge,
+        specialHandling,
+        handlingDetails,
+      },
+    } = complianceData;
+
+    // Convert documentVerification to a string for the prompt
+    const documentVerificationString = JSON.stringify(
+      documentVerification,
+      null,
+      2
+    );
+
+    // Define the prompt for Gemini-AI
+    const prompt = `
+  You are a compliance checker AI for international trade shipments. Your task is to evaluate the provided compliance data and document verification data to determine the shipment's compliance status. Check the inputs against standard international trade compliance rules (e.g., HS Code classification, safety standards, sanctions, documentation requirements, financial regulations, and transportation guidelines) using your knowledge base or standard compliance databases.
+
+  **Inputs**:
+  - Product Compliance:
+    - HS Code: ${hsCode}
+    - Safety Certification: ${safetyCert || "None"}
+    - Dual-Use Goods: ${dualUse}
+    - Perishable Goods: ${isPerishable}
+    - Temperature Control: ${tempControl || "Not specified"}
+    - Manufacturer: ${manufacturer}
+    - Weight: ${weight} kg
+    - Quantity: ${quantity}
+    - Value: ${value} USD
+  - Trade Compliance:
+    - Origin Country: ${originCountry}
+    - Destination Country: ${destinationCountry}
+    - Incoterms: ${incoterms}
+    - Trade Agreement: ${tradeAgreement || "None"}
+    - Export License: ${exportLicense || "Not specified"}
+    - EORI/Tax ID: ${eori}
+  - Financial Compliance:
+    - Currency: ${currency}
+  - Transportation Compliance:
+    - Transport Means: ${transportMeans}
+    - Port of Loading: ${portLoading}
+    - Port of Discharge: ${portDischarge}
+    - Special Handling: ${specialHandling || "None"}
+    - Handling Details: ${handlingDetails || "Not specified"}
+  - Document Verification:
+    ${documentVerificationString}
+
+  **Response Format (JSON)**:
+  {
+    "complianceStatus": "string", // "Compliant", "Warning", "Non-Compliant"
+    "riskScore": "number", // 0-100
+    "complianceDetails": {
+      "productCompliance": {
+        "hsCode": { "status": "string", "message": "string" },
+        "safetyStandards": { "status": "string", "message": "string" },
+        "dualUse": { "status": "string", "message": "string" },
+        "perishable": { "status": "string", "message": "string" },
+        "manufacturer": { "status": "string", "message": "string" }
+      },
+      "tradeCompliance": {
+        "countryRegulations": { "status": "string", "message": "string" },
+        "declaredValue": { "status": "string", "message": "string" },
+        "incoterms": { "status": "string", "message": "string" },
+        "tradeAgreements": { "status": "string", "message": "string" },
+        "licenses": { "status": "string", "message": "string" },
+        "eori": { "status": "string", "message": "string" }
+      },
+      "documentCompliance": {
+        "[docName]": {
+          "status": "string",
+          "compliancePercentage": "number",
+          "details": [
+            { "subItem": "string", "status": "string" }
+          ]
+        }
+      },
+      "financialCompliance": {
+        "currency": { "status": "string", "message": "string" }
+      },
+      "transportationCompliance": {
+        "transportMeans": { "status": "string", "message": "string" },
+        "portRegulations": { "status": "string", "message": "string" },
+        "specialHandling": { "status": "string", "message": "string" }
+      }
+    },
+    "violations": ["string"],
+    "recommendations": ["string"],
+    "scores": {
+      "product": "number",
+      "trade": "number",
+      "document": "number",
+      "financial": "number",
+      "transport": "number"
+    }
+  }
+
+  **Output Rules**:
+  - Return a strictly JSON-formatted response.
+  - Do not include any additional text, comments, or markdown outside the JSON structure.
+`;
+
+    // Initialize Gemini-AI
+    const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    // Send the prompt to Gemini-AI
+    const result = await model.generateContent(prompt);
+
+    // Log the raw response for debugging
+    const rawResponse = result.response.text();
+    console.log("Raw Response:", rawResponse);
+
+    // Remove any non-JSON content from the response
+    const jsonStart = rawResponse.indexOf("{");
+    const jsonEnd = rawResponse.lastIndexOf("}") + 1;
+    const cleanResponseText = rawResponse.slice(jsonStart, jsonEnd).trim();
+
+    // Parse the cleaned response as JSON
+    const response = JSON.parse(cleanResponseText);
+
+    // Send the response back to the frontend
+    res.json(response);
+  } catch (error) {
+    console.error("Error in compliance check endpoint:", error);
+    res
+      .status(500)
+      .json({ error: "Failed to generate compliance check analysis" });
+  }
 });
 
 const PORT = process.env.PORT || 5000;
