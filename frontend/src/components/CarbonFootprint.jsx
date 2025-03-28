@@ -101,7 +101,7 @@ function CarbonFootprint() {
             transition={{ delay: 0.2, duration: 0.8 }}
             className="text-4xl md:text-6xl font-bold tracking-tight mb-4 font-inter"
           >
-            Movex Carbon{" "}
+            SmartLogix Carbon{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">
               Footprint Analysis
             </span>
@@ -113,7 +113,7 @@ function CarbonFootprint() {
             className="text-xl text-gray-300 max-w-2xl mx-auto font-light"
           >
             Discover your carbon footprint and detailed emission analysis with
-            Movex.
+            SmartLogix.
           </motion.p>
         </div>
 

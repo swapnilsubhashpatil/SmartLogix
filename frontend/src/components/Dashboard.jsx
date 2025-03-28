@@ -1,12 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Sphere, Stars } from "@react-three/drei";
-import { useLoader } from "@react-three/fiber";
-import { TextureLoader } from "three";
+import { motion } from "framer-motion";
 import {
   FaUserCircle,
-  FaSignOutAlt,
   FaRoute,
   FaCheckCircle,
   FaDollarSign,
@@ -30,7 +25,7 @@ const theme = {
   cardBg: "#F9FAFB",
 };
 
-// Styled Components (unchanged, keeping brevity)
+// Styled Components
 const StyledApp = styled.div`
   background: ${theme.primary};
   color: ${theme.text};
@@ -92,15 +87,6 @@ const Card = styled(motion.div)`
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 `;
 
-const CanvasBackground = styled.div`
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: -1;
-`;
-
 const AboutSection = styled.section`
   position: relative;
   padding: 6rem 2rem;
@@ -142,9 +128,6 @@ const AboutContent = styled(motion.div)`
 
 function MovexDashboard() {
   const [showSidebar, setShowSidebar] = useState(false);
-  const [showOverlay, setShowOverlay] = useState(false);
-  const [overlayType, setOverlayType] = useState("");
-  const [showProfile, setShowProfile] = useState(false);
   const [user, setUser] = useState({ firstName: "", lastName: "", email: "" });
   const [solvesInView, solvesVisible] = useInView({ threshold: 0.2 });
 
@@ -167,53 +150,22 @@ function MovexDashboard() {
         setUser({
           firstName: response.data.user.firstName,
           lastName: response.data.user.lastName,
-          email: response.data.user.emailAddress, // Updated to match backend response
+          email: response.data.user.emailAddress,
         });
       } catch (error) {
         console.error("Error fetching user data:", error);
-        localStorage.clear();
         navigate("/");
       }
     };
     fetchUserData();
   }, [navigate]);
 
-  const Globe = () => {
-    const texture = useLoader(
-      TextureLoader,
-      "https://threejs.org/examples/textures/planets/earth_atmos_2048.jpg"
-    );
-    return (
-      <Sphere args={[10, 64, 64]} position={[0, 0, 0]}>
-        <meshStandardMaterial map={texture} />
-      </Sphere>
-    );
-  };
-
   const handleProfileClick = () => {
     navigate("/profile");
-    setShowProfile(false);
   };
 
   return (
     <StyledApp>
-      <CanvasBackground>
-        <Canvas>
-          <ambientLight intensity={0.5} />
-          <directionalLight position={[10, 10, 5]} intensity={1} />
-          <Globe />
-          <Stars
-            radius={150}
-            depth={50}
-            count={3000}
-            factor={4}
-            saturation={0}
-            fade
-          />
-          <OrbitControls enableZoom={false} autoRotate autoRotateSpeed={0.5} />
-        </Canvas>
-      </CanvasBackground>
-
       <GlassNav>
         <motion.h1
           initial={{ opacity: 0, x: -50 }}
@@ -229,7 +181,7 @@ function MovexDashboard() {
         >
           <FaBars size={24} style={{ color: theme.text }} />
         </button>
-        <div className="hidden md:flex space-x-6 items-center relative">
+        <div className="hidden md:flex space-x-6 items-center">
           {["About"].map((tab) => (
             <motion.a
               key={tab}
@@ -241,117 +193,41 @@ function MovexDashboard() {
               {tab}
             </motion.a>
           ))}
-          <div className="relative">
-            <button
-              onClick={handleProfileClick}
-              className="flex items-center gap-2"
-              style={{ color: theme.tertiary }}
-            >
-              <FaUserCircle size={20} />
-              <span>Profile</span>
-            </button>
-            <AnimatePresence>
-              {showProfile && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  className="absolute right-0 mt-2 w-56 p-4 bg-cardBg rounded-lg shadow-lg"
-                >
-                  <p className="font-semibold" style={{ color: theme.text }}>
-                    {user.firstName} {user.lastName}
-                  </p>
-                  <p
-                    className="text-sm opacity-80"
-                    style={{ color: theme.text }}
-                  >
-                    {user.email}
-                  </p>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    onClick={() => {
-                      localStorage.clear();
-                      navigate("/");
-                    }}
-                    className="mt-4 flex items-center gap-2"
-                    style={{ color: theme.tertiary }}
-                  >
-                    <FaSignOutAlt /> Logout
-                  </motion.button>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
+          <button
+            onClick={handleProfileClick}
+            className="flex items-center gap-2"
+            style={{ color: theme.tertiary }}
+          >
+            <FaUserCircle size={20} />
+            <span>Profile</span>
+          </button>
         </div>
       </GlassNav>
 
-      <AnimatePresence>
-        {showSidebar && (
-          <motion.div
-            initial={{ x: "-100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "-100%" }}
-            className="fixed top-0 left-0 h-full w-64 bg-cardBg z-50 p-6 md:hidden"
-          >
-            <button onClick={() => setShowSidebar(false)} className="mb-6">
-              <IoMdClose size={24} style={{ color: theme.text }} />
-            </button>
-            {["About"].map((tab) => (
-              <motion.a
-                key={tab}
-                href={`#${tab.toLowerCase()}`}
-                whileHover={{ scale: 1.1, color: theme.tertiary }}
-                className="block text-lg mb-4"
-                style={{ color: theme.text }}
-                onClick={() => setShowSidebar(false)}
-              >
-                {tab}
-              </motion.a>
-            ))}
-            <div className="mt-6">
-              <button
-                onClick={handleProfileClick}
-                className="flex items-center gap-2"
-                style={{ color: theme.tertiary }}
-              >
-                <FaUserCircle size={20} />
-                <span>Profile</span>
-              </button>
-              <AnimatePresence>
-                {showProfile && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="mt-2 w-full p-4 bg-cardBg rounded-lg shadow-lg"
-                  >
-                    <p className="font-semibold" style={{ color: theme.text }}>
-                      {user.firstName} {user.lastName}
-                    </p>
-                    <p
-                      className="text-sm opacity-80"
-                      style={{ color: theme.text }}
-                    >
-                      {user.email}
-                    </p>
-                    <motion.button
-                      whileHover={{ scale: 1.05 }}
-                      onClick={() => {
-                        localStorage.clear();
-                        navigate("/");
-                      }}
-                      className="mt-4 flex items-center gap-2"
-                      style={{ color: theme.tertiary }}
-                    >
-                      <FaSignOutAlt /> Logout
-                    </motion.button>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {showSidebar && (
+        <motion.div
+          initial={{ x: "-100%" }}
+          animate={{ x: 0 }}
+          exit={{ x: "-100%" }}
+          className="fixed top-0 left-0 h-full w-64 bg-cardBg z-50 p-6 md:hidden"
+        >
+          <button onClick={() => setShowSidebar(false)} className="mb-6">
+            <IoMdClose size={24} style={{ color: theme.text }} />
+          </button>
+          {["About"].map((tab) => (
+            <motion.a
+              key={tab}
+              href={`#${tab.toLowerCase()}`}
+              whileHover={{ scale: 1.1, color: theme.tertiary }}
+              className="block text-lg mb-4"
+              style={{ color: theme.text }}
+              onClick={() => setShowSidebar(false)}
+            >
+              {tab}
+            </motion.a>
+          ))}
+        </motion.div>
+      )}
 
       <section className="relative h-screen flex items-center justify-center z-10">
         <motion.div
@@ -385,22 +261,14 @@ function MovexDashboard() {
             <GradientButton
               whileHover={{ scale: 1.15, rotate: 2 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                // setOverlayType("compliance");
-                // setShowOverlay(true);
-                navigate("/compliance-check");
-              }}
+              onClick={() => navigate("/compliance-check")}
             >
               <FaCheckCircle className="inline mr-2" /> Compliance Check
             </GradientButton>
             <GradientButton
               whileHover={{ scale: 1.15, rotate: -2 }}
               whileTap={{ scale: 0.95 }}
-              onClick={() => {
-                // setOverlayType("route");
-                // setShowOverlay(true);
-                navigate("/route-optimization");
-              }}
+              onClick={() => navigate("/route-optimization")}
             >
               <FaRoute className="inline mr-2" /> Route Optimization
             </GradientButton>
@@ -517,46 +385,6 @@ function MovexDashboard() {
           ))}
         </div>
       </section>
-
-      <AnimatePresence>
-        {showOverlay && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/70 flex items-center justify-center z-50"
-          >
-            <Card
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              exit={{ scale: 0.9 }}
-              className="relative max-w-md w-full"
-            >
-              <button
-                onClick={() => setShowOverlay(false)}
-                className="absolute top-4 right-4"
-                style={{ color: theme.text }}
-              >
-                <IoMdClose size={24} />
-              </button>
-              <h2
-                className="text-2xl font-bold mb-4"
-                style={{ color: theme.secondary }}
-              >
-                {overlayType === "compliance"
-                  ? "Compliance Check"
-                  : "Route Optimization"}
-              </h2>
-              <p className="mb-6" style={{ color: theme.text }}>
-                {overlayType === "compliance"
-                  ? "Validate compliance instantly with real-time data."
-                  : "Optimize routes dynamically for maximum efficiency."}
-              </p>
-              <GradientButton className="w-full">Start Now</GradientButton>
-            </Card>
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <footer
         className="py-6 px-6 text-center relative z-10"

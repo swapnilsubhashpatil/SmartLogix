@@ -1,13 +1,26 @@
 import React, { useState } from "react";
-import { Button, TextField, Typography, CircularProgress } from "@mui/material";
+import {
+  Button,
+  TextField,
+  Typography,
+  CircularProgress,
+  Chip,
+  Box,
+} from "@mui/material";
 import { LoadScript } from "@react-google-maps/api";
 import { motion } from "framer-motion";
 import axios from "axios";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import MapIcon from "@mui/icons-material/Map";
 import Co2Icon from "@mui/icons-material/Co2";
+import SaveIcon from "@mui/icons-material/Save";
+import RouteIcon from "@mui/icons-material/Route";
+import TimerIcon from "@mui/icons-material/Timer";
+import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import { useNavigate } from "react-router-dom";
 
-const GOOGLE_MAPS_API_KEY = "AIzaSyAmyeWi4SPcXM7dkR1hduoIqL5uyMXtqUk";
+const GOOGLE_MAPS_API_KEY = "AIzaSyAmyeWi4SPcXM7dkR1hduoIqL5uyMXtqUk"; // Replace with your key
 
 const RouteOptimizer = () => {
   const [from, setFrom] = useState("");
@@ -24,19 +37,30 @@ const RouteOptimizer = () => {
   const [loading, setLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [mapLoading, setMapLoading] = useState(null);
-  const [carbonLoading, setCarbonLoading] = useState(null); // Track carbon footprint loading
-
+  const [carbonLoading, setCarbonLoading] = useState(null);
+  const [saveLoading, setSaveLoading] = useState(null);
+  const token = localStorage.getItem("token");
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!token) {
+      alert("Please log in to optimize routes.");
+      navigate("/");
+      return;
+    }
     setLoading(true);
     setShowResults(false);
     try {
       const response = await axios.post(
         "http://localhost:3003/api/route-optimization",
         { from, to, weight: parseFloat(weight) },
-        { headers: { "Content-Type": "application/json" } }
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
 
       const data = response.data;
@@ -54,12 +78,11 @@ const RouteOptimizer = () => {
       setActiveFilter("popular");
       setShowResults(true);
     } catch (error) {
-      console.error(
-        "Error fetching routes from /api/route-optimization:",
-        error
-      );
+      console.error("Error fetching routes:", error);
       alert(
-        "Failed to fetch route optimization data. Check console for details."
+        `Failed to fetch routes: ${
+          error.response?.data?.error || "Unknown error"
+        }`
       );
     } finally {
       setLoading(false);
@@ -101,22 +124,26 @@ const RouteOptimizer = () => {
       const response = await axios.post(
         "http://localhost:3003/api/routes",
         routeData,
-        { headers: { "Content-Type": "application/json" } }
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
 
       const routeDataObj = {
         originalRoute: route,
         processedRoutes: response.data,
       };
-
       const routeKey = `route_${index}_${Date.now()}`;
       sessionStorage.setItem(routeKey, JSON.stringify(routeDataObj));
 
       const mapUrl = `/map/${index}/${routeKey}`;
       window.open(mapUrl, "_blank");
     } catch (error) {
-      console.error("Error fetching route data from /api/routes:", error);
-      alert("Failed to fetch map data. Check console for details.");
+      console.error("Error fetching map data:", error);
+      alert("Failed to fetch map data.");
     } finally {
       setMapLoading(null);
     }
@@ -125,14 +152,13 @@ const RouteOptimizer = () => {
   const handleCarbonClick = async (route, index) => {
     setCarbonLoading(index);
     try {
-      // Prepare carbon footprint parameters from route data
       const carbonParams = {
-        origin: route.routeDirections[0].waypoints[0], // First origin
+        origin: route.routeDirections[0].waypoints[0],
         destination:
-          route.routeDirections[route.routeDirections.length - 1].waypoints[1], // Last destination
+          route.routeDirections[route.routeDirections.length - 1].waypoints[1],
         distance: route.totalDistance,
-        vehicleType: "truck", // Adjust based on your data or add logic to determine this
-        weight: parseFloat(weight), // Use input weight from form
+        vehicleType: "truck",
+        weight: parseFloat(weight),
       };
 
       const carbonKey = `carbon_${index}_${Date.now()}`;
@@ -141,21 +167,117 @@ const RouteOptimizer = () => {
       const carbonUrl = `/carbon-footprint/${carbonKey}`;
       window.open(carbonUrl, "_blank");
     } catch (error) {
-      console.error("Error preparing carbon footprint data:", error);
-      alert(
-        "Failed to prepare carbon footprint data. Check console for details."
-      );
+      console.error("Error preparing carbon data:", error);
+      alert("Failed to prepare carbon footprint data.");
     } finally {
       setCarbonLoading(null);
     }
   };
 
+  const handleSaveClick = async (route, index) => {
+    if (!token) {
+      alert("Please log in to save routes.");
+      navigate("/");
+      return;
+    }
+    if (!from || !to || !weight) {
+      alert("Please fill all fields (From, To, Weight) before saving a route.");
+      return;
+    }
+
+    setSaveLoading(index);
+    try {
+      const formData = { from, to, weight: parseFloat(weight) };
+      const routeData = route;
+
+      console.log("Saving route with:");
+      console.log("Token:", token);
+      console.log("formData:", formData);
+      console.log("routeData:", routeData);
+
+      const response = await axios.post(
+        "http://localhost:3003/api/save-route",
+        { formData, routeData },
+        {
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      console.log("Route saved:", response.data);
+      alert("Route saved successfully! Check your profile for history.");
+    } catch (error) {
+      console.error("Error saving route:", error);
+      const errorMessage =
+        error.response?.data?.details ||
+        error.response?.data?.error ||
+        "Unknown error";
+      if (error.response?.status === 401) {
+        alert("Unauthorized. Please log in again.");
+        navigate("/");
+      } else if (error.response?.status === 400) {
+        alert(`Bad request: ${errorMessage}`);
+      } else if (error.response?.status === 500) {
+        alert(`Server error: ${errorMessage}`);
+      } else {
+        alert(`Failed to save route: ${errorMessage}`);
+      }
+    } finally {
+      setSaveLoading(null);
+    }
+  };
+
   return (
-    <LoadScript googleMapsApiKey={GOOGLE_MAPS_API_KEY}>
+    <>
       <div className="p-6 font-sans min-h-screen flex flex-col items-center">
-        <Typography variant="h4" className="font-bold text-gray-800 mb-6">
-          Route Optimization
-        </Typography>
+        <div className="relative w-full bg-gray-50 overflow-hidden">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div className="text-center py-4 lg:py-6">
+              <h1
+                className="
+            text-4xl 
+            md:text-5xl 
+            lg:text-6xl 
+            font-extrabold 
+            text-gray-900 
+            tracking-tight 
+            leading-tight
+            mb-4
+          "
+              >
+                Route Optimization
+              </h1>
+              <p
+                className="
+            max-w-3xl 
+            mx-auto 
+            text-xl 
+            text-gray-500 
+            sm:text-center 
+            sm:text-2xl
+          "
+              >
+                Intelligent routing solutions for enhanced efficiency
+              </p>
+            </div>
+          </div>
+
+          {/* Subtle background curve */}
+          <div
+            className="
+        absolute 
+        bottom-0 
+        left-0 
+        right-0 
+        h-16 
+        bg-white 
+        rounded-t-[50px] 
+        shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]
+      "
+          ></div>
+        </div>
 
         <form
           onSubmit={handleSubmit}
@@ -210,29 +332,52 @@ const RouteOptimizer = () => {
         {showResults && (
           <>
             <div className="flex gap-4 mb-6 flex-wrap justify-center max-w-3xl w-full">
-              {["popular", "cost", "time", "carbon"].map((filter) => (
+              {[
+                {
+                  key: "popular",
+                  label: "Popular Routes",
+                  icon: <RouteIcon />,
+                },
+                {
+                  key: "cost",
+                  label: "Cost Optimized",
+                  icon: <AttachMoneyIcon />,
+                },
+                { key: "time", label: "Time Optimized", icon: <TimerIcon /> },
+                {
+                  key: "carbon",
+                  label: "Carbon Efficient",
+                  icon: <Co2Icon />,
+                  className:
+                    "bg-gradient-to-r from-green-400 to-emerald-500 text-white hover:from-green-500 hover:to-emerald-600",
+                },
+              ].map((filter) => (
                 <Button
-                  key={filter}
-                  variant={activeFilter === filter ? "contained" : "outlined"}
-                  onClick={() => handleFilterClick(filter)}
+                  key={filter.key}
+                  variant={
+                    activeFilter === filter.key ? "contained" : "outlined"
+                  }
+                  onClick={() => handleFilterClick(filter.key)}
+                  className={`
+                    ${
+                      activeFilter === filter.key
+                        ? filter.className ||
+                          "bg-gradient-to-r from-blue-500 to-teal-400"
+                        : "bg-white text-blue-500 border-blue-500 hover:bg-blue-50"
+                    }
+                    flex items-center gap-2
+                  `}
                   sx={{
-                    backgroundColor:
-                      activeFilter === filter
-                        ? "var(--color-primary-500)"
-                        : "white",
-                    "&:hover": {
-                      backgroundColor:
-                        activeFilter === filter
-                          ? "var(--color-primary-600)"
-                          : "var(--color-primary-100)",
-                    },
-                    color:
-                      activeFilter === filter
-                        ? "white"
-                        : "var(--color-primary-500)",
+                    borderRadius: "8px",
+                    textTransform: "none",
+                    boxShadow:
+                      activeFilter === filter.key
+                        ? "0 4px 6px rgba(0,0,0,0.1)"
+                        : "none",
                   }}
                 >
-                  {filter.charAt(0).toUpperCase() + filter.slice(1)}
+                  {filter.icon}
+                  {filter.label}
                 </Button>
               ))}
             </div>
@@ -318,6 +463,27 @@ const RouteOptimizer = () => {
                           <Co2Icon sx={{ color: "#689f38" }} />
                         )}
                       </Button>
+                      <Button
+                        onClick={() => handleSaveClick(route, index)}
+                        disabled={saveLoading === index}
+                        sx={{
+                          minWidth: "40px",
+                          width: "40px",
+                          height: "40px",
+                          borderRadius: "50%",
+                          backgroundColor: "#e8f5e9",
+                          "&:hover": { backgroundColor: "#c8e6c9" },
+                        }}
+                      >
+                        {saveLoading === index ? (
+                          <CircularProgress
+                            size={20}
+                            sx={{ color: "#388e3c" }}
+                          />
+                        ) : (
+                          <SaveIcon sx={{ color: "#388e3c" }} />
+                        )}
+                      </Button>
                     </div>
                   </div>
                 </motion.div>
@@ -326,7 +492,7 @@ const RouteOptimizer = () => {
           </>
         )}
       </div>
-    </LoadScript>
+    </>
   );
 };
 

@@ -9,6 +9,7 @@ import Profile from "./components/Profile";
 import RouteOptimization from "./components/RouteOptimization";
 import RouteMap from "./components/route";
 import CarbonFootprint from "./components/CarbonFootprint";
+import { LoadScript } from "@react-google-maps/api";
 
 function App() {
   return (

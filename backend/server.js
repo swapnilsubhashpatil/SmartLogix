@@ -1,15 +1,47 @@
 const express = require("express");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const mongoose = require("mongoose"); // Import mongoose
 const app = express();
 const cors = require("cors");
 const axios = require("axios");
+const jwt = require("jsonwebtoken");
+const bodyParser = require("body-parser");
+const SaveRoute = require("./Database/saveRouteSchema"); // Adjust path
+const connectMongoDB = require("./Database/connectDB");
+
 app.use(cors());
 app.use(express.json());
-const bodyParser = require("body-parser");
-
 app.use(bodyParser.json());
-const GOOGLE_API_KEY = "AIzaSyAuVwzksyAl-eATP99mxACJq1Z1MLOscZc";
 
+// Constants
+const JWT_SECRET = process.env.JWT_SECRET || "mySuperSecretKey12345!@";
+const GOOGLE_API_KEY = "AIzaSyAuVwzksyAl-eATP99mxACJq1Z1MLOscZc";
+const GOOGLE_MAPS_API_KEY = "AIzaSyAmyeWi4SPcXM7dkR1hduoIqL5uyMXtqUk";
+
+// Connect to MongoDB
+connectMongoDB();
+
+// Verify Token Middleware
+const verifyToken = (req, res, next) => {
+  const authHeader = req.headers["authorization"];
+  const token = authHeader && authHeader.split(" ")[1]; // Expecting "Bearer <token>"
+
+  if (!token) {
+    return res.status(401).json({ error: "Access denied. No token provided." });
+  }
+
+  try {
+    const decoded = jwt.verify(token, JWT_SECRET);
+    req.user = decoded;
+    console.log("Token verified for user:", decoded);
+    next();
+  } catch (error) {
+    console.error("Token verification failed:", error.message);
+    return res.status(401).json({ error: "Invalid or expired token." });
+  }
+};
+
+// Route Optimization Endpoint
 app.post("/api/route-optimization", async (req, res) => {
   try {
     const { from, to, weight } = req.body;
@@ -20,14 +52,11 @@ app.post("/api/route-optimization", async (req, res) => {
         .json({ error: "Missing required fields: from, to, and weight" });
     }
 
-    const GOOGLE_API_KEY = "AIzaSyAuVwzksyAl-eATP99mxACJq1Z1MLOscZc"; // Ensure this is set in your environment
     const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.0-flash",
-    });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" }); // Updated to valid model
 
     const prompt = `
-      You are a route optimization AI designed to generate optimal shipping routes between two locations considering various factors. Your task is to provide 9 routes categorized into 3 popular routes, 3 cost-efficient routes, and 3 time-efficient routes based on the provided origin, destination, and shipment weight. Use realistic logistics data and calculations.
+      You are a route optimization AI designed to generate optimal shipping routes between two locations, using realistic logistics data and real-world considerations. Your task is to provide 9 routes categorized into 3 popular routes, 3 cost-efficient routes, and 3 time-efficient routes based on the provided origin, destination, and shipment weight.
 
       **Inputs**:
       - Origin: ${from}
@@ -36,18 +65,26 @@ app.post("/api/route-optimization", async (req, res) => {
 
       **Requirements**:
       - Generate exactly 9 routes: 3 popular, 3 cost-efficient, and 3 time-efficient.
-      - Each route must consist of 1-3 waypoints in the format:
+      - Each route must consist of 2 to 5 waypoints (inclusive), representing realistic checkpoints between origin and destination.
+      - Waypoints must be actual cities or locations with geographical relevance to the route.
+      - For each segment between waypoints, specify the transport mode in the format:
         { id: "string", waypoints: ["string", "string"], state: "land" | "sea" | "air" }
-      - For each route, calculate:
-        - totalCost (in USD, considering weight and distance)
-        - totalTime (in hours)
-        - totalDistance (in kilometers)
+      - Verify port or airport existence:
+        - For "sea" routes, ensure waypoints have functional seaports (e.g., Mumbai has a port, but an inland city like Delhi does not).
+        - For "air" routes, ensure waypoints have operational airports.
+      - Multi-segment routes:
+        - If a route uses the same mode consecutively (e.g., sea from Mumbai to Singapore, then sea to Japan), explicitly list each segment with its own waypoints and state.
+      - Calculate for each route:
+        - totalCost (in USD, based on realistic cost rates below, considering weight and distance)
+        - totalTime (in hours, based on realistic speeds below, including transfer times)
+        - totalDistance (in kilometers, estimated realistically between waypoints)
         - totalCarbonEmission (in kg CO2, based on transport mode and distance)
-      - Use realistic values based on:
-        - Land: $0.1/kg/km, 50 km/h, 0.062 kg CO2/km
-        - Sea: $0.05/kg/km, 30 km/h, 0.008 kg CO2/km
-        - Air: $0.5/kg/km, 800 km/h, 0.53 kg CO2/km
-      - Ensure waypoints make geographical sense between origin and destination.
+      - Use these realistic values:
+        - Land: $0.15/kg/km, 60 km/h, 0.07 kg CO2/km, add 2 hours per waypoint for loading/unloading
+        - Sea: $0.08/kg/km, 40 km/h, 0.01 kg CO2/km, add 12 hours per waypoint for port handling
+        - Air: $0.75/kg/km, 900 km/h, 0.60 kg CO2/km, add 3 hours per waypoint for airport processing
+      - Ensure distances and times reflect real-world geography (e.g., use approximate great-circle distances between cities).
+      - For cost-efficient routes, sort them in ascending order by totalCost (low to high).
 
       **Output Rules**:
       - Return a strictly JSON-formatted response with no extra text outside the JSON.
@@ -55,43 +92,31 @@ app.post("/api/route-optimization", async (req, res) => {
         {
           "popularRoutes": [
             {
-              "routeDirections": [{ "id": "string", "waypoints": ["string", "string"], "state": "land" | "sea" | "air" }],
+              "routeDirections": [
+                { "id": "string", "waypoints": ["string", "string"], "state": "land" | "sea" | "air" }
+              ],
               "totalCost": number,
               "totalTime": number,
               "totalDistance": number,
               "totalCarbonEmission": number
             }
           ],
-          "costEfficientRoutes": [{ ... }],
+          "costEfficientRoutes": [
+            { ... } // Sorted by totalCost, ascending
+          ],
           "timeEfficientRoutes": [{ ... }]
         }
-      - Numbers should be rounded to 2 decimal places.
-
-      **Example Calculation**:
-      - Route: Mumbai → Bangalore (land, 1000 km)
-      - Weight: 100 kg
-      - totalCost = 1000 km * 0.1 * 100 = $10,000
-      - totalTime = 1000 km / 50 = 20 hours
-      - totalCarbonEmission = 1000 * 0.062 = 62 kg CO2
+      - Numbers must be rounded to 2 decimal places.
+      - Ensure waypoints make geographical sense and align with the transport mode (e.g., sea routes only between port cities).
     `;
 
     const result = await model.generateContent(prompt);
     const rawResponse = result.response.text();
-
-    // Extract and validate JSON
     const jsonStart = rawResponse.indexOf("{");
     const jsonEnd = rawResponse.lastIndexOf("}") + 1;
     const jsonResponse = rawResponse.slice(jsonStart, jsonEnd).trim();
 
-    let parsedResponse;
-    try {
-      parsedResponse = JSON.parse(jsonResponse);
-    } catch (parseError) {
-      console.error("Failed to parse AI response:", parseError);
-      return res.status(500).json({ error: "Invalid response format from AI" });
-    }
-
-    // Validate response structure
+    let parsedResponse = JSON.parse(jsonResponse);
     const requiredFields = [
       "popularRoutes",
       "costEfficientRoutes",
@@ -104,9 +129,9 @@ app.post("/api/route-optimization", async (req, res) => {
     );
 
     if (!hasAllFields) {
-      return res.status(500).json({
-        error: "AI response missing required route categories or count",
-      });
+      return res
+        .status(500)
+        .json({ error: "AI response missing required fields" });
     }
 
     res.json(parsedResponse);
@@ -116,17 +141,13 @@ app.post("/api/route-optimization", async (req, res) => {
   }
 });
 
-const GOOGLE_MAPS_API_KEY = "AIzaSyAmyeWi4SPcXM7dkR1hduoIqL5uyMXtqUk";
-
+// Geocode Address Helper
 async function geocodeAddress(address) {
   try {
     const response = await axios.get(
       "https://maps.googleapis.com/maps/api/geocode/json",
       {
-        params: {
-          address: address,
-          key: GOOGLE_MAPS_API_KEY,
-        },
+        params: { address, key: GOOGLE_MAPS_API_KEY },
       }
     );
 
@@ -142,10 +163,10 @@ async function geocodeAddress(address) {
   }
 }
 
+// Get Directions Helper
 async function getDirections(waypoints) {
   try {
     const waypointsLatLng = await Promise.all(waypoints.map(geocodeAddress));
-
     const routesApiUrl =
       "https://routes.googleapis.com/directions/v2:computeRoutes";
     const requestData = {
@@ -177,15 +198,9 @@ async function getDirections(waypoints) {
       units: "IMPERIAL",
     };
 
-    // Add intermediate waypoints if there are any
     if (waypointsLatLng.length > 2) {
       requestData.intermediates = waypointsLatLng.slice(1, -1).map((point) => ({
-        location: {
-          latLng: {
-            latitude: point.lat,
-            longitude: point.lng,
-          },
-        },
+        location: { latLng: { latitude: point.lat, longitude: point.lng } },
       }));
     }
 
@@ -196,15 +211,9 @@ async function getDirections(waypoints) {
     };
 
     const response = await axios.post(routesApiUrl, requestData, { headers });
-
-    if (
-      !response.data ||
-      !response.data.routes ||
-      response.data.routes.length === 0
-    ) {
+    if (!response.data.routes || response.data.routes.length === 0) {
       throw new Error("No routes found");
     }
-
     return response.data.routes[0].polyline.encodedPolyline;
   } catch (error) {
     console.error("Error getting directions:", error);
@@ -212,6 +221,7 @@ async function getDirections(waypoints) {
   }
 }
 
+// Routes Endpoint
 app.post("/api/routes", async (req, res) => {
   try {
     const routesData = req.body;
@@ -221,10 +231,7 @@ app.post("/api/routes", async (req, res) => {
       try {
         if (route.state === "land") {
           const encodedPolyline = await getDirections(route.waypoints);
-          responseData[route.id] = {
-            encodedPolyline,
-            state: route.state,
-          };
+          responseData[route.id] = { encodedPolyline, state: route.state };
         } else if (route.state === "sea" || route.state === "air") {
           const coordinates = await Promise.all(
             route.waypoints.map(geocodeAddress)
@@ -247,6 +254,97 @@ app.post("/api/routes", async (req, res) => {
   }
 });
 
+// Save Route Endpoint
+app.post("/api/save-route", verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { formData, routeData } = req.body;
+
+    console.log("Saving route for userId:", userId);
+    console.log("Received formData:", formData);
+    console.log("Received routeData:", routeData);
+
+    // Validate inputs
+    if (!formData || !routeData) {
+      console.log("Validation failed: Missing formData or routeData");
+      return res.status(400).json({ error: "Missing formData or routeData" });
+    }
+
+    // Validate formData structure per SaveRoute schema
+    if (!formData.from || !formData.to || !formData.weight) {
+      console.log("Validation failed: Incomplete formData");
+      return res.status(400).json({
+        error: "formData must include from, to, and weight as required fields",
+      });
+    }
+
+    // Ensure weight is a number
+    const weight = Number(formData.weight);
+    if (isNaN(weight)) {
+      console.log("Validation failed: Weight must be a number");
+      return res.status(400).json({ error: "Weight must be a valid number" });
+    }
+
+    // Ensure userId is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      console.log("Validation failed: Invalid userId format");
+      return res.status(400).json({ error: "Invalid userId format" });
+    }
+    const validatedUserId = new mongoose.Types.ObjectId(userId);
+
+    // Create the record using SaveRoute model
+    const saveRoute = await SaveRoute.create({
+      userId: validatedUserId,
+      formData: {
+        from: formData.from,
+        to: formData.to,
+        weight: weight,
+      },
+      routeData,
+      timestamp: new Date(),
+    });
+
+    console.log(
+      "Route record saved successfully for user ID:",
+      userId,
+      "Record ID:",
+      saveRoute._id
+    );
+    res.json({
+      message: "Route saved successfully",
+      recordId: saveRoute._id,
+    });
+  } catch (error) {
+    console.error("Error saving route:", error.stack);
+    res.status(500).json({
+      error: "Failed to save route",
+      details: error.message,
+    });
+  }
+});
+
+// Fetch Route History Endpoint
+app.get("/api/route-history", verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    console.log("Fetching route history for userId:", userId);
+
+    const routeHistory = await SaveRoute.find({ userId }).sort({
+      timestamp: -1,
+    }); // Newest first
+
+    console.log("Route history retrieved:", routeHistory.length, "records");
+    res.json({ routeHistory });
+  } catch (error) {
+    console.error("Error fetching route history:", error.stack);
+    res.status(500).json({
+      error: "Failed to fetch route history",
+      details: error.message,
+    });
+  }
+});
+
+// Carbon Footprint Endpoint
 app.post("/api/carbon-footprint", async (req, res) => {
   try {
     const { origin, destination, distance, vehicleType, weight } = req.body;
@@ -307,7 +405,6 @@ app.post("/api/carbon-footprint", async (req, res) => {
     const rawResponse = result.response.text();
     console.log("Raw Response:", rawResponse);
 
-    // Improved JSON extraction
     const jsonMatch = rawResponse.match(/{[\s\S]*}/);
     if (!jsonMatch) {
       throw new Error("No valid JSON found in AI response");
@@ -325,6 +422,7 @@ app.post("/api/carbon-footprint", async (req, res) => {
   }
 });
 
+// Start Server
 app.listen(3003, () => {
   console.log("Server running on port 3003");
 });
