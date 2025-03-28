@@ -5,6 +5,10 @@ const cors = require("cors");
 const axios = require("axios");
 app.use(cors());
 app.use(express.json());
+const bodyParser = require("body-parser");
+
+app.use(bodyParser.json());
+const GOOGLE_API_KEY = "AIzaSyAuVwzksyAl-eATP99mxACJq1Z1MLOscZc";
 
 app.post("/api/route-optimization", async (req, res) => {
   try {
@@ -240,6 +244,84 @@ app.post("/api/routes", async (req, res) => {
   } catch (error) {
     console.error("Error processing routes:", error);
     res.status(500).json({ error: "Failed to process routes" });
+  }
+});
+
+app.post("/api/carbon-footprint", async (req, res) => {
+  try {
+    const { origin, destination, distance, vehicleType, weight } = req.body;
+
+    if (!origin || !destination || !distance || !vehicleType || !weight) {
+      return res.status(400).json({ error: "Missing required parameters" });
+    }
+
+    const prompt = `
+        You are a carbon footprint analysis AI for Movex. Based on the following inputs, provide a structured response in JSON format with proper keys and values.
+  
+        Inputs:
+        - Origin: ${origin}
+        - Destination: ${destination}
+        - Distance: ${distance} km
+        - Vehicle Type: ${vehicleType}
+        - Weight: ${weight} kg
+  
+        Response Format (JSON):
+        {
+          "totalDistance": "Distance in kilometers with unit (e.g., '1347.2 km')",
+          "totalEmissions": "Total CO2e emissions in kg with unit (e.g., '1500 kg CO2e')",
+          "routeAnalysis": [
+            {
+              "leg": "Leg number (e.g., 'Leg 1')",
+              "origin": "Origin location",
+              "destination": "Destination location",
+              "distance": "Distance for this leg with unit (e.g., '1347.2 km')",
+              "fuelConsumption": "Fuel consumption in liters with unit (e.g., '500 L')",
+              "fuelType": "Type of fuel used (e.g., 'Diesel')",
+              "emissions": {
+                "total": "Total CO2e emissions in kg with unit (e.g., '1500 kg CO2e')",
+                "intensity": "Emission intensity in gCO2e/tonne-km with unit (e.g., '111.4 gCO2e/tonne-km')",
+                "breakdown": {
+                  "tankToWheel": "Tank to wheel emissions in kg CO2e with unit (e.g., '1200 kg CO2e')",
+                  "wellToTank": "Well to tank emissions in kg CO2e with unit (e.g., '300 kg CO2e')"
+                }
+              },
+              "cost": "Estimated cost in INR with unit (e.g., '25000 INR')"
+            }
+          ],
+          "suggestions": [
+            "Suggestion 1 for reducing emissions",
+            "Suggestion 2 for alternative routes or vehicle types"
+          ],
+          "additionalInsights": [
+            "Insight 1 about the route or emissions",
+            "Insight 2 about optimization",
+            "Insight 3 about future considerations"
+          ]
+        }
+      `;
+
+    const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    const result = await model.generateContent(prompt);
+    const rawResponse = result.response.text();
+    console.log("Raw Response:", rawResponse);
+
+    // Improved JSON extraction
+    const jsonMatch = rawResponse.match(/{[\s\S]*}/);
+    if (!jsonMatch) {
+      throw new Error("No valid JSON found in AI response");
+    }
+    const cleanResponseText = jsonMatch[0];
+    const responseData = JSON.parse(cleanResponseText);
+
+    res.json(responseData);
+  } catch (error) {
+    console.error("Error in carbon footprint endpoint:", error);
+    res.status(500).json({
+      error: "Failed to generate carbon footprint analysis",
+      details: error.message,
+    });
   }
 });
 

@@ -23,7 +23,8 @@ const RouteOptimizer = () => {
   const [activeFilter, setActiveFilter] = useState("");
   const [loading, setLoading] = useState(false);
   const [showResults, setShowResults] = useState(false);
-  const [mapLoading, setMapLoading] = useState(null); // Track which route is loading map
+  const [mapLoading, setMapLoading] = useState(null);
+  const [carbonLoading, setCarbonLoading] = useState(null); // Track carbon footprint loading
 
   const navigate = useNavigate();
 
@@ -89,7 +90,7 @@ const RouteOptimizer = () => {
   };
 
   const handleMapClick = async (route, index) => {
-    setMapLoading(index); // Set loading state for this route
+    setMapLoading(index);
     try {
       const routeData = route.routeDirections.map((direction) => ({
         id: direction.id,
@@ -108,23 +109,45 @@ const RouteOptimizer = () => {
         processedRoutes: response.data,
       };
 
-      // Store route data in sessionStorage with a unique key
-      const routeKey = `route_${index}_${Date.now()}`; // Unique key to avoid conflicts
+      const routeKey = `route_${index}_${Date.now()}`;
       sessionStorage.setItem(routeKey, JSON.stringify(routeDataObj));
 
-      // Open map with just the key in the URL
       const mapUrl = `/map/${index}/${routeKey}`;
       window.open(mapUrl, "_blank");
     } catch (error) {
       console.error("Error fetching route data from /api/routes:", error);
       alert("Failed to fetch map data. Check console for details.");
     } finally {
-      setMapLoading(null); // Reset loading state
+      setMapLoading(null);
     }
   };
 
-  const handleCarbonClick = (route) => {
-    alert(`Total Carbon Emission: ${route.totalCarbonEmission} kg CO2`);
+  const handleCarbonClick = async (route, index) => {
+    setCarbonLoading(index);
+    try {
+      // Prepare carbon footprint parameters from route data
+      const carbonParams = {
+        origin: route.routeDirections[0].waypoints[0], // First origin
+        destination:
+          route.routeDirections[route.routeDirections.length - 1].waypoints[1], // Last destination
+        distance: route.totalDistance,
+        vehicleType: "truck", // Adjust based on your data or add logic to determine this
+        weight: parseFloat(weight), // Use input weight from form
+      };
+
+      const carbonKey = `carbon_${index}_${Date.now()}`;
+      sessionStorage.setItem(carbonKey, JSON.stringify(carbonParams));
+
+      const carbonUrl = `/carbon-footprint/${carbonKey}`;
+      window.open(carbonUrl, "_blank");
+    } catch (error) {
+      console.error("Error preparing carbon footprint data:", error);
+      alert(
+        "Failed to prepare carbon footprint data. Check console for details."
+      );
+    } finally {
+      setCarbonLoading(null);
+    }
   };
 
   return (
@@ -275,7 +298,8 @@ const RouteOptimizer = () => {
                         )}
                       </Button>
                       <Button
-                        onClick={() => handleCarbonClick(route)}
+                        onClick={() => handleCarbonClick(route, index)}
+                        disabled={carbonLoading === index}
                         sx={{
                           minWidth: "40px",
                           width: "40px",
@@ -285,7 +309,14 @@ const RouteOptimizer = () => {
                           "&:hover": { backgroundColor: "#c5e1a5" },
                         }}
                       >
-                        <Co2Icon sx={{ color: "#689f38" }} />
+                        {carbonLoading === index ? (
+                          <CircularProgress
+                            size={20}
+                            sx={{ color: "#689f38" }}
+                          />
+                        ) : (
+                          <Co2Icon sx={{ color: "#689f38" }} />
+                        )}
                       </Button>
                     </div>
                   </div>

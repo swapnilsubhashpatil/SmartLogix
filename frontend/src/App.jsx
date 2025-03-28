@@ -8,6 +8,7 @@ import ComplianceCheck from "./components/ComplianceCheck";
 import Profile from "./components/Profile";
 import RouteOptimization from "./components/RouteOptimization";
 import RouteMap from "./components/route";
+import CarbonFootprint from "./components/CarbonFootprint";
 
 function App() {
   return (
@@ -31,29 +32,35 @@ function App() {
             </ProtectedRoute>
           }
         />
-        {/* <Route
-          path="/route-optimization"
-          element={
-            <ProtectedRoute>
-              <Mapping />
-            </ProtectedRoute>
-          }
-        />
         <Route
-          path="/route"
+          path="/route-optimization"
           element={
             <ProtectedRoute>
               <RouteOptimization />
             </ProtectedRoute>
           }
-        /> */}
-        <Route path="/route-optimization" element={<RouteOptimization />} />
-        <Route path="/map/:routeId/:routeData" element={<RouteMap />} />
+        />
+        <Route
+          path="/map/:routeId/:routeData"
+          element={
+            <ProtectedRoute>
+              <RouteMap />
+            </ProtectedRoute>
+          }
+        />
         <Route
           path="/profile"
           element={
             <ProtectedRoute>
               <Profile />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/carbon-footprint/:carbonKey"
+          element={
+            <ProtectedRoute>
+              <CarbonFootprint />
             </ProtectedRoute>
           }
         />
