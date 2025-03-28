@@ -386,8 +386,8 @@ function MovexDashboard() {
               whileHover={{ scale: 1.15, rotate: 2 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => {
-                setOverlayType("compliance");
-                setShowOverlay(true);
+                // setOverlayType("compliance");
+                // setShowOverlay(true);
                 navigate("/compliance-check");
               }}
             >
@@ -397,8 +397,9 @@ function MovexDashboard() {
               whileHover={{ scale: 1.15, rotate: -2 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => {
-                setOverlayType("route");
-                setShowOverlay(true);
+                // setOverlayType("route");
+                // setShowOverlay(true);
+                navigate("/route-optimization");
               }}
             >
               <FaRoute className="inline mr-2" /> Route Optimization

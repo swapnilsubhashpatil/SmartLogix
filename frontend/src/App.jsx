@@ -6,6 +6,8 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ComplianceCheck from "./components/ComplianceCheck";
 import Profile from "./components/Profile";
+import RouteOptimization from "./components/RouteOptimization";
+import RouteMap from "./components/route";
 
 function App() {
   return (
@@ -29,6 +31,24 @@ function App() {
             </ProtectedRoute>
           }
         />
+        {/* <Route
+          path="/route-optimization"
+          element={
+            <ProtectedRoute>
+              <Mapping />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/route"
+          element={
+            <ProtectedRoute>
+              <RouteOptimization />
+            </ProtectedRoute>
+          }
+        /> */}
+        <Route path="/route-optimization" element={<RouteOptimization />} />
+        <Route path="/map/:routeId/:routeData" element={<RouteMap />} />
         <Route
           path="/profile"
           element={
