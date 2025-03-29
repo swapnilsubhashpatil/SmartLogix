@@ -18,6 +18,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import RouteIcon from "@mui/icons-material/Route";
 import TimerIcon from "@mui/icons-material/Timer";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
+import HomeIcon from "@mui/icons-material/Home"; // Added HomeIcon for the header
 import { useNavigate } from "react-router-dom";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
@@ -41,6 +42,10 @@ const RouteOptimizer = () => {
   const [saveLoading, setSaveLoading] = useState(null);
   const token = localStorage.getItem("token");
   const navigate = useNavigate();
+
+  const toHome = () => {
+    navigate("/"); // Navigate to the home page
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -136,7 +141,6 @@ const RouteOptimizer = () => {
         originalRoute: route,
         processedRoutes: response.data,
       };
-      // Use a consistent key for the static route
       const routeKey = `route_data_${index}`;
       localStorage.setItem(routeKey, JSON.stringify(routeDataObj));
       console.log(
@@ -145,7 +149,6 @@ const RouteOptimizer = () => {
         routeDataObj
       );
 
-      // Redirect to static route
       window.open("/map", "_blank");
     } catch (error) {
       console.error("Error fetching map data:", error);
@@ -167,12 +170,11 @@ const RouteOptimizer = () => {
         weight: parseFloat(weight),
       };
 
-      // Use a consistent key for the static route
-      const carbonKey = `carbon_data_${index}`;
+      const carbonKey = `carbon_${index}_${Date.now()}`;
       sessionStorage.setItem(carbonKey, JSON.stringify(carbonParams));
 
-      // Redirect to static route
-      window.open("/carbon-footprint", "_blank");
+      const carbonUrl = `/carbon-footprint/${carbonKey}`;
+      window.open(carbonUrl, "_blank");
     } catch (error) {
       console.error("Error preparing carbon data:", error);
       alert("Failed to prepare carbon footprint data.");
@@ -180,6 +182,7 @@ const RouteOptimizer = () => {
       setCarbonLoading(null);
     }
   };
+
   const handleSaveClick = async (route, index) => {
     if (!token) {
       alert("Please log in to save routes.");
@@ -237,84 +240,96 @@ const RouteOptimizer = () => {
 
   return (
     <>
-      <div className="p-6 font-sans min-h-screen flex flex-col items-center">
-        <div className="relative w-full bg-gray-50 overflow-hidden">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            <div className="text-center py-4 lg:py-6">
+      <div className="p-4 sm:p-6 font-sans min-h-screen flex flex-col items-center">
+        {/* Redesigned Header */}
+        <header className="relative bg-gradient-to-r from-teal-200 to-blue-400 text-white py-6 sm:py-8 rounded-b-3xl overflow-hidden w-full">
+          {/* Wavy Background Shape */}
+          <div className="absolute inset-0">
+            <svg
+              className="w-full h-full"
+              viewBox="0 0 1440 200"
+              preserveAspectRatio="none"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                d="M0 100C240 30 480 170 720 100C960 30 1200 170 1440 100V200H0V100Z"
+                fill="white"
+                fillOpacity="0.1"
+              />
+              <path
+                d="M0 150C240 80 480 220 720 150C960 80 1200 220 1440 150V200H0V150Z"
+                fill="white"
+                fillOpacity="0.2"
+              />
+            </svg>
+          </div>
+
+          {/* Content */}
+          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between">
+            {/* Logo/Title */}
+            <div className="flex items-center space-x-3">
+              <div className="w-10 h-10 bg-[#f4ce14] rounded-full flex items-center justify-center">
+                <HomeIcon
+                  onClick={toHome}
+                  sx={{ color: "#000", cursor: "pointer" }}
+                />
+              </div>
               <h1
-                className="
-            text-4xl 
-            md:text-5xl 
-            lg:text-6xl 
-            font-extrabold 
-            text-gray-900 
-            tracking-tight 
-            leading-tight
-            mb-4
-          "
+                className="text-2xl sm:text-3xl font-bold text-white"
+                style={{ fontFamily: "Poppins, sans-serif" }}
               >
                 Route Optimization
               </h1>
-              <p
-                className="
-            max-w-3xl 
-            mx-auto 
-            text-xl 
-            text-gray-500 
-            sm:text-center 
-            sm:text-2xl
-          "
-              >
-                Intelligent routing solutions for enhanced efficiency
-              </p>
             </div>
           </div>
+        </header>
 
-          {/* Subtle background curve */}
-          <div
-            className="
-        absolute 
-        bottom-0 
-        left-0 
-        right-0 
-        h-16 
-        bg-white 
-        rounded-t-[50px] 
-        shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]
-      "
-          ></div>
-        </div>
-
+        {/* Form Section with Horizontal Inputs on Large Screens */}
         <form
           onSubmit={handleSubmit}
-          className="w-full max-w-3xl flex flex-col md:flex-row gap-4 mb-8 justify-center items-center"
+          className="w-full max-w-4xl mt-6 flex flex-col gap-4 mb-6 sm:mb-8 items-center justify-center"
         >
-          <TextField
-            label="From"
-            value={from}
-            onChange={(e) => setFrom(e.target.value)}
-            required
-            variant="outlined"
-            sx={{ backgroundColor: "white", flex: 1, minWidth: "200px" }}
-          />
-          <TextField
-            label="To"
-            value={to}
-            onChange={(e) => setTo(e.target.value)}
-            required
-            variant="outlined"
-            sx={{ backgroundColor: "white", flex: 1, minWidth: "200px" }}
-          />
-          <TextField
-            label="Weight (kg)"
-            type="number"
-            value={weight}
-            onChange={(e) => setWeight(e.target.value)}
-            required
-            inputProps={{ min: 0, step: 0.1 }}
-            variant="outlined"
-            sx={{ backgroundColor: "white", flex: 1, minWidth: "200px" }}
-          />
+          <div className="flex flex-row gap-4 w-full justify-center">
+            <TextField
+              label="From"
+              value={from}
+              onChange={(e) => setFrom(e.target.value)}
+              required
+              variant="outlined"
+              sx={{
+                backgroundColor: "white",
+                width: "100%",
+                maxWidth: "300px",
+              }}
+            />
+            <TextField
+              label="To"
+              value={to}
+              onChange={(e) => setTo(e.target.value)}
+              required
+              variant="outlined"
+              sx={{
+                backgroundColor: "white",
+                width: "100%",
+                maxWidth: "300px",
+              }}
+            />
+            <TextField
+              label="Weight (kg)"
+              type="number"
+              value={weight}
+              onChange={(e) => setWeight(e.target.value)}
+              required
+              inputProps={{ min: 0, step: 0.1 }}
+              variant="outlined"
+              sx={{
+                backgroundColor: "white",
+                width: "100%",
+                maxWidth: "300px",
+              }}
+            />
+          </div>
           <Button
             type="submit"
             variant="contained"
@@ -323,10 +338,12 @@ const RouteOptimizer = () => {
               backgroundColor: "var(--color-primary-500)",
               "&:hover": { backgroundColor: "var(--color-primary-600)" },
               padding: "10px 24px",
-              minWidth: "180px",
+              width: "100%",
+              maxWidth: "200px",
+              margin: "0 auto",
             }}
           >
-            <span className="flex items-center gap-2">
+            <span className="flex items-center justify-center gap-2">
               Optimize Routes
               {loading && (
                 <CircularProgress size={20} sx={{ color: "white" }} />
@@ -337,7 +354,7 @@ const RouteOptimizer = () => {
 
         {showResults && (
           <>
-            <div className="flex gap-4 mb-6 flex-wrap justify-center max-w-3xl w-full">
+            <div className="flex flex-wrap gap-3 sm:gap-4 mb-4 sm:mb-6 justify-center max-w-3xl w-full">
               {[
                 {
                   key: "popular",
@@ -372,6 +389,7 @@ const RouteOptimizer = () => {
                         : "bg-white text-blue-500 border-blue-500 hover:bg-blue-50"
                     }
                     flex items-center gap-2
+                    px-3 py-2 sm:px-4 sm:py-2
                   `}
                   sx={{
                     borderRadius: "8px",
@@ -380,6 +398,7 @@ const RouteOptimizer = () => {
                       activeFilter === filter.key
                         ? "0 4px 6px rgba(0,0,0,0.1)"
                         : "none",
+                    minWidth: "120px",
                   }}
                 >
                   {filter.icon}
@@ -395,12 +414,12 @@ const RouteOptimizer = () => {
                   initial={{ opacity: 0, x: -50 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.5, delay: index * 0.2 }}
-                  className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg flex items-center justify-between border border-gray-200"
+                  className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg border border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
                 >
                   <div className="flex-1">
                     <Typography
                       variant="h6"
-                      className="font-semibold text-gray-800"
+                      className="font-semibold text-gray-800 text-base sm:text-lg"
                     >
                       Route {index + 1}
                     </Typography>
@@ -413,20 +432,22 @@ const RouteOptimizer = () => {
                       </Typography>
                     ))}
                   </div>
-                  <div className="flex items-center gap-4">
-                    <Typography className="text-gray-700">
-                      {route.totalDistance} km
-                    </Typography>
-                    <Typography className="text-gray-700">
-                      {route.totalCarbonEmission} kg
-                    </Typography>
-                    <Typography className="text-gray-700">
-                      ${route.totalCost.toFixed(2)}
-                    </Typography>
-                    <Typography className="text-gray-700">
-                      {route.totalTime} hrs
-                    </Typography>
-                    <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
+                    <div className="flex flex-wrap gap-2 sm:gap-4">
+                      <Typography className="text-gray-700 text-sm sm:text-base">
+                        {route.totalDistance} km
+                      </Typography>
+                      <Typography className="text-gray-700 text-sm sm:text-base">
+                        {route.totalCarbonEmission} kg
+                      </Typography>
+                      <Typography className="text-gray-700 text-sm sm:text-base">
+                        ${route.totalCost.toFixed(2)}
+                      </Typography>
+                      <Typography className="text-gray-700 text-sm sm:text-base">
+                        {route.totalTime} hrs
+                      </Typography>
+                    </div>
+                    <div className="flex gap-4 p-2 w-full sm:w-auto justify-start sm:justify-end">
                       <Button
                         onClick={() => handleMapClick(route, index)}
                         disabled={mapLoading === index}

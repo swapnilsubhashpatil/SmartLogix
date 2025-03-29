@@ -138,9 +138,23 @@ function RouteMap() {
   const [mapZoom, setMapZoom] = useState(3);
   const [selectedRoute, setSelectedRoute] = useState(null);
   const [activeMarker, setActiveMarker] = useState(null);
-  const [showSidebar, setShowSidebar] = useState(true);
+  const [showSidebar, setShowSidebar] = useState(false); // Default to hidden on mobile
   const [isGoogleLoaded, setIsGoogleLoaded] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
   const mapRef = useRef(null);
+
+  // Check if device is mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      setShowSidebar(!mobile); // Show sidebar by default on desktop, hide on mobile
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   useEffect(() => {
     // Find the latest route data in localStorage
@@ -206,6 +220,11 @@ function RouteMap() {
       }
 
       mapRef.current.fitBounds(bounds);
+    }
+
+    // Auto-hide sidebar on mobile after selecting a route
+    if (isMobile) {
+      setShowSidebar(false);
     }
   };
 
@@ -321,21 +340,48 @@ function RouteMap() {
   return (
     <LoadScript googleMapsApiKey={MAPS} onLoad={() => setIsGoogleLoaded(true)}>
       <div className="flex h-screen bg-gray-50 overflow-hidden relative">
-        {/* Sidebar */}
+        {/* Sidebar - Full screen overlay on mobile when open */}
         <div
-          className={`bg-white transition-all duration-300 shadow-lg ${
-            showSidebar ? "w-3/10" : "w-0"
-          }`}
+          className={`${
+            showSidebar
+              ? isMobile
+                ? "fixed inset-0 z-30 overflow-y-auto bg-white"
+                : "w-80 md:w-3/10"
+              : "w-0"
+          } bg-white transition-all duration-300 shadow-lg h-full`}
         >
           {showSidebar && (
             <div className="h-full flex flex-col">
-              <div className="p-4 border-b border-gray-200">
-                <h1 className="text-2xl font-bold text-gray-800">
-                  Route Finder
-                </h1>
-                <p className="text-sm text-gray-500">
-                  Explore travel routes around the world
-                </p>
+              <div className="p-4 border-b border-gray-200 flex justify-between items-center">
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-800">
+                    Route Finder
+                  </h1>
+                  <p className="text-sm text-gray-500">
+                    Explore Cargo routes around the world
+                  </p>
+                </div>
+                {isMobile && (
+                  <button
+                    className="p-2 rounded-full hover:bg-gray-100"
+                    onClick={() => setShowSidebar(false)}
+                  >
+                    <svg
+                      className="w-6 h-6 text-gray-700"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M6 18L18 6M6 6l12 12"
+                      ></path>
+                    </svg>
+                  </button>
+                )}
               </div>
 
               <div className="p-4 bg-gray-50 border-b border-gray-200">
@@ -438,14 +484,16 @@ function RouteMap() {
         {/* Map container */}
         <div
           className={`${
-            showSidebar ? "w-7/10" : "w-full"
+            showSidebar && !isMobile ? "w-full md:w-7/10" : "w-full"
           } transition-all duration-300 relative`}
         >
+          {/* Improved mobile toggle button */}
           <button
-            className="absolute top-4 left-3 z-10 bg-white p-2 rounded-full shadow-md hover:bg-gray-100 transition-colors duration-200"
+            className="absolute top-4 left-4 z-20 bg-white p-2 rounded-full shadow-md hover:bg-gray-100 transition-colors duration-200"
             onClick={() => setShowSidebar(!showSidebar)}
+            aria-label={showSidebar ? "Hide sidebar" : "Show sidebar"}
           >
-            {showSidebar ? (
+            {showSidebar && !isMobile ? (
               <svg
                 className="w-5 h-5 text-gray-700"
                 fill="none"
@@ -472,15 +520,43 @@ function RouteMap() {
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth="2"
-                  d="M9 5l7 7-7 7"
+                  d="M4 6h16M4 12h16M4 18h16"
                 ></path>
               </svg>
             )}
           </button>
 
-          {/* Back button at center bottom */}
+          {/* Route info pill (mobile only) */}
+          {isMobile &&
+            selectedRoute &&
+            routes[selectedRoute] &&
+            !showSidebar && (
+              <div className="absolute top-4 left-16 right-4 z-10 bg-white rounded-full shadow-md py-2 px-4 flex items-center justify-between">
+                <div className="flex items-center">
+                  <span className="text-lg mr-2">
+                    {getRouteIcon(routes[selectedRoute].state)}
+                  </span>
+                  <span className="font-medium text-sm truncate max-w-32">
+                    {routes[selectedRoute].name}
+                  </span>
+                </div>
+                <div
+                  className={`ml-2 px-2 py-1 rounded text-xs font-medium ${
+                    routes[selectedRoute].state === "land"
+                      ? "bg-green-100 text-green-800"
+                      : routes[selectedRoute].state === "sea"
+                      ? "bg-blue-100 text-blue-800"
+                      : "bg-red-100 text-red-800"
+                  }`}
+                >
+                  {routes[selectedRoute].state.toUpperCase()}
+                </div>
+              </div>
+            )}
+
+          {/* Back button at bottom - better mobile positioning */}
           <button
-            className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10 bg-yellow-400 p-2 rounded-full shadow-md hover:bg-yellow-500 transition-colors duration-200 flex items-center gap-2"
+            className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10 bg-yellow-400 py-2 px-4 rounded-full shadow-md hover:bg-yellow-500 transition-colors duration-200 flex items-center gap-2"
             onClick={handleBackClick}
           >
             <span className="text-gray-800 font-medium">Close</span>

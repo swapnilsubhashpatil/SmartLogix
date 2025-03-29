@@ -1,12 +1,24 @@
 import React, { useState } from "react";
 import { Tooltip } from "@mui/material";
-import { InfoOutlined } from "@mui/icons-material";
+import { InfoOutlined, Home } from "@mui/icons-material";
 import axios from "axios";
 import ComplianceResponse from "./ComplianceResponse";
+import { useNavigate } from "react-router-dom";
+
+<link
+  href="https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap"
+  rel="stylesheet"
+/>;
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 const ComplianceForm = () => {
+  const navigate = useNavigate();
+
+  const toHome = () => {
+    navigate("/dashboard");
+  };
+
   const [formData, setFormData] = useState({
     ShipmentDetails: {
       "Origin Country": "US",
@@ -617,7 +629,7 @@ const ComplianceForm = () => {
           <select
             value={value || ""}
             onChange={(e) => handleInputChange(section, field, e.target.value)}
-            className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+            className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base ${
               mandatory && !value ? "border-red-500" : "border-neutral-300"
             }`}
             required={mandatory}
@@ -647,7 +659,7 @@ const ComplianceForm = () => {
           <select
             value={value || ""}
             onChange={(e) => handleInputChange(section, field, e.target.value)}
-            className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+            className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base ${
               mandatory && !value ? "border-red-500" : "border-neutral-300"
             }`}
             required={mandatory}
@@ -669,7 +681,7 @@ const ComplianceForm = () => {
             type="number"
             value={value || ""}
             onChange={(e) => handleInputChange(section, field, e.target.value)}
-            className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+            className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base ${
               mandatory && !value ? "border-red-500" : "border-neutral-300"
             }`}
             placeholder={placeholder}
@@ -684,7 +696,7 @@ const ComplianceForm = () => {
           <textarea
             value={value || ""}
             onChange={(e) => handleInputChange(section, field, e.target.value)}
-            className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+            className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base ${
               mandatory && !value ? "border-red-500" : "border-neutral-300"
             }`}
             placeholder={placeholder}
@@ -696,7 +708,7 @@ const ComplianceForm = () => {
             type="text"
             value={value || ""}
             onChange={(e) => handleInputChange(section, field, e.target.value)}
-            className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+            className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base ${
               mandatory && !value ? "border-red-500" : "border-neutral-300"
             }`}
             placeholder={placeholder}
@@ -706,13 +718,13 @@ const ComplianceForm = () => {
 
       case "Text input (Currency) & Number input (Amount)":
         return (
-          <div className="flex gap-4">
+          <div className="flex flex-col md:flex-row gap-4">
             <select
               value={value?.currency || ""}
               onChange={(e) =>
                 handleInputChange(section, field, e.target.value, "currency")
               }
-              className={`w-1/3 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+              className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base ${
                 mandatory && !value?.currency
                   ? "border-red-500"
                   : "border-neutral-300"
@@ -734,7 +746,7 @@ const ComplianceForm = () => {
               onChange={(e) =>
                 handleInputChange(section, field, e.target.value, "amount")
               }
-              className={`w-2/3 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 ${
+              className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base ${
                 mandatory && !value?.amount
                   ? "border-red-500"
                   : "border-neutral-300"
@@ -761,7 +773,9 @@ const ComplianceForm = () => {
                 disabled={fieldData.mandatory}
                 className="mr-2"
               />
-              <span className="text-sm text-neutral-700">{field}</span>
+              <span className="text-sm md:text-base text-neutral-700">
+                {field}
+              </span>
             </div>
             {(doc.checked || fieldData.mandatory) && (
               <div className="ml-6 mt-2 space-y-2">
@@ -785,7 +799,7 @@ const ComplianceForm = () => {
                       }
                       className="mr-2"
                     />
-                    <span className="text-sm text-neutral-700">
+                    <span className="text-sm md:text-base text-neutral-700">
                       {subItem.field}
                     </span>
                   </div>
@@ -801,16 +815,53 @@ const ComplianceForm = () => {
   };
 
   return (
-    <div className="min-h-screen bg-neutral-100 p-6">
-      <h1 className="text-3xl font-bold text-tertiary-500 mb-6">
-        Compliance Check
-      </h1>
-      <div className="bg-white shadow-custom-light rounded-lg mb-6">
-        <div className="flex border-b border-neutral-200">
+    <div className="min-h-screen bg-neutral-100 p-4 sm:p-6">
+      <header className="relative bg-gradient-to-r from-teal-200 to-blue-400 text-white py-6 sm:py-8 rounded-b-3xl overflow-hidden">
+        {/* Wavy Background Shape */}
+        <div className="absolute inset-0">
+          <svg
+            className="w-full h-full"
+            viewBox="0 0 1440 200"
+            preserveAspectRatio="none"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M0 100C240 30 480 170 720 100C960 30 1200 170 1440 100V200H0V100Z"
+              fill="white"
+              fillOpacity="0.1"
+            />
+            <path
+              d="M0 150C240 80 480 220 720 150C960 80 1200 220 1440 150V200H0V150Z"
+              fill="white"
+              fillOpacity="0.2"
+            />
+          </svg>
+        </div>
+
+        {/* Content */}
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between">
+          {/* Logo/Title */}
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-[#f4ce14] rounded-full flex items-center justify-center">
+              <Home onClick={toHome} />
+            </div>
+            <h1
+              className="text-2xl sm:text-3xl font-bold text-white"
+              style={{ fontFamily: "Poppins, sans-serif" }}
+            >
+              Compliance Check
+            </h1>
+          </div>
+        </div>
+      </header>
+      <div className="bg-white mt-6 shadow-custom-light rounded-lg mb-4 sm:mb-6 overflow-x-auto">
+        <div className="flex border-b border-neutral-200 whitespace-nowrap">
           {tabOrder.map((tab) => (
             <button
               key={tab}
-              className={`px-6 py-3 text-sm font-medium transition-colors duration-200 ${
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm font-medium transition-colors duration-200 ${
                 activeTab === tab
                   ? "border-b-2 border-primary-500 text-primary-500"
                   : "text-neutral-700 hover:text-primary-500"
@@ -821,11 +872,11 @@ const ComplianceForm = () => {
           ))}
         </div>
       </div>
-      <div className="bg-white shadow-custom-medium rounded-lg p-6">
-        <h2 className="text-2xl font-bold text-tertiary-500 mb-6">
+      <div className="bg-white shadow-custom-medium rounded-lg p-4 sm:p-6">
+        <h2 className="text-xl sm:text-2xl font-bold text-tertiary-500 mb-4 sm:mb-6">
           {activeTab.replace(/([A-Z])/g, " $1").trim()}
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 gap-4 sm:gap-6">
           {formStructure[activeTab].map((fieldData) => (
             <div key={fieldData.field} className="flex flex-col">
               <div className="flex items-center mb-2">
@@ -846,11 +897,11 @@ const ComplianceForm = () => {
             </div>
           ))}
         </div>
-        <div className="flex justify-between mt-6">
+        <div className="flex flex-col sm:flex-row justify-between mt-4 sm:mt-6 gap-4">
           <button
             onClick={handlePrevTab}
             disabled={tabOrder.indexOf(activeTab) === 0}
-            className={`py-3 px-6 text-lg font-medium rounded-lg transition-colors duration-200 ${
+            className={`py-2 sm:py-3 px-4 sm:px-6 text-base sm:text-lg font-medium rounded-lg transition-colors duration-200 w-full sm:w-auto ${
               tabOrder.indexOf(activeTab) === 0
                 ? "bg-neutral-400 cursor-not-allowed"
                 : "bg-secondary-500 text-white hover:bg-secondary-600"
@@ -862,7 +913,7 @@ const ComplianceForm = () => {
             <button
               onClick={handleNextTab}
               disabled={!areCurrentTabMandatoryFieldsFilled()}
-              className={`py-3 px-6 text-lg font-medium rounded-lg transition-colors duration-200 ${
+              className={`py-2 sm:py-3 px-4 sm:px-6 text-base sm:text-lg font-medium rounded-lg transition-colors duration-200 w-full sm:w-auto ${
                 !areCurrentTabMandatoryFieldsFilled()
                   ? "bg-neutral-400 cursor-not-allowed"
                   : "bg-primary-500 text-white hover:bg-primary-600"
@@ -874,7 +925,7 @@ const ComplianceForm = () => {
             <button
               onClick={handleSubmit}
               disabled={loading}
-              className={`py-3 px-6 text-lg font-medium rounded-lg transition-colors duration-200 ${
+              className={`py-2 sm:py-3 px-4 sm:px-6 text-base sm:text-lg font-medium rounded-lg transition-colors duration-200 w-full sm:w-auto ${
                 loading
                   ? "bg-neutral-400 cursor-not-allowed"
                   : "bg-primary-500 text-white hover:bg-primary-600"
