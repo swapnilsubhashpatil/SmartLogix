@@ -1,19 +1,17 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { FaLeaf, FaRoute, FaLightbulb, FaChartLine } from "react-icons/fa";
-import { useParams } from "react-router-dom";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 function CarbonFootprint() {
-  const { carbonKey } = useParams();
   const [carbonData, setCarbonData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchCarbonFootprint();
-  }, [carbonKey]);
+  }, []); // Remove carbonKey dependency since we're using a static route
 
   const fetchCarbonFootprint = async () => {
     setLoading(true);
@@ -21,8 +19,17 @@ function CarbonFootprint() {
     setError(null);
 
     try {
-      // Retrieve parameters from sessionStorage
-      const params = JSON.parse(sessionStorage.getItem(carbonKey));
+      // Find the latest carbon data in sessionStorage
+      const carbonKeys = Object.keys(sessionStorage).filter((key) =>
+        key.startsWith("carbon_data_")
+      );
+      if (carbonKeys.length === 0) {
+        throw new Error("No carbon footprint data found in sessionStorage");
+      }
+
+      // Use the latest key (assuming the last one is the most recent)
+      const latestKey = carbonKeys.sort().pop();
+      const params = JSON.parse(sessionStorage.getItem(latestKey));
       console.log("Retrieved params from sessionStorage:", params);
 
       if (!params) {
@@ -56,7 +63,7 @@ function CarbonFootprint() {
       setCarbonData(jsonData);
 
       // Clean up sessionStorage after use
-      sessionStorage.removeItem(carbonKey);
+      sessionStorage.removeItem(latestKey);
     } catch (err) {
       console.error("Error fetching carbon footprint:", err);
       setError(err.message || "Failed to fetch carbon footprint data.");

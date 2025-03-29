@@ -136,7 +136,8 @@ const RouteOptimizer = () => {
         originalRoute: route,
         processedRoutes: response.data,
       };
-      const routeKey = `route_${index}_${Date.now()}`;
+      // Use a consistent key for the static route
+      const routeKey = `route_data_${index}`;
       localStorage.setItem(routeKey, JSON.stringify(routeDataObj));
       console.log(
         "Route data stored in local storage:",
@@ -144,8 +145,8 @@ const RouteOptimizer = () => {
         routeDataObj
       );
 
-      const mapUrl = `/map/${index}/${routeKey}`;
-      window.open(mapUrl, "_blank");
+      // Redirect to static route
+      window.open("/map", "_blank");
     } catch (error) {
       console.error("Error fetching map data:", error);
       alert("Failed to fetch map data.");
@@ -166,11 +167,12 @@ const RouteOptimizer = () => {
         weight: parseFloat(weight),
       };
 
-      const carbonKey = `carbon_${index}_${Date.now()}`;
+      // Use a consistent key for the static route
+      const carbonKey = `carbon_data_${index}`;
       sessionStorage.setItem(carbonKey, JSON.stringify(carbonParams));
 
-      const carbonUrl = `/carbon-footprint/${carbonKey}`;
-      window.open(carbonUrl, "_blank");
+      // Redirect to static route
+      window.open("/carbon-footprint", "_blank");
     } catch (error) {
       console.error("Error preparing carbon data:", error);
       alert("Failed to prepare carbon footprint data.");
@@ -178,7 +180,6 @@ const RouteOptimizer = () => {
       setCarbonLoading(null);
     }
   };
-
   const handleSaveClick = async (route, index) => {
     if (!token) {
       alert("Please log in to save routes.");

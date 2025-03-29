@@ -143,10 +143,19 @@ function RouteMap() {
   const mapRef = useRef(null);
 
   useEffect(() => {
-    if (!routeData) return;
+    // Find the latest route data in localStorage
+    const routeKeys = Object.keys(localStorage).filter((key) =>
+      key.startsWith("route_data_")
+    );
+    if (routeKeys.length === 0) {
+      setLoading(false);
+      return;
+    }
 
+    // Use the latest key (assuming the last one is the most recent)
+    const latestKey = routeKeys.sort().pop();
     try {
-      const routeDataObj = JSON.parse(localStorage.getItem(routeData));
+      const routeDataObj = JSON.parse(localStorage.getItem(latestKey));
       console.log("Route data retrieved from local storage:", routeDataObj);
       if (!routeDataObj) throw new Error("No route data found in localStorage");
 
@@ -172,13 +181,13 @@ function RouteMap() {
       setMapCenter(center);
       setLoading(false);
 
-      // Optional: Clean up sessionStorage after use
-      localStorage.removeItem(routeData);
+      // Clean up after use
+      localStorage.removeItem(latestKey);
     } catch (error) {
       console.error("Error processing route data:", error);
       setLoading(false);
     }
-  }, [routeData]);
+  }, []);
 
   const handleRouteClick = (routeId) => {
     setSelectedRoute(routeId);

@@ -42,7 +42,7 @@ function App() {
           }
         />
         <Route
-          path="/map/:routeId/:routeData"
+          path="/map"
           element={
             <ProtectedRoute>
               <RouteMap />
@@ -58,7 +58,7 @@ function App() {
           }
         />
         <Route
-          path="/carbon-footprint/:carbonKey"
+          path="/carbon-footprint"
           element={
             <ProtectedRoute>
               <CarbonFootprint />
