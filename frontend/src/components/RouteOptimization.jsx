@@ -20,7 +20,7 @@ import TimerIcon from "@mui/icons-material/Timer";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import { useNavigate } from "react-router-dom";
 
-const GOOGLE_MAPS_API_KEY = "AIzaSyAmyeWi4SPcXM7dkR1hduoIqL5uyMXtqUk"; // Replace with your key
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 const RouteOptimizer = () => {
   const [from, setFrom] = useState("");
@@ -53,7 +53,7 @@ const RouteOptimizer = () => {
     setShowResults(false);
     try {
       const response = await axios.post(
-        "http://localhost:3003/api/route-optimization",
+        `${BACKEND_URL}/api/route-optimization`,
         { from, to, weight: parseFloat(weight) },
         {
           headers: {
@@ -122,7 +122,7 @@ const RouteOptimizer = () => {
       }));
 
       const response = await axios.post(
-        "http://localhost:3003/api/routes",
+        `${BACKEND_URL}/api/routes`,
         routeData,
         {
           headers: {
@@ -196,7 +196,7 @@ const RouteOptimizer = () => {
       console.log("routeData:", routeData);
 
       const response = await axios.post(
-        "http://localhost:3003/api/save-route",
+        `${BACKEND_URL}/api/save-route`,
         { formData, routeData },
         {
           headers: {

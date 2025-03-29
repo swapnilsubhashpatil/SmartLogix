@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import { FaLeaf, FaRoute, FaLightbulb, FaChartLine } from "react-icons/fa";
 import { useParams } from "react-router-dom";
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
 function CarbonFootprint() {
   const { carbonKey } = useParams();
   const [carbonData, setCarbonData] = useState(null);
@@ -35,14 +37,11 @@ function CarbonFootprint() {
         throw new Error("Missing required parameters in sessionStorage data");
       }
 
-      const response = await fetch(
-        "http://localhost:3003/api/carbon-footprint",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(params),
-        }
-      );
+      const response = await fetch(`${BACKEND_URL}/api/carbon-footprint`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(params),
+      });
 
       if (!response.ok) {
         const errorText = await response.text();

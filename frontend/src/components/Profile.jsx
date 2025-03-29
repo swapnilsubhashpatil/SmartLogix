@@ -3,6 +3,8 @@ import axios from "axios";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
 const Profile = () => {
   const [user, setUser] = useState({
     firstName: "",
@@ -18,20 +20,19 @@ const Profile = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const userResponse = await axios.get(
-          "http://localhost:5000/protectedRoute",
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
+        const userResponse = await axios.get(`${BACKEND_URL}/protectedRoute`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         setUser(userResponse.data.user);
 
         const complianceResponse = await axios.get(
-          "http://localhost:5000/api/compliance-history",
+          `${BACKEND_URL}/api/compliance-history`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setComplianceHistory(complianceResponse.data.complianceHistory);
 
         const routeResponse = await axios.get(
-          "http://localhost:3003/api/route-history",
+          `${BACKEND_URL}/api/route-history`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         setRouteHistory(routeResponse.data.routeHistory);
@@ -49,10 +50,9 @@ const Profile = () => {
 
   const handleDeleteCompliance = async (recordId) => {
     try {
-      await axios.delete(
-        `http://localhost:5000/api/compliance-history/${recordId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      await axios.delete(`${BACKEND_URL}/api/compliance-history/${recordId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setComplianceHistory((prev) =>
         prev.filter((entry) => entry._id !== recordId)
       );

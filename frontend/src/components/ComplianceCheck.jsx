@@ -4,6 +4,8 @@ import { InfoOutlined } from "@mui/icons-material";
 import axios from "axios";
 import ComplianceResponse from "./ComplianceResponse";
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
 const ComplianceForm = () => {
   const [formData, setFormData] = useState({
     ShipmentDetails: {
@@ -576,6 +578,7 @@ const ComplianceForm = () => {
 
   const handleSubmit = async () => {
     setLoading(true);
+    console.log(BACKEND_URL);
     try {
       const token = localStorage.getItem("token"); // Retrieve token from localStorage
       if (!token) {
@@ -583,7 +586,7 @@ const ComplianceForm = () => {
       }
 
       const res = await axios.post(
-        "http://localhost:5000/api/compliance-check",
+        `${BACKEND_URL}/api/compliance-check`,
         formData, // Send the entire formData object directly
         {
           headers: {

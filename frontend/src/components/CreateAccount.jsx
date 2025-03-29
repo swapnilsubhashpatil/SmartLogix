@@ -5,6 +5,7 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
 import GoogleLogin from "./GoogleLogin";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 const CreateAccount = () => {
   const [firstName, setFirstName] = useState("");
@@ -44,7 +45,7 @@ const CreateAccount = () => {
 
     try {
       setLoading(true);
-      const response = await axios.post("http://localhost:5000/createAccount", {
+      const response = await axios.post(`${BACKEND_URL}}/createAccount`, {
         firstName,
         lastName,
         emailAddress,

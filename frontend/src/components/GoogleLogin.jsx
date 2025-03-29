@@ -1,8 +1,10 @@
 import React from "react";
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
 const GoogleLogin = () => {
   const handleGoogleLogin = () => {
-    window.location.href = "http://localhost:5000/auth/google";
+    window.location.href = `${BACKEND_URL}/auth/google`;
   };
 
   return (

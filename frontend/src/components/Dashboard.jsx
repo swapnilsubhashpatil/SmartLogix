@@ -15,6 +15,8 @@ import styled from "styled-components";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
 // Theme Configuration
 const theme = {
   primary: "#FFFFFF",
@@ -141,12 +143,9 @@ function MovexDashboard() {
         return;
       }
       try {
-        const response = await axios.get(
-          "http://localhost:5000/protectedRoute",
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
+        const response = await axios.get(`${BACKEND_URL}/protectedRoute`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
         setUser({
           firstName: response.data.user.firstName,
           lastName: response.data.user.lastName,

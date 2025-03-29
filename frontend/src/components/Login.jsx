@@ -6,6 +6,8 @@ import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
 import GoogleLogin from "./GoogleLogin";
 
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
+
 const Login = () => {
   const [emailAddress, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -41,7 +43,7 @@ const Login = () => {
 
     try {
       setLoading(true);
-      const response = await axios.post("http://localhost:5000/loginUser", {
+      const response = await axios.post(`${BACKEND_URL}/loginUser`, {
         emailAddress,
         password,
       });

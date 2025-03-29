@@ -8,7 +8,7 @@ import {
 } from "@react-google-maps/api";
 import { useParams, useNavigate } from "react-router-dom";
 
-const GOOGLE_MAPS_API_KEY = "AIzaSyAmyeWi4SPcXM7dkR1hduoIqL5uyMXtqUk";
+const MAPS = "AIzaSyADQ_BDioK6c7t5VPAfkVPNvuAc7lzX9qw";
 
 function decodePolyline(encoded) {
   if (!encoded) return [];
@@ -311,10 +311,7 @@ function RouteMap() {
   }
 
   return (
-    <LoadScript
-      googleMapsApiKey={GOOGLE_MAPS_API_KEY}
-      onLoad={() => setIsGoogleLoaded(true)}
-    >
+    <LoadScript googleMapsApiKey={MAPS} onLoad={() => setIsGoogleLoaded(true)}>
       <div className="flex h-screen bg-gray-50 overflow-hidden relative">
         {/* Sidebar */}
         <div
