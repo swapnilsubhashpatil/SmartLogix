@@ -137,7 +137,12 @@ const RouteOptimizer = () => {
         processedRoutes: response.data,
       };
       const routeKey = `route_${index}_${Date.now()}`;
-      sessionStorage.setItem(routeKey, JSON.stringify(routeDataObj));
+      localStorage.setItem(routeKey, JSON.stringify(routeDataObj));
+      console.log(
+        "Route data stored in local storage:",
+        routeKey,
+        routeDataObj
+      );
 
       const mapUrl = `/map/${index}/${routeKey}`;
       window.open(mapUrl, "_blank");

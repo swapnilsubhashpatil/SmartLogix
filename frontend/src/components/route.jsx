@@ -146,10 +146,9 @@ function RouteMap() {
     if (!routeData) return;
 
     try {
-      // Retrieve route data from sessionStorage using the key from URL
-      const routeDataObj = JSON.parse(sessionStorage.getItem(routeData));
-      if (!routeDataObj)
-        throw new Error("No route data found in sessionStorage");
+      const routeDataObj = JSON.parse(localStorage.getItem(routeData));
+      console.log("Route data retrieved from local storage:", routeDataObj);
+      if (!routeDataObj) throw new Error("No route data found in localStorage");
 
       const { originalRoute, processedRoutes } = routeDataObj;
 
@@ -174,7 +173,7 @@ function RouteMap() {
       setLoading(false);
 
       // Optional: Clean up sessionStorage after use
-      sessionStorage.removeItem(routeData);
+      localStorage.removeItem(routeData);
     } catch (error) {
       console.error("Error processing route data:", error);
       setLoading(false);
