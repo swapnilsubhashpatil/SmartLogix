@@ -1,0 +1,16 @@
+{
+  "rewrites": [
+    {
+      "source": "/map(.*)",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/carbon-footprint(.*)",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/(.*)",
+      "destination": "/index.html"
+    }
+  ]
+}
