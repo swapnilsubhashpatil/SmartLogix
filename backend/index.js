@@ -60,7 +60,7 @@ passport.use(
     {
       clientID: GOOGLE_CLIENT_ID,
       clientSecret: GOOGLE_CLIENT_SECRET,
-      callbackURL: `https://smartlogix.onrender.com/auth/google/callback`,
+      callbackURL: `http://localhost:${PORT}/auth/google/callback`,
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
@@ -191,7 +191,19 @@ app.post("/createAccount", async (req, res) => {
       password: hashedPassword,
     });
     console.log(newUser);
-    res.status(201).send({ message: "Account created successfully" });
+
+    // Generate JWT token upon successful account creation
+    const token = jwt.sign(
+      { id: newUser._id, email: newUser.emailAddress },
+      JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    res.status(201).send({
+      message: "Account created successfully",
+      token, // Include the token in the response
+      user: newUser, // include user details
+    });
   } catch (error) {
     console.error("Error creating account:", error);
     return res.status(500).send({ message: "Internal server error" });
@@ -224,6 +236,47 @@ app.post("/loginUser", async (req, res) => {
     return res.status(500).send({ message: "An error occurred" });
   }
 });
+
+const handleCreateAccount = async () => {
+  if (!firstName || !lastName || !emailAddress || !password) {
+    toast.error("Please fill in all fields", {
+      position: "top-right",
+      theme: "colored",
+    });
+    return;
+  }
+
+  try {
+    setLoading(true);
+    const response = await axios.post(`${BACKEND_URL}/createAccount`, {
+      firstName,
+      lastName,
+      emailAddress,
+      password,
+    });
+
+    if (response.data.token) {
+      localStorage.setItem("token", response.data.token);
+      localStorage.setItem("user", JSON.stringify(response.data.user)); //store user data
+    }
+
+    toast.success("Account Created Successfully!", {
+      position: "top-right",
+      theme: "colored",
+    });
+
+    setTimeout(() => {
+      navigate("/dashboard");
+      setLoading(false);
+    }, 1000);
+  } catch (error) {
+    toast.error(error.response?.data?.message || "Account creation failed", {
+      position: "top-right",
+      theme: "colored",
+    });
+    setLoading(false);
+  }
+};
 
 app.get(
   "/auth/google",
