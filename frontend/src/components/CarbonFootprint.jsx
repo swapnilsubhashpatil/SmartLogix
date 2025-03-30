@@ -1,17 +1,23 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { FaLeaf, FaRoute, FaLightbulb, FaChartLine } from "react-icons/fa";
+import {
+  FaLeaf,
+  FaRoute,
+  FaLightbulb,
+  FaChartLine,
+  FaTimes,
+} from "react-icons/fa";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 function CarbonFootprint() {
   const [carbonData, setCarbonData] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
     fetchCarbonFootprint();
-  }, []); // Remove carbonKey dependency since we're using a static route
+  }, []);
 
   const fetchCarbonFootprint = async () => {
     setLoading(true);
@@ -19,29 +25,27 @@ function CarbonFootprint() {
     setError(null);
 
     try {
-      // Find the latest carbon data in sessionStorage
-      const carbonKeys = Object.keys(sessionStorage).filter((key) =>
+      // Find the latest carbon data in localStorage (changed from sessionStorage)
+      const carbonKeys = Object.keys(localStorage).filter((key) =>
         key.startsWith("carbon_data_")
       );
       if (carbonKeys.length === 0) {
-        throw new Error("No carbon footprint data found in sessionStorage");
+        throw new Error("No carbon footprint data found in localStorage");
       }
 
       // Use the latest key (assuming the last one is the most recent)
       const latestKey = carbonKeys.sort().pop();
-      const params = JSON.parse(sessionStorage.getItem(latestKey));
-      console.log("Retrieved params from sessionStorage:", params);
+      const params = JSON.parse(localStorage.getItem(latestKey));
+      console.log("Retrieved params from localStorage:", params);
 
       if (!params) {
-        throw new Error(
-          "No carbon footprint parameters found in sessionStorage"
-        );
+        throw new Error("No carbon footprint parameters found in localStorage");
       }
 
       // Validate required fields
       const { origin, destination, distance, vehicleType, weight } = params;
       if (!origin || !destination || !distance || !vehicleType || !weight) {
-        throw new Error("Missing required parameters in sessionStorage data");
+        throw new Error("Missing required parameters in localStorage data");
       }
 
       const response = await fetch(`${BACKEND_URL}/api/carbon-footprint`, {
@@ -62,14 +66,19 @@ function CarbonFootprint() {
       console.log("Received carbon data:", jsonData);
       setCarbonData(jsonData);
 
-      // Clean up sessionStorage after use
-      sessionStorage.removeItem(latestKey);
+      // Clean up localStorage after use
+      localStorage.removeItem(latestKey);
     } catch (err) {
       console.error("Error fetching carbon footprint:", err);
       setError(err.message || "Failed to fetch carbon footprint data.");
     } finally {
       setLoading(false);
     }
+  };
+
+  // Function to close the window
+  const handleClose = () => {
+    window.close();
   };
 
   const containerVariants = {
@@ -94,12 +103,33 @@ function CarbonFootprint() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-gray-100 p-6 md:p-10">
+      <div className="absolute top-4 right-4 z-10">
+        <button
+          onClick={handleClose}
+          className="bg-gray-700 hover:bg-gray-600 text-white p-2 rounded-full transition-colors"
+          aria-label="Close"
+        >
+          <FaTimes className="w-4 h-4 sm:h-5 w-5" />
+        </button>
+      </div>
+
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
-        className="max-w-6xl mx-auto"
+        className="max-w-6xl mx-auto relative"
       >
+        {/* Close button
+        <div className="absolute top-0 right-0 z-10">
+          <button
+            onClick={handleClose}
+            className="bg-gray-700 hover:bg-gray-600 text-white p-2 rounded-full transition-colors"
+            aria-label="Close"
+          >
+            <FaTimes className="w-5 h-5" />
+          </button>
+        </div> */}
+
         <div className="text-center mb-12">
           <motion.h1
             initial={{ opacity: 0 }}

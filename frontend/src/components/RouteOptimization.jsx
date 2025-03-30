@@ -170,11 +170,18 @@ const RouteOptimizer = () => {
         weight: parseFloat(weight),
       };
 
-      const carbonKey = `carbon_${index}_${Date.now()}`;
-      sessionStorage.setItem(carbonKey, JSON.stringify(carbonParams));
+      // Use localStorage instead of sessionStorage for consistency
+      const carbonKey = `carbon_data_${Date.now()}`;
+      localStorage.setItem(carbonKey, JSON.stringify(carbonParams));
 
-      const carbonUrl = `/carbon-footprint/${carbonKey}`;
-      window.open(carbonUrl, "_blank");
+      console.log(
+        "Carbon data stored in localStorage:",
+        carbonKey,
+        carbonParams
+      );
+
+      // Open the carbon footprint page in a new tab
+      window.open(`/carbon-footprint`, "_blank");
     } catch (error) {
       console.error("Error preparing carbon data:", error);
       alert("Failed to prepare carbon footprint data.");
