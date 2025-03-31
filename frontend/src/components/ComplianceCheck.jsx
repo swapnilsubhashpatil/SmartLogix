@@ -56,7 +56,7 @@ const ComplianceForm = () => {
     },
     DocumentVerification: {
       "Commercial Invoice": {
-        checked: false,
+        checked: true,
         subItems: {
           "Invoice number present": false,
           "Details match shipment": false,
@@ -64,7 +64,7 @@ const ComplianceForm = () => {
         },
       },
       "Packing List": {
-        checked: false,
+        checked: true,
         subItems: {
           "Contents accurate": false,
           "Quantities match": false,
