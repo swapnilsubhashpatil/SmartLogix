@@ -4,6 +4,7 @@ import { InfoOutlined, Home } from "@mui/icons-material";
 import axios from "axios";
 import ComplianceResponse from "./ComplianceResponse";
 import { useNavigate } from "react-router-dom";
+import CsvUpload from "./CsvUpload";
 
 <link
   href="https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap"
@@ -21,61 +22,57 @@ const ComplianceForm = () => {
 
   const [formData, setFormData] = useState({
     ShipmentDetails: {
-      "Origin Country": "US",
-      "Destination Country": "CA",
-      "HS Code": "610910",
-      "Product Description":
-        "Men's Cotton T-Shirts, 100% Organic Cotton, White, Size M",
-      Quantity: "500",
-      "Gross Weight": "250",
+      "Origin Country": "",
+      "Destination Country": "",
+      "HS Code": "",
+      "Product Description": "",
+      Quantity: "",
+      "Gross Weight": "",
     },
     TradeAndRegulatoryDetails: {
-      "Incoterms 2020": "FOB",
-      "Declared Value": { currency: "USD", amount: "7500" },
-      "Currency of Transaction": "USD",
-      "Trade Agreement Claimed": "USMCA",
-      "Dual-Use Goods": "No",
-      "Hazardous Material": "No",
-      Perishable: "No",
+      "Incoterms 2020": "",
+      "Declared Value": { currency: "", amount: "" },
+      "Currency of Transaction": "",
+      "Trade Agreement Claimed": "",
+      "Dual-Use Goods": "No", // Default to "No" as per original logic
+      "Hazardous Material": "No", // Default to "No" as per original logic
+      Perishable: "No", // Default to "No" as per original logic
     },
     PartiesAndIdentifiers: {
-      "Shipper/Exporter":
-        "ABC Exports Inc., 123 Trade St, Los Angeles, CA 90001, USA",
-      "Consignee/Importer":
-        "XYZ Imports Ltd., 456 Maple Ave, Vancouver, BC V6B 2L3, Canada",
-      "Manufacturer Information":
-        "Textile Co. Ltd., 789 Factory Rd, Atlanta, GA 30301, USA",
-      "EORI/Tax ID": "US123456789",
+      "Shipper/Exporter": "",
+      "Consignee/Importer": "",
+      "Manufacturer Information": "",
+      "EORI/Tax ID": "",
     },
     LogisticsAndHandling: {
-      "Means of Transport": "Sea",
-      "Port of Loading": "Port of Los Angeles",
-      "Port of Discharge": "Port of Vancouver",
-      "Special Handling": "Keep Dry, Handle with Care",
+      "Means of Transport": "",
+      "Port of Loading": "",
+      "Port of Discharge": "",
+      "Special Handling": "",
       "Temperature Requirements": "",
     },
     DocumentVerification: {
       "Commercial Invoice": {
-        checked: true,
+        checked: false,
         subItems: {
-          "Invoice number present": true,
-          "Details match shipment": true,
-          "Customs compliant": true,
+          "Invoice number present": false,
+          "Details match shipment": false,
+          "Customs compliant": false,
         },
       },
       "Packing List": {
-        checked: true,
+        checked: false,
         subItems: {
-          "Contents accurate": true,
-          "Quantities match": true,
-          "Matches invoice": true,
+          "Contents accurate": false,
+          "Quantities match": false,
+          "Matches invoice": false,
         },
       },
       "Certificate of Origin": {
-        checked: true,
+        checked: false,
         subItems: {
-          "Origin verified": true,
-          "Trade agreement compliant": true,
+          "Origin verified": false,
+          "Trade agreement compliant": false,
         },
       },
       "Licenses/Permits": {
@@ -87,15 +84,15 @@ const ComplianceForm = () => {
         },
       },
       "Bill of Lading": {
-        checked: true,
+        checked: false,
         subItems: {
-          "Accurate details": true,
-          "Shipping regulations compliant": true,
+          "Accurate details": false,
+          "Shipping regulations compliant": false,
         },
       },
     },
     IntendedUseDetails: {
-      "Intended Use": "Retail Sale in Canadian Markets",
+      "Intended Use": "",
     },
   });
 
@@ -855,16 +852,22 @@ const ComplianceForm = () => {
           </div>
         </div>
       </header>
-      <div className="bg-white mt-6 shadow-custom-light rounded-lg mb-4 sm:mb-6 overflow-x-auto">
+      {activeTab === "ShipmentDetails" && (
+        <div className="bg-white mt-4 shadow-custom-light rounded-lg mb-4 sm:mb-6 overflow-x-auto">
+          <CsvUpload setFormData={setFormData} />
+        </div>
+      )}
+
+      <div className="bg-white mt-4 shadow-custom-light rounded-lg mb-4 sm:mb-6 overflow-x-auto">
         <div className="flex border-b border-neutral-200 whitespace-nowrap">
           {tabOrder.map((tab) => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab)}
+              // onClick={() => setActiveTab(tab)}
               className={`px-4 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm font-medium transition-colors duration-200 ${
                 activeTab === tab
                   ? "border-b-2 border-primary-500 text-primary-500"
-                  : "text-neutral-700 hover:text-primary-500"
+                  : "text-neutral-700 hover:text-black"
               }`}
             >
               {tab.replace(/([A-Z])/g, " $1").trim()}
@@ -876,6 +879,7 @@ const ComplianceForm = () => {
         <h2 className="text-xl sm:text-2xl font-bold text-tertiary-500 mb-4 sm:mb-6">
           {activeTab.replace(/([A-Z])/g, " $1").trim()}
         </h2>
+        {/* Render CsvUpload Component only on ShipmentDetails Tab */}
         <div className="grid grid-cols-1 gap-4 sm:gap-6">
           {formStructure[activeTab].map((fieldData) => (
             <div key={fieldData.field} className="flex flex-col">

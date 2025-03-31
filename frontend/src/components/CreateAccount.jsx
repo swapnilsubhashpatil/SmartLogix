@@ -230,7 +230,7 @@ const CreateAccount = () => {
                 repeat: Infinity,
                 ease: "easeInOut",
               }}
-              className="mt-6 text-lg font-medium text-primary-600"
+              className="mt-8 text-lg font-medium text-primary-600"
             >
               Creating Your SmartLogix Account...
             </motion.p>
