@@ -44,7 +44,7 @@ const RouteOptimizer = () => {
   const navigate = useNavigate();
 
   const toHome = () => {
-    navigate("/"); // Navigate to the home page
+    navigate("/dashboard"); // Navigate to the home page
   };
 
   const handleSubmit = async (e) => {
