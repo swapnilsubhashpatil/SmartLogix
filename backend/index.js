@@ -15,9 +15,37 @@ const SaveRoute = require("./Database/saveRouteSchema");
 const axios = require("axios");
 const mongoose = require("mongoose");
 
+const multer = require("multer");
+const { Storage } = require("@google-cloud/storage");
+const vision = require("@google-cloud/vision");
+
 // Load environment variables
 dotenv.config();
 connectMongoDB();
+
+// Multer setup for file uploads
+const serviceAccountCredentials = {
+  type: process.env.TYPE,
+  project_id: process.env.PROJECT_ID,
+  private_key_id: process.env.PRIVATE_KEY_ID,
+  private_key: process.env.PRIVATE_KEY,
+  client_email: process.env.CLIENT_EMAIL,
+  client_id: process.env.CLIENT_ID,
+  auth_uri: process.env.AUTH_URI,
+  token_uri: process.env.TOKEN_URI,
+  auth_provider_x509_cert_url: process.env.AUTH_PROVIDER_X509_CERT_URL,
+  client_x509_cert_url: process.env.CLIENT_X509_CERT_URL,
+  universe_domain: process.env.UNIVERSE_DOMAIN,
+};
+
+// Multer setup for file uploads
+const upload = multer({ storage: multer.memoryStorage() });
+
+// Initialize Google Cloud clients with credentials
+const storage = new Storage({ credentials: serviceAccountCredentials });
+const visionClient = new vision.ImageAnnotatorClient({
+  credentials: serviceAccountCredentials,
+});
 
 // Environment Variables
 const PORT = process.env.PORT || 5000;
@@ -622,7 +650,7 @@ app.post("/api/route-optimization", async (req, res) => {
     }
 
     const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     //route optimization
     const prompt = `
@@ -679,7 +707,6 @@ You are a route optimization AI designed to generate optimal shipping routes bet
 - Numbers must be rounded to 2 decimal places.
 - Ensure waypoints make geographical sense and align with the transport mode (e.g., sea routes only between port cities).
 `;
-
     const result = await model.generateContent(prompt);
     const rawResponse = result.response.text();
     const jsonStart = rawResponse.indexOf("{");
@@ -888,6 +915,116 @@ app.post("/api/carbon-footprint", async (req, res) => {
     res.status(500).json({
       error: "Failed to generate carbon footprint analysis",
       details: error.message,
+    });
+  }
+});
+
+app.post("/api/analyze-product", upload.single("image"), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "No image uploaded" });
+    }
+
+    const imageFile = req.file;
+    const bucketName =
+      process.env.GOOGLE_CLOUD_BUCKET_NAME || "your-bucket-name";
+    if (!bucketName) {
+      return res.status(500).json({ error: "Bucket name not configured" });
+    }
+
+    const fileName = `${Date.now()}_${imageFile.originalname}`;
+    const bucket = storage.bucket(bucketName);
+    const blob = bucket.file(fileName);
+
+    // Upload image to Google Cloud Storage
+    console.log("Uploading to:", bucketName, fileName);
+    await new Promise((resolve, reject) => {
+      const stream = blob
+        .createWriteStream({
+          metadata: { contentType: imageFile.mimetype },
+        })
+        .on("error", reject)
+        .on("finish", resolve);
+      stream.end(imageFile.buffer);
+    });
+
+    // Analyze with Vision API
+    console.log("Analyzing with Vision API...");
+    const [visionResult] = await visionClient.labelDetection({
+      image: {
+        source: {
+          imageUri: `gs://${bucketName}/${fileName}`,
+        },
+      },
+    });
+
+    const labels = visionResult.labelAnnotations || [];
+    const visionResponse = {
+      success: true,
+      labels: labels.map((label) => ({
+        description: label.description,
+        score: label.score,
+      })),
+    };
+
+    // Prepare prompt for Gemini AI
+    const prompt = `
+Analyze the following Google Vision API response and provide:
+
+1. The HS Code for the product.
+2. A detailed product description.
+3. Whether the product is perishable (true/false).
+4. Whether the product is hazardous (true/false).
+5. A concise list of the essential documents required to export this product outside the country (only document names).
+6. Additional tips and recommendations for successfully exporting this product outside the country, referencing world customs rules where applicable.
+
+Return the result as a JSON object in this format:
+
+{
+  "HS Code": "string",
+  "Product Description": "string",
+  "Perishable": boolean,
+  "Hazardous": boolean,
+  "Required Export Document List": ["string", "string", ...],
+  "Recommendations": {
+    "message": "string",
+    "additionalTip": "string"
+  }
+}
+
+When determining the required export documents and providing recommendations, please reference world customs rules and regulations to ensure accuracy and compliance.
+
+Vision API Response:
+${JSON.stringify(visionResponse, null, 2)}
+`;
+
+    // Generate response with Gemini AI
+    const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+    const geminiResult = await model.generateContent(prompt);
+    const rawResponse = geminiResult.response.text();
+    const jsonStart = rawResponse.indexOf("{");
+    const jsonEnd = rawResponse.lastIndexOf("}") + 1;
+    const cleanResponseText = rawResponse.slice(jsonStart, jsonEnd).trim();
+    const geminiResponse = JSON.parse(cleanResponseText);
+
+    // Construct the filtered formData response
+    // const filteredFormData = {
+    //   ShipmentDetails: {
+    //     "HS Code": geminiResponse["HS Code"],
+    //     "Product Description": geminiResponse["Product Description"],
+    //   },
+    // };
+
+    // Send response to frontend
+    res.json({
+      data: geminiResponse,
+    });
+  } catch (error) {
+    console.error("Error in product analysis:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message || "Failed to analyze product",
     });
   }
 });

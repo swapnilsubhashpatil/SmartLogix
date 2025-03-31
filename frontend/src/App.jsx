@@ -10,6 +10,7 @@ import RouteOptimization from "./components/RouteOptimization";
 import RouteMap from "./components/route";
 import CarbonFootprint from "./components/CarbonFootprint";
 import { LoadScript } from "@react-google-maps/api";
+import ProductAnalysis from "./components/ProductAnalysis";
 
 function App() {
   return (
@@ -62,6 +63,14 @@ function App() {
           element={
             <ProtectedRoute>
               <CarbonFootprint />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/product-analysis"
+          element={
+            <ProtectedRoute>
+              <ProductAnalysis />
             </ProtectedRoute>
           }
         />

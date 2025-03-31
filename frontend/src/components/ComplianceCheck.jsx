@@ -20,12 +20,15 @@ const ComplianceForm = () => {
     navigate("/dashboard");
   };
 
-  const [formData, setFormData] = useState({
+  const storedData =
+    JSON.parse(localStorage.getItem("productAnalysisData")) || {};
+
+  const initialFormData = {
     ShipmentDetails: {
       "Origin Country": "",
       "Destination Country": "",
-      "HS Code": "",
-      "Product Description": "",
+      "HS Code": storedData["HS Code"] || "",
+      "Product Description": storedData["Product Description"] || "",
       Quantity: "",
       "Gross Weight": "",
     },
@@ -34,9 +37,9 @@ const ComplianceForm = () => {
       "Declared Value": { currency: "", amount: "" },
       "Currency of Transaction": "",
       "Trade Agreement Claimed": "",
-      "Dual-Use Goods": "No", // Default to "No" as per original logic
-      "Hazardous Material": "No", // Default to "No" as per original logic
-      Perishable: "No", // Default to "No" as per original logic
+      "Dual-Use Goods": "No",
+      "Hazardous Material": storedData.Hazardous ? "Yes" : "No",
+      Perishable: storedData.Perishable ? "Yes" : "No",
     },
     PartiesAndIdentifiers: {
       "Shipper/Exporter": "",
@@ -94,7 +97,9 @@ const ComplianceForm = () => {
     IntendedUseDetails: {
       "Intended Use": "",
     },
-  });
+  };
+
+  const [formData, setFormData] = useState(initialFormData);
 
   const [activeTab, setActiveTab] = useState("ShipmentDetails");
   const [loading, setLoading] = useState(false);
@@ -850,6 +855,12 @@ const ComplianceForm = () => {
               Compliance Check
             </h1>
           </div>
+          <button
+            onClick={() => navigate("/product-analysis")}
+            className="mt-4 sm:mt-0 py-2 px-4 bg-white text-teal-600 font-medium rounded-lg hover:bg-gray-100 transition-colors duration-200"
+          >
+            Product Analysis
+          </button>
         </div>
       </header>
       {activeTab === "ShipmentDetails" && (
