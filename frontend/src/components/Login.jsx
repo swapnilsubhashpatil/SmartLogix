@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
 import GoogleLogin from "./GoogleLogin";
+import Toast from "./Toast";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -15,16 +14,14 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const [toastProps, setToastProps] = useState({ type: "", message: "" });
 
   useEffect(() => {
     const token = searchParams.get("token");
     if (token) {
       setLoading(true);
       localStorage.setItem("token", token);
-      toast.success("Google Login Successful!", {
-        position: "top-right",
-        theme: "colored",
-      });
+      setToastProps({ type: "success", message: "Google Login Successful!" });
       setTimeout(() => {
         navigate("/dashboard");
         setLoading(false);
@@ -34,10 +31,7 @@ const Login = () => {
 
   const handleLogin = async () => {
     if (!emailAddress || !password) {
-      toast.error("Please fill in all fields", {
-        position: "top-right",
-        theme: "colored",
-      });
+      setToastProps({ type: "warn", message: "Please fill in all fields" });
       return;
     }
 
@@ -51,20 +45,18 @@ const Login = () => {
       localStorage.setItem("token", response.data.token);
       // localStorage.setItem("userProfile", JSON.stringify(response.data.user));
 
-      toast.success("Login Successful!", {
-        position: "top-right",
-        theme: "colored",
-      });
+      setToastProps({ type: "success", message: "Login Successful!" });
 
       setTimeout(() => {
         navigate("/dashboard");
         setLoading(false);
       }, 1000);
     } catch (error) {
-      toast.error(error.response?.data?.message || "Login failed", {
-        position: "top-right",
-        theme: "colored",
+      setToastProps({
+        type: "error",
+        message: `${error.response?.data?.message || "Login failed"}`,
       });
+      console.log(error.response?.data?.message);
       setLoading(false);
     }
   };
@@ -375,8 +367,7 @@ const Login = () => {
           </div>
         )}
       </motion.div>
-
-      <ToastContainer />
+      <Toast type={toastProps.type} message={toastProps.message} />
     </div>
   );
 };

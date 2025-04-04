@@ -1,13 +1,13 @@
 import React, { useState, useRef } from "react";
 import Papa from "papaparse";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import Toast from "./Toast";
 
 const CsvUpload = ({ setFormData }) => {
   const [csvError, setCsvError] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
   const [uploadedFile, setUploadedFile] = useState(null); // Track the uploaded file
   const fileInputRef = useRef(null);
+  const [toastProps, setToastProps] = useState({ type: "", message: "" });
 
   // Handle CSV parsing logic
   const handleCsvUpload = (file) => {
@@ -114,29 +114,26 @@ const CsvUpload = ({ setFormData }) => {
           setFormData(mappedData);
           setUploadedFile(file); // Set the uploaded file
           setCsvError(null);
-          toast.success(`CSV file "${file.name}" uploaded successfully!`, {
-            position: "top-right",
-            autoClose: 3000,
+          setToastProps({
+            type: "success",
+            message: `CSV file "${file.name}" uploaded successfully!`,
           });
         } catch (error) {
           setCsvError(
             "Error parsing CSV file. Please ensure it matches the required format."
           );
-          toast.error(
-            `Error parsing "${file.name}". Check the format and try again.`,
-            {
-              position: "top-right",
-              autoClose: 5000,
-            }
-          );
+          setToastProps({
+            type: "error",
+            message: `Error parsing "${file.name}". Check the format and try again.`,
+          });
           console.error(error);
         }
       },
       error: (error) => {
         setCsvError("Failed to upload CSV file. Please try again.");
-        toast.error(`Failed to upload "${file.name}". Please try again.`, {
-          position: "top-right",
-          autoClose: 5000,
+        setToastProps({
+          type: "error",
+          message: `Failed to upload "${file.name}". Please try again.`,
         });
         console.error(error);
       },
@@ -147,13 +144,10 @@ const CsvUpload = ({ setFormData }) => {
   const handleFileChange = (event) => {
     const file = event.target.files[0];
     if (uploadedFile) {
-      toast.warn(
-        "Please remove the previous file before uploading a new one.",
-        {
-          position: "top-right",
-          autoClose: 3000,
-        }
-      );
+      setToastProps({
+        type: "warn",
+        message: `Please remove the previous file before uploading a new one.`,
+      });
       return;
     }
     handleCsvUpload(file);
@@ -175,22 +169,19 @@ const CsvUpload = ({ setFormData }) => {
     setIsDragging(false);
     const file = event.dataTransfer.files[0];
     if (uploadedFile) {
-      toast.warn(
-        "Please remove the previous file before uploading a new one.",
-        {
-          position: "top-right",
-          autoClose: 3000,
-        }
-      );
+      setToastProps({
+        type: "warn",
+        message: `Please remove the previous file before uploading a new one.`,
+      });
       return;
     }
     if (file && file.type === "text/csv") {
       handleCsvUpload(file);
     } else {
       setCsvError("Please drop a valid CSV file.");
-      toast.error("Invalid file type. Please drop a CSV file.", {
-        position: "top-right",
-        autoClose: 5000,
+      setToastProps({
+        type: "warn",
+        message: "Invalid file type. Please drop a CSV file.",
       });
     }
   };
@@ -199,9 +190,9 @@ const CsvUpload = ({ setFormData }) => {
   const handleRemoveFile = () => {
     setUploadedFile(null);
     setCsvError(null);
-    toast.info("Uploaded file removed successfully.", {
-      position: "top-right",
-      autoClose: 3000,
+    setToastProps({
+      type: "info",
+      message: "Uploaded file removed successfully.",
     });
 
     // Reload the website after the toast message disappears.
@@ -412,6 +403,7 @@ const CsvUpload = ({ setFormData }) => {
         Country", "HS Code", etc.). Use the template above for the correct
         format.
       </p>
+      <Toast type={toastProps.type} message={toastProps.message} />
     </div>
   );
 };

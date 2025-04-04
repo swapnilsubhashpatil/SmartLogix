@@ -6,6 +6,7 @@ import { Tooltip } from "@mui/material";
 import { motion } from "framer-motion";
 import { FaTrash, FaImage } from "react-icons/fa";
 import ProductAnalysisSkeleton from "./Skeleton/ProductAnalysisSkeleton";
+import Toast from "./Toast";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -16,6 +17,7 @@ const ProductAnalysis = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef(null);
+  const [toastProps, setToastProps] = useState({ type: "", message: "" });
 
   const handleDragOver = (e) => {
     e.preventDefault();
@@ -31,6 +33,10 @@ const ProductAnalysis = () => {
     setIsDragging(false);
     const file = e.dataTransfer.files[0];
     handleFile(file);
+    setToastProps({
+      type: "success",
+      message: `Image uploaded successfully!`,
+    });
   };
 
   const handleFileInput = (e) => {
@@ -42,6 +48,10 @@ const ProductAnalysis = () => {
     if (file && file.type.startsWith("image/")) {
       setSelectedImage(file);
       setAnalysisResult(null); // Reset previous results when a new image is added
+      setToastProps({
+        type: "success",
+        message: `Image uploaded successfully!`,
+      });
     }
   };
 
@@ -49,6 +59,10 @@ const ProductAnalysis = () => {
     setSelectedImage(null);
     setAnalysisResult(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
+    setToastProps({
+      type: "info",
+      message: "Uploaded image removed successfully.",
+    });
   };
 
   const handleAnalyze = async () => {
@@ -374,6 +388,7 @@ const ProductAnalysis = () => {
           )}
         </div>
       </motion.div>
+      <Toast type={toastProps.type} message={toastProps.message} />
     </div>
   );
 };

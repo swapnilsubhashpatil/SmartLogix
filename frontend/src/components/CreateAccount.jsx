@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { toast, ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import Toast from "./Toast";
 import axios from "axios";
 import GoogleLogin from "./GoogleLogin";
 
@@ -17,6 +16,7 @@ const CreateAccount = () => {
   const [loading, setLoading] = useState(false); // New loading state
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const [toastProps, setToastProps] = useState({ type: "", message: "" });
 
   // Handle Google redirect (if applicable)
   useEffect(() => {
@@ -24,9 +24,9 @@ const CreateAccount = () => {
     if (token) {
       setLoading(true);
       localStorage.setItem("token", token);
-      toast.success("Account Created with Google!", {
-        position: "top-right",
-        theme: "colored",
+      setToastProps({
+        type: "success",
+        message: "Account Created with Google!",
       });
       setTimeout(() => {
         navigate("/dashboard");
@@ -37,10 +37,7 @@ const CreateAccount = () => {
 
   const handleCreateAccount = async () => {
     if (!firstName || !lastName || !emailAddress || !password) {
-      toast.error("Please fill in all fields", {
-        position: "top-right",
-        theme: "colored",
-      });
+      setToastProps({ type: "warn", message: "Please fill in all fields" });
       return;
     }
 
@@ -57,10 +54,9 @@ const CreateAccount = () => {
       if (response.data.token) {
         localStorage.setItem("token", response.data.token);
       }
-
-      toast.success("Account Created Successfully!", {
-        position: "top-right",
-        theme: "colored",
+      setToastProps({
+        type: "success",
+        message: "Account Created Successfully!",
       });
 
       setTimeout(() => {
@@ -68,10 +64,7 @@ const CreateAccount = () => {
         setLoading(false);
       }, 1000);
     } catch (error) {
-      toast.error(error.response?.data?.message || "Account creation failed", {
-        position: "top-right",
-        theme: "colored",
-      });
+      setToastProps({ type: "error", message: "Account creation failed" });
       setLoading(false);
     }
   };
@@ -439,7 +432,7 @@ const CreateAccount = () => {
         )}
       </motion.div>
 
-      <ToastContainer />
+      <Toast type={toastProps.type} message={toastProps.message} />
     </div>
   );
 };
