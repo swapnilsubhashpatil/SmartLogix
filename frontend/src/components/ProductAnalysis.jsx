@@ -5,6 +5,7 @@ import { Home, ContentCopy, Send } from "@mui/icons-material";
 import { Tooltip } from "@mui/material";
 import { motion } from "framer-motion";
 import { FaTrash, FaImage } from "react-icons/fa";
+import ProductAnalysisSkeleton from "./Skeleton/ProductAnalysisSkeleton";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -54,6 +55,7 @@ const ProductAnalysis = () => {
     if (!selectedImage) return;
 
     setIsLoading(true);
+    setAnalysisResult(null);
     const formData = new FormData();
     formData.append("image", selectedImage);
 
@@ -231,6 +233,7 @@ const ProductAnalysis = () => {
           </button>
 
           {/* Analysis Result */}
+          {isLoading && <ProductAnalysisSkeleton />}
           {analysisResult && (
             <motion.div
               variants={containerVariants}

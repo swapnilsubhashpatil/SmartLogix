@@ -205,11 +205,82 @@ const CsvUpload = ({ setFormData }) => {
     });
 
     // Reload the website after the toast message disappears.
-    setTimeout(() => {
-      window.location.reload();
-    }, 3000); // 3000 milliseconds (3 seconds) to match toast autoClose
+    setFormData({
+      ShipmentDetails: {
+        "Origin Country": "",
+        "Destination Country": "",
+        "HS Code": "",
+        "Product Description": "",
+        Quantity: "",
+        "Gross Weight": "",
+      },
+      TradeAndRegulatoryDetails: {
+        "Incoterms 2020": "",
+        "Declared Value": { currency: "", amount: "" },
+        "Currency of Transaction": "",
+        "Trade Agreement Claimed": "",
+        "Dual-Use Goods": "No",
+        "Hazardous Material": "No",
+        Perishable: "No",
+      },
+      PartiesAndIdentifiers: {
+        "Shipper/Exporter": "",
+        "Consignee/Importer": "",
+        "Manufacturer Information": "",
+        "EORI/Tax ID": "",
+      },
+      LogisticsAndHandling: {
+        "Means of Transport": "",
+        "Port of Loading": "",
+        "Port of Discharge": "",
+        "Special Handling": "",
+        "Temperature Requirements": "",
+      },
+      DocumentVerification: {
+        "Commercial Invoice": {
+          checked: true,
+          subItems: {
+            "Invoice number present": false,
+            "Details match shipment": false,
+            "Customs compliant": false,
+          },
+        },
+        "Packing List": {
+          checked: true,
+          subItems: {
+            "Contents accurate": false,
+            "Quantities match": false,
+            "Matches invoice": false,
+          },
+        },
+        "Certificate of Origin": {
+          checked: false,
+          subItems: {
+            "Origin verified": false,
+            "Trade agreement compliant": false,
+          },
+        },
+        "Licenses/Permits": {
+          checked: false,
+          subItems: {
+            "Valid number": false,
+            "Not expired": false,
+            "Authority verified": false,
+          },
+        },
+        "Bill of Lading": {
+          checked: false,
+          subItems: {
+            "Accurate details": false,
+            "Shipping regulations compliant": false,
+          },
+        },
+      },
+      IntendedUseDetails: {
+        "Intended Use": "",
+      },
+    });
   };
-
   // Download empty CSV template
   const handleDownloadTemplate = () => {
     const headers = [

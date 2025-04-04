@@ -82,10 +82,30 @@ function MovexDashboard() {
   };
 
   const complianceCheck = () => {
+    const token = localStorage.getItem("token");
+
+    // Clear localStorage
+    localStorage.clear();
+
+    // Restore the token
+    if (token) {
+      localStorage.setItem("token", token);
+    }
+
     navigate("/compliance-check");
   };
 
   const routeOptimization = () => {
+    const token = localStorage.getItem("token");
+
+    // Clear localStorage
+    localStorage.clear();
+
+    // Restore the token
+    if (token) {
+      localStorage.setItem("token", token);
+    }
+
     navigate("/route-optimization");
   };
 

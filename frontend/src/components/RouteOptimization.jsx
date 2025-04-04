@@ -20,6 +20,7 @@ import TimerIcon from "@mui/icons-material/Timer";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
 import HomeIcon from "@mui/icons-material/Home"; // Added HomeIcon for the header
 import { useNavigate } from "react-router-dom";
+import RouteResultsSkeleton from "./Skeleton/RouteResultsSkeleton";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -359,6 +360,7 @@ const RouteOptimizer = () => {
           </Button>
         </form>
 
+        {loading && <RouteResultsSkeleton />}
         {showResults && (
           <>
             <div className="flex flex-wrap gap-3 sm:gap-4 mb-4 sm:mb-6 justify-center max-w-3xl w-full">

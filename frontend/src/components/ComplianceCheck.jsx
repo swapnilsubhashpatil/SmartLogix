@@ -5,6 +5,7 @@ import axios from "axios";
 import ComplianceResponse from "./ComplianceResponse";
 import { useNavigate } from "react-router-dom";
 import CsvUpload from "./CsvUpload";
+import ComplianceResponseSkeleton from "./Skeleton/ComplianceResponseSkeleton";
 
 <link
   href="https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap"
@@ -951,7 +952,8 @@ const ComplianceForm = () => {
           )}
         </div>
       </div>
-      {response && <ComplianceResponse response={response} />}
+      {loading && <ComplianceResponseSkeleton />}
+      {response && !loading && <ComplianceResponse response={response} />}
     </div>
   );
 };
