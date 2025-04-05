@@ -99,10 +99,15 @@ const RouteOptimizer = () => {
       console.error("Error fetching routes:", error);
       setToastProps({
         type: "error",
-        message: `Failed to fetch routes: ${
-          error.response?.data?.error || error.message || "Unknown error"
-        }`,
+        message: `Failed to fetch routes`,
       });
+
+      setTimeout(() => {
+        setToastProps({
+          type: "info",
+          message: "Please try again.",
+        });
+      }, 2000);
     } finally {
       setLoading(false);
     }
@@ -200,8 +205,8 @@ const RouteOptimizer = () => {
         destination:
           route.routeDirections[route.routeDirections.length - 1].waypoints[1],
         distance: route.totalDistance,
-        vehicleType: "truck",
         weight: parseFloat(weight),
+        routeDirections: route.routeDirections, // Pass full route details
       };
 
       const carbonKey = `carbon_data_${Date.now()}`;
@@ -209,10 +214,6 @@ const RouteOptimizer = () => {
       window.open(`/carbon-footprint`, "_blank");
     } catch (error) {
       console.error("Error preparing carbon data:", error);
-      setToastProps({
-        type: "error",
-        message: "Failed to prepare carbon footprint data.",
-      });
     } finally {
       setCarbonLoading(null);
     }
@@ -244,8 +245,10 @@ const RouteOptimizer = () => {
           },
         }
       );
-
-      alert("Route saved successfully! Check your profile for history.");
+      setToastProps({
+        type: "sucess",
+        message: "Route saved successfully! Check your profile for history.",
+      });
     } catch (error) {
       console.error("Error saving route:", error);
       const errorMessage =
@@ -663,7 +666,7 @@ const RouteOptimizer = () => {
             textAlign: "center",
           }}
         >
-          {showResults && "How We Crunch the Numbers!"}
+          {showResults && "HOW IT WORKS"}
         </DialogTitle>
         <DialogContent>
           {showResults && (
@@ -677,6 +680,7 @@ const RouteOptimizer = () => {
                   <FaTimes className="w-2 h-2 sm:h-2 w-2" />
                 </button>
               </div>
+
               {/* Distance */}
               <Box className="flex items-start gap-3 p-4 bg-Gray-50 rounded-lg shadow-sm">
                 <svg
@@ -700,9 +704,9 @@ const RouteOptimizer = () => {
                     Distance
                   </Typography>
                   <Typography className="text-Gray-600">
-                    We measure the real-world kilometers between all stops using
-                    a straight-line (great-circle) path—think of it as the
-                    shortest hop from city to city!
+                    We calculate the shortest possible path between waypoints
+                    using great-circle distances, representing real-world
+                    geography between your origin and destination.
                   </Typography>
                 </div>
               </Box>
@@ -730,10 +734,11 @@ const RouteOptimizer = () => {
                     Carbon Score
                   </Typography>
                   <Typography className="text-green-600">
-                    A 0-100 score showing how eco-friendly your route is. Lower
-                    is greener! We calculate CO2 (Land: 0.07 kg/km, Sea: 0.01
-                    kg/km, Air: 0.60 kg/km) based on distance and weight, then
-                    compare it to the max across all routes.
+                    Our 0-100 score shows your route's environmental impact.
+                    Lower scores are greener! We compare your route's emissions
+                    to the most carbon-intensive option across all possible
+                    routes, with sea transport being most efficient and air
+                    transport having the highest impact.
                   </Typography>
                 </div>
               </Box>
@@ -761,9 +766,11 @@ const RouteOptimizer = () => {
                     Cost
                   </Typography>
                   <Typography className="text-yellow-600">
-                    Your wallet’s best friend! Cost = (distance × weight × rate)
-                    + extra fees for transfers. Rates: Land: $0.15/kg/km, Sea:
-                    $0.08/kg/km, Air: $0.75/kg/km. Simple and fair!
+                    We calculate costs based on distance, weight, and transport
+                    mode, including transfer fees at each waypoint. Air
+                    transport commands premium rates while sea shipping offers
+                    the most economical option for heavy cargo over long
+                    distances.
                   </Typography>
                 </div>
               </Box>
@@ -791,9 +798,11 @@ const RouteOptimizer = () => {
                     Time
                   </Typography>
                   <Typography className="text-blue-600">
-                    How fast it gets there! Time = (distance / speed) + stopover
-                    waits. Speeds: Land: 60 km/h, Sea: 40 km/h, Air: 900 km/h.
-                    Waits: Land: 2h/stop, Sea: 12h/stop, Air: 3h/stop.
+                    Delivery time combines transit speed and handling time at
+                    each waypoint. Air routes offer dramatic speed advantages
+                    but require airport processing, while sea routes include
+                    longer port handling times reflecting real-world logistics
+                    operations.
                   </Typography>
                 </div>
               </Box>

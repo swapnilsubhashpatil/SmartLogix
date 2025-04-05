@@ -928,59 +928,47 @@ app.get("/api/route-history", verifyToken, async (req, res) => {
 // -------- Carbon Footprint Route --------
 app.post("/api/carbon-footprint", async (req, res) => {
   try {
-    const { origin, destination, distance, vehicleType, weight } = req.body;
+    const { origin, destination, distance, weight, routeDirections } = req.body;
 
-    if (!origin || !destination || !distance || !vehicleType || !weight) {
+    if (!origin || !destination || !distance || !weight || !routeDirections) {
       return res.status(400).json({ error: "Missing required parameters" });
     }
 
-    //carbon footprint analysis
     const prompt = `
-        You are a carbon footprint analysis AI for Movex. Based on the following inputs, provide a structured response in JSON format with proper keys and values.
-  
-        Inputs:
-        - Origin: ${origin}
-        - Destination: ${destination}
-        - Distance: ${distance} km
-        - Vehicle Type: ${vehicleType}
-        - Weight: ${weight} kg
-  
-        Response Format (JSON):
-        {
-          "totalDistance": "Distance in kilometers with unit (e.g., '1347.2 km')",
-          "totalEmissions": "Total CO2e emissions in kg with unit (e.g., '1500 kg CO2e')",
-          "routeAnalysis": [
-            {
-              "leg": "Leg number (e.g., 'Leg 1')",
-              "origin": "Origin location",
-              "destination": "Destination location",
-              "distance": "Distance for this leg with unit (e.g., '1347.2 km')",
-              "fuelConsumption": "Fuel consumption in liters with unit (e.g., '500 L')",
-              "fuelType": "Type of fuel used (e.g., 'Diesel')",
-              "emissions": {
-                "total": "Total CO2e emissions in kg with unit (e.g., '1500 kg CO2e')",
-                "intensity": "Emission intensity in gCO2e/tonne-km with unit (e.g., '111.4 gCO2e/tonne-km')",
-                "breakdown": {
-                  "tankToWheel": "Tank to wheel emissions in kg CO2e with unit (e.g., '1200 kg CO2e')",
-                  "wellToTank": "Well to tank emissions in kg CO2e with unit (e.g., '300 kg CO2e')"
-                }
-              },
-              "cost": "Estimated cost in INR with unit (e.g., '25000 INR')"
-            }
-          ],
-          "suggestions": [
-            "Suggestion 1 for reducing emissions",
-            "Suggestion 2 for alternative routes or vehicle types"
-          ],
-          "additionalInsights": [
-            "Insight 1 about the route or emissions",
-            "Insight 2 about optimization",
-            "Insight 3 about future considerations"
-          ]
-        }
-      `;
+      You are a carbon footprint analysis AI for Movex. Based on the following inputs, provide a structured JSON response for a genuine carbon footprint analysis as of April 4, 2025. Use real-world CO2e emission factors: Land (0.07 kg/km), Sea (0.01 kg/km), Air (0.60 kg/km).
 
-    const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
+      Inputs:
+      - Origin: ${origin}
+      - Destination: ${destination}
+      - Total Distance: ${distance} km
+      - Shipment Weight: ${weight} kg
+      - Route Directions: ${JSON.stringify(routeDirections)}
+
+      Calculate emissions based on the transport mode ("state") in each routeDirections segment (land, sea, air). Distribute the total distance proportionally across segments if multiple exist.
+
+      Response Format (JSON):
+      {
+        "totalDistance": "Total distance in km (e.g., '6700 km')",
+        "totalEmissions": "Total CO2e emissions in kg (e.g., '1500 kg CO2e')",
+        "routeAnalysis": [
+          {
+            "leg": "Leg number (e.g., 'Leg 1')",
+            "origin": "Start waypoint",
+            "destination": "End waypoint",
+            "mode": "Transport mode (land, sea, air)",
+            "distance": "Distance for this leg in km (e.g., '2000 km')",
+            "emissions": "CO2e emissions in kg for this leg (e.g., '140 kg CO2e')"
+          }
+        ],
+        "suggestions": [
+          "Suggestion 1 for reducing emissions",
+          "Suggestion 2 for alternative modes"
+        ],
+        "earthImpact": "A short description of the environmental impact (e.g., 'Equivalent to X trees absorbing CO2 for a year')"
+      }
+    `;
+
+    const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     const result = await model.generateContent(prompt);
@@ -990,8 +978,7 @@ app.post("/api/carbon-footprint", async (req, res) => {
     if (!jsonMatch) {
       throw new Error("No valid JSON found in AI response");
     }
-    const cleanResponseText = jsonMatch[0];
-    const responseData = JSON.parse(cleanResponseText);
+    const responseData = JSON.parse(jsonMatch[0]);
 
     res.json(responseData);
   } catch (error) {

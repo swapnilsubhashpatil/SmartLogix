@@ -1,9 +1,8 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
-import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import Toast from "./Toast";
-import ProfileSkeleton from "./Skeleton/PofileSkeleton"; // Import the skeleton component
+import ProfileSkeleton from "./Skeleton/PofileSkeleton";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -16,14 +15,14 @@ const Profile = () => {
   const [complianceHistory, setComplianceHistory] = useState([]);
   const [routeHistory, setRouteHistory] = useState([]);
   const [activeTab, setActiveTab] = useState("compliance");
-  const [loading, setLoading] = useState(true); // Add loading state
+  const [loading, setLoading] = useState(true);
   const token = localStorage.getItem("token");
   const navigate = useNavigate();
   const [toastProps, setToastProps] = useState({ type: "", message: "" });
 
   useEffect(() => {
     const fetchUserData = async () => {
-      setLoading(true); // Start loading
+      setLoading(true);
       try {
         const userResponse = await axios.get(`${BACKEND_URL}/protectedRoute`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -44,7 +43,7 @@ const Profile = () => {
       } catch (error) {
         console.error("Error fetching profile data:", error);
       } finally {
-        setLoading(false); // End loading regardless of success or failure
+        setLoading(false);
       }
     };
     fetchUserData();
@@ -87,15 +86,10 @@ const Profile = () => {
   return (
     <div className="min-h-screen bg-neutral-100 font-sans text-tertiary-900 p-4 sm:p-6">
       {loading ? (
-        <ProfileSkeleton /> // Render skeleton while loading
+        <ProfileSkeleton />
       ) : (
         <>
-          <motion.section
-            initial={{ opacity: 0, y: -50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-            className="max-w-4xl mx-auto mb-8 sm:mb-12"
-          >
+          <section className="max-w-4xl mx-auto mb-8 sm:mb-12">
             <div className="bg-gradient-to-r from-primary-500 to-primary-300 text-neutral-50 rounded-xl shadow-custom-medium p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-4">
               <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6 w-full sm:w-auto">
                 <div className="w-20 h-20 sm:w-24 sm:h-24 bg-neutral-50 rounded-full flex items-center justify-center text-3xl sm:text-4xl font-bold text-primary-500 shrink-0">
@@ -118,9 +112,8 @@ const Profile = () => {
                 Logout
               </button>
             </div>
-          </motion.section>
+          </section>
 
-          {/* Tabs Navigation */}
           <div className="max-w-4xl mx-auto mb-6">
             <div className="flex sm:flex-row border-b border-neutral-200">
               <button
@@ -146,13 +139,7 @@ const Profile = () => {
             </div>
           </div>
 
-          {/* Tab Content */}
-          <motion.section
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.5 }}
-            className="max-w-4xl mx-auto"
-          >
+          <section className="max-w-4xl mx-auto">
             {activeTab === "compliance" && (
               <div>
                 <div className="space-y-6 max-h-[70vh] overflow-y-auto">
@@ -162,11 +149,8 @@ const Profile = () => {
                     </p>
                   ) : (
                     complianceHistory.map((entry, index) => (
-                      <motion.div
+                      <div
                         key={entry._id || index}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.5, delay: index * 0.1 }}
                         className="bg-neutral-50 rounded-xl shadow-custom-light p-4 sm:p-6 border-l-4 border-secondary-500"
                       >
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
@@ -277,7 +261,7 @@ const Profile = () => {
                             </ul>
                           </div>
                         )}
-                      </motion.div>
+                      </div>
                     ))
                   )}
                 </div>
@@ -293,11 +277,8 @@ const Profile = () => {
                     </p>
                   ) : (
                     routeHistory.map((entry, index) => (
-                      <motion.div
+                      <div
                         key={entry._id || index}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ duration: 0.5, delay: index * 0.1 }}
                         className="bg-neutral-50 rounded-xl shadow-custom-light p-4 sm:p-6 border-l-4 border-primary-500"
                       >
                         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
@@ -326,8 +307,8 @@ const Profile = () => {
                               {entry.routeData.totalDistance} km
                             </p>
                             <p className="text-tertiary-600">
-                              <strong>Carbon:</strong>{" "}
-                              {entry.routeData.totalCarbonEmission} kg
+                              <strong>Carbon Score:</strong>{" "}
+                              {entry.routeData.totalCarbonScore}
                             </p>
                           </div>
                           <div>
@@ -361,13 +342,13 @@ const Profile = () => {
                             </div>
                           </div>
                         </div>
-                      </motion.div>
+                      </div>
                     ))
                   )}
                 </div>
               </div>
             )}
-          </motion.section>
+          </section>
         </>
       )}
       <Toast type={toastProps.type} message={toastProps.message} />

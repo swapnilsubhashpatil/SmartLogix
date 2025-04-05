@@ -1,12 +1,27 @@
 import React, { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { FaLeaf, FaTimes } from "react-icons/fa";
+import { Bar } from "react-chartjs-2";
 import {
-  FaLeaf,
-  FaRoute,
-  FaLightbulb,
-  FaChartLine,
-  FaTimes,
-} from "react-icons/fa";
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend,
+} from "chart.js";
+import Toast from "./Toast";
+
+// Register Chart.js components
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -14,6 +29,12 @@ function CarbonFootprint() {
   const [carbonData, setCarbonData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [toastProps, setToastProps] = useState({ type: "", message: "" });
+
+  const showToast = (type, message) => {
+    setToastProps({ type, message });
+    setTimeout(() => setToastProps({ type: "", message: "" }), 3000);
+  };
 
   useEffect(() => {
     fetchCarbonFootprint();
@@ -25,7 +46,6 @@ function CarbonFootprint() {
     setError(null);
 
     try {
-      // Find the latest carbon data in localStorage (changed from sessionStorage)
       const carbonKeys = Object.keys(localStorage).filter((key) =>
         key.startsWith("carbon_data_")
       );
@@ -33,19 +53,12 @@ function CarbonFootprint() {
         throw new Error("No carbon footprint data found in localStorage");
       }
 
-      // Use the latest key (assuming the last one is the most recent)
       const latestKey = carbonKeys.sort().pop();
       const params = JSON.parse(localStorage.getItem(latestKey));
-      console.log("Retrieved params from localStorage:", params);
+      console.log("Retrieved params:", params);
 
-      if (!params) {
-        throw new Error("No carbon footprint parameters found in localStorage");
-      }
-
-      // Validate required fields
-      const { origin, destination, distance, vehicleType, weight } = params;
-      if (!origin || !destination || !distance || !vehicleType || !weight) {
-        throw new Error("Missing required parameters in localStorage data");
+      if (!params || !params.routeDirections) {
+        throw new Error("Invalid or missing route data in localStorage");
       }
 
       const response = await fetch(`${BACKEND_URL}/api/carbon-footprint`, {
@@ -55,81 +68,77 @@ function CarbonFootprint() {
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error("Fetch response error:", response.status, errorText);
-        throw new Error(
-          `Server responded with ${response.status}: ${errorText}`
-        );
+        throw new Error(`Server error: ${await response.text()}`);
       }
 
       const jsonData = await response.json();
-      console.log("Received carbon data:", jsonData);
+      console.log("Carbon data:", jsonData);
       setCarbonData(jsonData);
-
-      // Clean up localStorage after use
       localStorage.removeItem(latestKey);
     } catch (err) {
       console.error("Error fetching carbon footprint:", err);
-      setError(err.message || "Failed to fetch carbon footprint data.");
+      setError(err.message);
+      setToastProps({
+        type: "error",
+        message: "Error fetching carbon footprint:",
+      });
     } finally {
       setLoading(false);
     }
   };
 
-  // Function to close the window
   const handleClose = () => {
     window.close();
   };
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        when: "beforeChildren",
-        staggerChildren: 0.2,
-      },
-    },
-  };
+  const chartData = carbonData?.routeAnalysis
+    ? {
+        labels: carbonData.routeAnalysis.map(
+          (leg) => `${leg.leg} (${leg.mode})`
+        ),
+        datasets: [
+          {
+            label: "CO2e Emissions (kg)",
+            data: carbonData.routeAnalysis.map((leg) =>
+              parseFloat(leg.emissions.replace(" kg CO2e", ""))
+            ),
+            backgroundColor: "rgba(255, 99, 132, 0.6)",
+            borderColor: "rgba(255, 99, 132, 1)",
+            borderWidth: 1,
+          },
+        ],
+      }
+    : null;
 
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: { type: "spring", stiffness: 100 },
+  const chartOptions = {
+    responsive: true,
+    plugins: {
+      legend: { position: "top" },
+      title: { display: true, text: "Carbon Emissions by Route Leg" },
+    },
+    scales: {
+      y: { beginAtZero: true, title: { display: true, text: "kg CO2e" } },
     },
   };
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-gray-800 text-gray-100 p-6 md:p-10">
-      <div className="absolute top-4 right-4 z-10">
+      <Toast type={toastProps.type} message={toastProps.message} />
+      <div className="absolute top-2 right-2 z-10">
         <button
           onClick={handleClose}
           className="bg-gray-700 hover:bg-gray-600 text-white p-2 rounded-full transition-colors"
           aria-label="Close"
         >
-          <FaTimes className="w-4 h-4 sm:h-5 w-5" />
+          <FaTimes className="w-4 h-4" />
         </button>
       </div>
-
       <motion.div
         initial={{ opacity: 0, y: -20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6 }}
         className="max-w-6xl mx-auto relative"
       >
-        {/* Close button
-        <div className="absolute top-0 right-0 z-10">
-          <button
-            onClick={handleClose}
-            className="bg-gray-700 hover:bg-gray-600 text-white p-2 rounded-full transition-colors"
-            aria-label="Close"
-          >
-            <FaTimes className="w-5 h-5" />
-          </button>
-        </div> */}
-
         <div className="text-center mb-12">
           <motion.h1
             initial={{ opacity: 0 }}
@@ -138,8 +147,8 @@ function CarbonFootprint() {
             className="text-4xl md:text-6xl font-bold tracking-tight mb-4 font-inter"
           >
             SmartLogix Carbon{" "}
-            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">
-              Footprint Analysis
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-teal-300">
+              Footprint
             </span>
           </motion.h1>
           <motion.p
@@ -148,8 +157,7 @@ function CarbonFootprint() {
             transition={{ delay: 0.4, duration: 0.8 }}
             className="text-xl text-gray-300 max-w-2xl mx-auto font-light"
           >
-            Discover your carbon footprint and detailed emission analysis with
-            SmartLogix.
+            Visualize your route’s carbon impact and its effect on Earth.
           </motion.p>
         </div>
 
@@ -157,15 +165,12 @@ function CarbonFootprint() {
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 0.6, duration: 0.5 }}
-          className="bg-gray-800 backdrop-blur-lg bg-opacity-50 rounded-3xl overflow-hidden border border-gray-700 shadow-2xl"
+          className="bg-gray-800 rounded-3xl p-6 md:p-10 border border-gray-700 shadow-2xl"
         >
           {loading ? (
             <div className="flex flex-col items-center justify-center h-96">
               <motion.div
-                animate={{
-                  rotate: 360,
-                  scale: [1, 1.1, 1],
-                }}
+                animate={{ rotate: 360, scale: [1, 1.1, 1] }}
                 transition={{
                   duration: 2,
                   repeat: Infinity,
@@ -175,20 +180,13 @@ function CarbonFootprint() {
               >
                 <FaLeaf className="w-full h-full text-green-400" />
               </motion.div>
-              <p className="text-blue-300 text-lg font-medium">
-                Loading your carbon analysis...
+              <p className="text-green-300 text-lg font-medium">
+                Calculating your carbon footprint...
               </p>
             </div>
           ) : error ? (
             <div className="flex flex-col items-center justify-center h-96 p-6 text-center">
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 100, delay: 0.3 }}
-                className="bg-gray-700 bg-opacity-30 p-8 rounded-3xl border border-gray-600 mb-6 w-16 h-16 flex items-center justify-center"
-              >
-                <FaLeaf className="text-3xl text-green-400 opacity-70" />
-              </motion.div>
+              <FaLeaf className="text-3xl text-green-400 opacity-70 mb-4" />
               <h3 className="text-xl font-medium text-gray-300 mb-3">
                 {error}
               </h3>
@@ -196,233 +194,106 @@ function CarbonFootprint() {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={fetchCarbonFootprint}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+                className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700"
               >
                 Retry
               </motion.button>
             </div>
           ) : carbonData ? (
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-              className="p-6 md:p-10"
-            >
-              <motion.div
-                variants={itemVariants}
-                className="flex items-center mb-8"
-              >
-                <div className="bg-green-500 bg-opacity-20 p-4 rounded-2xl mr-4">
-                  <FaLeaf className="text-3xl text-green-400" />
-                </div>
-                <div>
-                  <h2 className="text-3xl font-bold mb-1">
-                    Carbon Footprint Summary
-                  </h2>
-                  <div className="flex space-x-6 mt-4">
-                    <div className="bg-gray-700 bg-opacity-50 rounded-xl p-4 flex-1">
-                      <p className="text-gray-400 text-sm">Total Distance</p>
-                      <p className="text-2xl font-bold">
-                        {carbonData.totalDistance}
-                      </p>
-                    </div>
-                    <div className="bg-gray-700 bg-opacity-50 rounded-xl p-4 flex-1">
-                      <p className="text-gray-400 text-sm">Total Emissions</p>
-                      <p className="text-2xl font-bold text-red-400">
-                        {carbonData.totalEmissions}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-
-              <motion.div variants={itemVariants} className="mb-8">
-                <div className="flex items-center mb-6">
-                  <div className="bg-blue-500 bg-opacity-20 p-4 rounded-2xl mr-4">
-                    <FaRoute className="text-3xl text-blue-400" />
-                  </div>
-                  <h3 className="text-2xl font-bold">Route Analysis</h3>
-                </div>
-                <div className="space-y-6">
-                  {carbonData.routeAnalysis &&
-                  carbonData.routeAnalysis.length > 0 ? (
-                    carbonData.routeAnalysis.map((leg, index) => (
-                      <motion.div
-                        key={index}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.1 * index, duration: 0.5 }}
-                        className="bg-gray-700 bg-opacity-30 rounded-xl p-6 border border-gray-600"
-                      >
-                        <h4 className="text-xl font-bold mb-3 text-blue-300">
-                          {leg.origin} to {leg.destination}
-                        </h4>
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                          <div className="bg-gray-800 bg-opacity-50 p-4 rounded-lg">
-                            <p className="text-gray-400 text-sm">Distance</p>
-                            <p className="text-xl font-semibold">
-                              {leg.distance}
-                            </p>
-                          </div>
-                          <div className="bg-gray-800 bg-opacity-50 p-4 rounded-lg">
-                            <p className="text-gray-400 text-sm">
-                              Fuel Consumption
-                            </p>
-                            <p className="text-xl font-semibold">
-                              {leg.fuelConsumption}
-                            </p>
-                          </div>
-                          <div className="bg-gray-800 bg-opacity-50 p-4 rounded-lg">
-                            <p className="text-gray-400 text-sm">Fuel Type</p>
-                            <p className="text-xl font-semibold">
-                              {leg.fuelType}
-                            </p>
-                          </div>
-                        </div>
-
-                        <div className="bg-gray-800 bg-opacity-50 p-4 rounded-lg mb-4">
-                          <p className="text-gray-400 text-sm mb-2">
-                            Emissions
-                          </p>
-                          <p className="text-xl font-semibold text-red-400 mb-1">
-                            {leg.emissions.total}
-                          </p>
-                          <p className="text-sm text-gray-400">
-                            Intensity: {leg.emissions.intensity}
-                          </p>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3">
-                            <div className="bg-gray-700 bg-opacity-50 p-3 rounded-lg">
-                              <p className="text-gray-400 text-xs">
-                                Tank to Wheel
-                              </p>
-                              <p className="text-md font-medium">
-                                {leg.emissions.breakdown.tankToWheel}
-                              </p>
-                            </div>
-                            <div className="bg-gray-700 bg-opacity-50 p-3 rounded-lg">
-                              <p className="text-gray-400 text-xs">
-                                Well to Tank
-                              </p>
-                              <p className="text-md font-medium">
-                                {leg.emissions.breakdown.wellToTank}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-
-                        {leg.cost && (
-                          <div className="bg-gray-800 bg-opacity-50 p-4 rounded-lg">
-                            <p className="text-gray-400 text-sm">
-                              Estimated Cost
-                            </p>
-                            <p className="text-xl font-semibold">{leg.cost}</p>
-                          </div>
-                        )}
-                      </motion.div>
-                    ))
-                  ) : (
-                    <p className="text-gray-400">
-                      No route analysis available.
+            <>
+              {/* Summary */}
+              <div className="mb-8">
+                <h2 className="text-3xl font-bold mb-4">
+                  Carbon Footprint Summary
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-gray-700 p-4 rounded-lg">
+                    <p className="text-gray-400 text-sm">Total Distance</p>
+                    <p className="text-2xl font-bold">
+                      {carbonData.totalDistance}
                     </p>
-                  )}
-                </div>
-              </motion.div>
-
-              <motion.div variants={itemVariants} className="mb-8">
-                <div className="flex items-center mb-6">
-                  <div className="bg-yellow-500 bg-opacity-20 p-4 rounded-2xl mr-4">
-                    <FaLightbulb className="text-3xl text-yellow-400" />
                   </div>
-                  <h3 className="text-2xl font-bold">Suggestions</h3>
-                </div>
-                <div className="bg-gradient-to-r from-green-900/30 to-green-700/20 rounded-xl p-6 border border-green-800/40">
-                  <ul className="space-y-3">
-                    {carbonData.suggestions &&
-                    carbonData.suggestions.length > 0 ? (
-                      carbonData.suggestions.map((suggestion, index) => (
-                        <motion.li
-                          key={index}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.1 * index, duration: 0.5 }}
-                          className="flex items-start"
-                        >
-                          <span className="inline-block w-6 h-6 bg-green-500 bg-opacity-20 rounded-full text-green-400 flex items-center justify-center mr-3 mt-1 text-sm">
-                            {index + 1}
-                          </span>
-                          <span className="text-gray-200">{suggestion}</span>
-                        </motion.li>
-                      ))
-                    ) : (
-                      <p className="text-gray-400">No suggestions available.</p>
-                    )}
-                  </ul>
-                </div>
-              </motion.div>
-
-              <motion.div variants={itemVariants}>
-                <div className="flex items-center mb-6">
-                  <div className="bg-purple-500 bg-opacity-20 p-4 rounded-2xl mr-4">
-                    <FaChartLine className="text-3xl text-purple-400" />
+                  <div className="bg-gray-700 p-4 rounded-lg">
+                    <p className="text-gray-400 text-sm">Total Emissions</p>
+                    <p className="text-2xl font-bold text-red-400">
+                      {carbonData.totalEmissions}
+                    </p>
                   </div>
-                  <h3 className="text-2xl font-bold">Additional Insights</h3>
                 </div>
-                <div className="bg-gray-700 bg-opacity-30 rounded-xl p-6 border border-gray-600">
-                  <ul className="space-y-3">
-                    {carbonData.additionalInsights &&
-                    carbonData.additionalInsights.length > 0 ? (
-                      carbonData.additionalInsights.map((insight, index) => (
-                        <motion.li
-                          key={index}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.1 * index, duration: 0.5 }}
-                          className="flex items-start"
-                        >
-                          <span className="inline-block w-2 h-2 bg-purple-400 rounded-full mr-3 mt-2"></span>
-                          <span className="text-gray-200">{insight}</span>
-                        </motion.li>
-                      ))
-                    ) : (
-                      <p className="text-gray-400">
-                        No additional insights available.
-                      </p>
-                    )}
-                  </ul>
+              </div>
+
+              {/* Graph */}
+              <div className="mb-8">
+                <h3 className="text-2xl font-bold mb-4">Emissions Breakdown</h3>
+                {chartData && <Bar data={chartData} options={chartOptions} />}
+              </div>
+
+              {/* Route Analysis */}
+              <div className="mb-8">
+                <h3 className="text-2xl font-bold mb-4">Route Analysis</h3>
+                <div className="space-y-4">
+                  {carbonData.routeAnalysis.map((leg, index) => (
+                    <div key={index} className="bg-gray-700 p-4 rounded-lg">
+                      <h4 className="text-xl font-semibold text-green-300">
+                        {leg.leg}: {leg.origin} → {leg.destination}
+                      </h4>
+                      <p>Mode: {leg.mode}</p>
+                      <p>Distance: {leg.distance}</p>
+                      <p className="text-red-400">Emissions: {leg.emissions}</p>
+                    </div>
+                  ))}
                 </div>
-              </motion.div>
-            </motion.div>
+              </div>
+
+              {/* Earth Impact */}
+              <div className="mb-8">
+                <h3 className="text-2xl font-bold mb-4">Impact on Earth</h3>
+                <div className="bg-gray-700 p-6 rounded-lg text-center">
+                  <svg className="w-32 h-32 mx-auto mb-4" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="40" fill="#1e3a8a" />
+                    <path
+                      d="M30 50 C40 20, 60 20, 70 50 C60 80, 40 80, 30 50"
+                      fill="#10b981"
+                    />
+                    <path
+                      d="M50 30 C70 40, 70 60, 50 70 C30 60, 30 40, 50 30"
+                      fill="#34d399"
+                    />
+                    <motion.circle
+                      cx="50"
+                      cy="50"
+                      r="45"
+                      fill="none"
+                      stroke="rgba(255, 99, 132, 0.5)"
+                      strokeWidth="5"
+                      animate={{ r: [45, 50, 45] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    />
+                  </svg>
+                  <p className="text-lg text-gray-300">
+                    {carbonData.earthImpact}
+                  </p>
+                </div>
+              </div>
+
+              {/* Suggestions */}
+              <div>
+                <h3 className="text-2xl font-bold mb-4">Suggestions</h3>
+                <ul className="bg-gray-700 p-4 rounded-lg space-y-2">
+                  {carbonData.suggestions.map((suggestion, index) => (
+                    <li key={index} className="flex items-center gap-2">
+                      <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+                      {suggestion}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </>
           ) : (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.8 }}
-              className="flex flex-col items-center justify-center h-96 p-6 text-center"
-            >
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 100, delay: 0.3 }}
-                className="bg-gray-700 bg-opacity-30 p-8 rounded-3xl border border-gray-600 mb-6 w-16 h-16 flex items-center justify-center"
-              >
-                <FaLeaf className="text-3xl text-green-400 opacity-70" />
-              </motion.div>
-              <h3 className="text-xl font-medium text-gray-300 mb-3">
-                No Carbon Data Available
-              </h3>
-              <p className="text-gray-400 max-w-md mb-6">
-                Please provide the necessary details for your carbon footprint
-                analysis.
-              </p>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={fetchCarbonFootprint}
-                className="px-6 py-3 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
-              >
-                Run Analysis
-              </motion.button>
-            </motion.div>
+            <div className="flex flex-col items-center justify-center h-96">
+              <FaLeaf className="text-3xl text-green-400 mb-4" />
+              <p>No carbon data available. Please run an analysis.</p>
+            </div>
           )}
         </motion.div>
       </motion.div>
