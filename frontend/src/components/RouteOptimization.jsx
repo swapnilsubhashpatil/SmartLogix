@@ -4,13 +4,16 @@ import {
   TextField,
   Typography,
   CircularProgress,
-  Chip,
   Box,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  IconButton,
 } from "@mui/material";
+import { FaTimes } from "react-icons/fa";
 import { LoadScript } from "@react-google-maps/api";
 import { motion } from "framer-motion";
 import axios from "axios";
-import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import MapIcon from "@mui/icons-material/Map";
 import Co2Icon from "@mui/icons-material/Co2";
@@ -18,9 +21,13 @@ import SaveIcon from "@mui/icons-material/Save";
 import RouteIcon from "@mui/icons-material/Route";
 import TimerIcon from "@mui/icons-material/Timer";
 import AttachMoneyIcon from "@mui/icons-material/AttachMoney";
-import HomeIcon from "@mui/icons-material/Home"; // Added HomeIcon for the header
+import HomeIcon from "@mui/icons-material/Home";
+import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
+import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
+import InfoIcon from "@mui/icons-material/Info";
 import { useNavigate } from "react-router-dom";
 import RouteResultsSkeleton from "./Skeleton/RouteResultsSkeleton";
+import Toast from "./Toast";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -28,12 +35,7 @@ const RouteOptimizer = () => {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [weight, setWeight] = useState("");
-  const [routes, setRoutes] = useState({
-    popular: [],
-    costEfficient: [],
-    timeEfficient: [],
-    allRoutes: [],
-  });
+  const [routes, setRoutes] = useState([]); // Single array of 9 unique routes
   const [displayedRoutes, setDisplayedRoutes] = useState([]);
   const [activeFilter, setActiveFilter] = useState("");
   const [loading, setLoading] = useState(false);
@@ -41,11 +43,18 @@ const RouteOptimizer = () => {
   const [mapLoading, setMapLoading] = useState(null);
   const [carbonLoading, setCarbonLoading] = useState(null);
   const [saveLoading, setSaveLoading] = useState(null);
+  const [openInfoDialog, setOpenInfoDialog] = useState(false);
   const token = localStorage.getItem("token");
+  const [toastProps, setToastProps] = useState({ type: "", message: "" });
   const navigate = useNavigate();
 
   const toHome = () => {
-    navigate("/dashboard"); // Navigate to the home page
+    navigate("/dashboard");
+  };
+
+  // Function to sort and extract top 3 routes for a given metric
+  const getTopThreeRoutes = (routes, metric) => {
+    return [...routes].sort((a, b) => a[metric] - b[metric]).slice(0, 3);
   };
 
   const handleSubmit = async (e) => {
@@ -69,27 +78,31 @@ const RouteOptimizer = () => {
         }
       );
 
-      const data = response.data;
-      setRoutes({
-        popular: data.popularRoutes,
-        costEfficient: data.costEfficientRoutes,
-        timeEfficient: data.timeEfficientRoutes,
-        allRoutes: [
-          ...data.popularRoutes,
-          ...data.costEfficientRoutes,
-          ...data.timeEfficientRoutes,
-        ],
-      });
-      setDisplayedRoutes(data.popularRoutes);
+      const data = response.data; // Expecting an array of 9 unique routes
+      console.log(data);
+      if (!Array.isArray(data) || data.length !== 9) {
+        throw new Error("Expected 9 unique routes from the backend.");
+      }
+
+      // Store all 9 routes
+      setRoutes(data);
+
+      // Initially display popular routes (those tagged as "popular")
+      const popularRoutes = data.filter((route) => route.tag === "popular");
+      if (popularRoutes.length !== 3) {
+        console.warn("Expected exactly 3 popular routes; adjusting...");
+      }
+      setDisplayedRoutes(popularRoutes.slice(0, 3)); // Ensure only 3 popular routes
       setActiveFilter("popular");
       setShowResults(true);
     } catch (error) {
       console.error("Error fetching routes:", error);
-      alert(
-        `Failed to fetch routes: ${
-          error.response?.data?.error || "Unknown error"
-        }`
-      );
+      setToastProps({
+        type: "error",
+        message: `Failed to fetch routes: ${
+          error.response?.data?.error || error.message || "Unknown error"
+        }`,
+      });
     } finally {
       setLoading(false);
     }
@@ -99,23 +112,46 @@ const RouteOptimizer = () => {
     setActiveFilter(filter);
     switch (filter) {
       case "popular":
-        setDisplayedRoutes(routes.popular);
+        setDisplayedRoutes(
+          routes.filter((route) => route.tag === "popular").slice(0, 3)
+        );
         break;
       case "cost":
-        setDisplayedRoutes(routes.costEfficient);
+        setDisplayedRoutes(getTopThreeRoutes(routes, "totalCost"));
         break;
       case "time":
-        setDisplayedRoutes(routes.timeEfficient);
+        setDisplayedRoutes(getTopThreeRoutes(routes, "totalTime"));
         break;
       case "carbon":
-        const sortedByCarbon = [...routes.allRoutes].sort(
-          (a, b) => a.totalCarbonEmission - b.totalCarbonEmission
-        );
-        setDisplayedRoutes(sortedByCarbon);
+        setDisplayedRoutes(getTopThreeRoutes(routes, "totalCarbonScore"));
         break;
       default:
+        setDisplayedRoutes(
+          routes.filter((route) => route.tag === "popular").slice(0, 3)
+        );
         break;
     }
+  };
+
+  const getCarbonDisplay = (score) => {
+    const color =
+      score < 33
+        ? "text-green-600"
+        : score < 66
+        ? "text-yellow-600"
+        : "text-red-600";
+    const arrow =
+      score < 50 ? (
+        <ArrowDownwardIcon fontSize="small" />
+      ) : (
+        <ArrowUpwardIcon fontSize="small" />
+      );
+    return (
+      <span className={`flex items-center ${color}`}>
+        {arrow}
+        {score.toFixed(2)}
+      </span>
+    );
   };
 
   const handleMapClick = async (route, index) => {
@@ -144,16 +180,13 @@ const RouteOptimizer = () => {
       };
       const routeKey = `route_data_${index}`;
       localStorage.setItem(routeKey, JSON.stringify(routeDataObj));
-      console.log(
-        "Route data stored in local storage:",
-        routeKey,
-        routeDataObj
-      );
-
       window.open("/map", "_blank");
     } catch (error) {
       console.error("Error fetching map data:", error);
-      alert("Failed to fetch map data.");
+      setToastProps({
+        type: "error",
+        message: "Failed to fetch map data.",
+      });
     } finally {
       setMapLoading(null);
     }
@@ -171,21 +204,15 @@ const RouteOptimizer = () => {
         weight: parseFloat(weight),
       };
 
-      // Use localStorage instead of sessionStorage for consistency
       const carbonKey = `carbon_data_${Date.now()}`;
       localStorage.setItem(carbonKey, JSON.stringify(carbonParams));
-
-      console.log(
-        "Carbon data stored in localStorage:",
-        carbonKey,
-        carbonParams
-      );
-
-      // Open the carbon footprint page in a new tab
       window.open(`/carbon-footprint`, "_blank");
     } catch (error) {
       console.error("Error preparing carbon data:", error);
-      alert("Failed to prepare carbon footprint data.");
+      setToastProps({
+        type: "error",
+        message: "Failed to prepare carbon footprint data.",
+      });
     } finally {
       setCarbonLoading(null);
     }
@@ -207,11 +234,6 @@ const RouteOptimizer = () => {
       const formData = { from, to, weight: parseFloat(weight) };
       const routeData = route;
 
-      console.log("Saving route with:");
-      console.log("Token:", token);
-      console.log("formData:", formData);
-      console.log("routeData:", routeData);
-
       const response = await axios.post(
         `${BACKEND_URL}/api/save-route`,
         { formData, routeData },
@@ -223,7 +245,6 @@ const RouteOptimizer = () => {
         }
       );
 
-      console.log("Route saved:", response.data);
       alert("Route saved successfully! Check your profile for history.");
     } catch (error) {
       console.error("Error saving route:", error);
@@ -232,26 +253,34 @@ const RouteOptimizer = () => {
         error.response?.data?.error ||
         "Unknown error";
       if (error.response?.status === 401) {
-        alert("Unauthorized. Please log in again.");
+        setToastProps({
+          type: "error",
+          message: "Unauthorized. Please log in again.",
+        });
         navigate("/");
-      } else if (error.response?.status === 400) {
-        alert(`Bad request: ${errorMessage}`);
-      } else if (error.response?.status === 500) {
-        alert(`Server error: ${errorMessage}`);
       } else {
-        alert(`Failed to save route: ${errorMessage}`);
+        setToastProps({
+          type: "error",
+          message: `Failed to save route: ${errorMessage}`,
+        });
       }
     } finally {
       setSaveLoading(null);
     }
   };
 
+  const handleInfoClick = () => {
+    setOpenInfoDialog(true);
+  };
+
+  const handleClose = () => {
+    setOpenInfoDialog(false);
+  };
+
   return (
     <>
       <div className="p-4 sm:p-6 font-sans min-h-screen flex flex-col items-center">
-        {/* Redesigned Header */}
         <header className="relative bg-gradient-to-r from-teal-200 to-blue-400 text-white py-6 sm:py-8 rounded-b-3xl overflow-hidden w-full">
-          {/* Wavy Background Shape */}
           <div className="absolute inset-0">
             <svg
               className="w-full h-full"
@@ -272,10 +301,7 @@ const RouteOptimizer = () => {
               />
             </svg>
           </div>
-
-          {/* Content */}
           <div className="relative max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between">
-            {/* Logo/Title */}
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-[#f4ce14] rounded-full flex items-center justify-center">
                 <HomeIcon
@@ -290,10 +316,30 @@ const RouteOptimizer = () => {
                 Route Optimization
               </h1>
             </div>
+            <div>
+              {showResults && (
+                <IconButton onClick={handleInfoClick} sx={{ color: "white" }}>
+                  <Button
+                    onClick={handleInfoClick}
+                    sx={{
+                      color: "white",
+                      borderColor: "white",
+                      "&:hover": {
+                        borderColor: "#e0e0e0",
+                        backgroundColor: "rgba(255, 255, 255, 0.1)",
+                      },
+                    }}
+                    variant="outlined"
+                  >
+                    <InfoIcon className="mx-2" />
+                    How It Works
+                  </Button>
+                </IconButton>
+              )}
+            </div>
           </div>
         </header>
 
-        {/* Form Section with Horizontal Inputs on Large Screens */}
         <form
           onSubmit={handleSubmit}
           className="w-full max-w-4xl mt-6 flex flex-col gap-4 mb-6 sm:mb-8 items-center justify-center"
@@ -423,38 +469,110 @@ const RouteOptimizer = () => {
                   initial={{ opacity: 0, x: -50 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.5, delay: index * 0.2 }}
-                  className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg border border-gray-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                  className="bg-white p-4 rounded-lg shadow-md hover:shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
                 >
                   <div className="flex-1">
                     <Typography
                       variant="h6"
-                      className="font-semibold text-gray-800 text-base sm:text-lg"
+                      className="font-semibold text-Gray-800 text-base sm:text-lg"
                     >
                       Route {index + 1}
                     </Typography>
                     {route.routeDirections.map((direction) => (
                       <Typography
                         key={direction.id}
-                        className="text-sm text-gray-600"
+                        className="text-sm text-Gray-600"
                       >
                         {direction.waypoints.join(" → ")} ({direction.state})
                       </Typography>
                     ))}
                   </div>
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 sm:gap-4 w-full sm:w-auto">
-                    <div className="flex flex-wrap gap-2 sm:gap-4">
-                      <Typography className="text-gray-700 text-sm sm:text-base">
-                        {route.totalDistance} km
-                      </Typography>
-                      <Typography className="text-gray-700 text-sm sm:text-base">
-                        {route.totalCarbonEmission} kg
-                      </Typography>
-                      <Typography className="text-gray-700 text-sm sm:text-base">
-                        ${route.totalCost.toFixed(2)}
-                      </Typography>
-                      <Typography className="text-gray-700 text-sm sm:text-base">
-                        {route.totalTime} hrs
-                      </Typography>
+                    <div className="flex flex-wrap justify-center gap-4 sm:gap-6 w-full">
+                      <div className="flex flex-col items-center">
+                        <Typography className="text-Gray-700 text-sm sm:text-base">
+                          {route.totalDistance} km
+                        </Typography>
+                        <span className="text-xs text-Gray-500 flex items-center gap-1 bg-gray-200 px-2 py-1 rounded-full mt-1">
+                          <svg
+                            className="w-3 h-3"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447-2.724A1 1 0 0021 13.382V2.618a1 1 0 00-1.447-.894L15 4m0 13V4"
+                            />
+                          </svg>
+                          Distance
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-center">
+                        <Typography className="text-sm sm:text-base">
+                          {getCarbonDisplay(route.totalCarbonScore)}
+                        </Typography>
+                        <span className="text-xs text-Gray-500 flex items-center gap-1 bg-green-100 px-2 py-1 rounded-full mt-1">
+                          <svg
+                            className="w-3 h-3"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M13 10V3L4 14h7v7l9-11h-7z"
+                            />
+                          </svg>
+                          Carbon Score
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-center">
+                        <Typography className="text-Gray-700 text-sm sm:text-base">
+                          ${route.totalCost.toFixed(2)}
+                        </Typography>
+                        <span className="text-xs text-Gray-500 flex items-center gap-1 bg-yellow-100 px-2 py-1 rounded-full mt-1">
+                          <svg
+                            className="w-3 h-3"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                          Cost
+                        </span>
+                      </div>
+                      <div className="flex flex-col items-center">
+                        <Typography className="text-Gray-700 text-sm sm:text-base">
+                          {route.totalTime} hrs
+                        </Typography>
+                        <span className="text-xs text-Gray-500 flex items-center gap-1 bg-blue-100 px-2 py-1 rounded-full mt-1">
+                          <svg
+                            className="w-3 h-3"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                          Time
+                        </span>
+                      </div>
                     </div>
                     <div className="flex gap-4 p-2 w-full sm:w-auto justify-start sm:justify-end">
                       <Button
@@ -528,6 +646,162 @@ const RouteOptimizer = () => {
           </>
         )}
       </div>
+
+      {/* Info Dialog */}
+      <Dialog
+        open={openInfoDialog}
+        onClose={handleClose}
+        maxWidth="md"
+        fullWidth
+        sx={{ "& .MuiDialog-paper": { borderRadius: "16px", padding: "16px" } }}
+      >
+        <DialogTitle
+          sx={{
+            fontWeight: "bold",
+            fontSize: "1.5rem",
+            color: "#00695c",
+            textAlign: "center",
+          }}
+        >
+          {showResults && "How We Crunch the Numbers!"}
+        </DialogTitle>
+        <DialogContent>
+          {showResults && (
+            <div className="space-y-6">
+              <div className="absolute top-4 right-4 z-10">
+                <button
+                  onClick={handleClose}
+                  className="bg-Gray-700 hover:bg-Gray-600 text-white p-2 rounded-full transition-colors"
+                  aria-label="Close"
+                >
+                  <FaTimes className="w-2 h-2 sm:h-2 w-2" />
+                </button>
+              </div>
+              {/* Distance */}
+              <Box className="flex items-start gap-3 p-4 bg-Gray-50 rounded-lg shadow-sm">
+                <svg
+                  className="w-6 h-6 text-Gray-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447-2.724A1 1 0 0021 13.382V2.618a1 1 0 00-1.447-.894L15 4m0 13V4"
+                  />
+                </svg>
+                <div>
+                  <Typography
+                    variant="h6"
+                    className="text-Gray-800 font-semibold"
+                  >
+                    Distance
+                  </Typography>
+                  <Typography className="text-Gray-600">
+                    We measure the real-world kilometers between all stops using
+                    a straight-line (great-circle) path—think of it as the
+                    shortest hop from city to city!
+                  </Typography>
+                </div>
+              </Box>
+
+              {/* Carbon Score */}
+              <Box className="flex items-start gap-3 p-4 bg-green-50 rounded-lg shadow-sm">
+                <svg
+                  className="w-6 h-6 text-green-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M13 10V3L4 14h7v7l9-11h-7z"
+                  />
+                </svg>
+                <div>
+                  <Typography
+                    variant="h6"
+                    className="text-green-800 font-semibold"
+                  >
+                    Carbon Score
+                  </Typography>
+                  <Typography className="text-green-600">
+                    A 0-100 score showing how eco-friendly your route is. Lower
+                    is greener! We calculate CO2 (Land: 0.07 kg/km, Sea: 0.01
+                    kg/km, Air: 0.60 kg/km) based on distance and weight, then
+                    compare it to the max across all routes.
+                  </Typography>
+                </div>
+              </Box>
+
+              {/* Cost */}
+              <Box className="flex items-start gap-3 p-4 bg-yellow-50 rounded-lg shadow-sm">
+                <svg
+                  className="w-6 h-6 text-yellow-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <div>
+                  <Typography
+                    variant="h6"
+                    className="text-yellow-800 font-semibold"
+                  >
+                    Cost
+                  </Typography>
+                  <Typography className="text-yellow-600">
+                    Your wallet’s best friend! Cost = (distance × weight × rate)
+                    + extra fees for transfers. Rates: Land: $0.15/kg/km, Sea:
+                    $0.08/kg/km, Air: $0.75/kg/km. Simple and fair!
+                  </Typography>
+                </div>
+              </Box>
+
+              {/* Time */}
+              <Box className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg shadow-sm">
+                <svg
+                  className="w-6 h-6 text-blue-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <div>
+                  <Typography
+                    variant="h6"
+                    className="text-blue-800 font-semibold"
+                  >
+                    Time
+                  </Typography>
+                  <Typography className="text-blue-600">
+                    How fast it gets there! Time = (distance / speed) + stopover
+                    waits. Speeds: Land: 60 km/h, Sea: 40 km/h, Air: 900 km/h.
+                    Waits: Land: 2h/stop, Sea: 12h/stop, Air: 3h/stop.
+                  </Typography>
+                </div>
+              </Box>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+      <Toast type={toastProps.type} message={toastProps.message} />
     </>
   );
 };

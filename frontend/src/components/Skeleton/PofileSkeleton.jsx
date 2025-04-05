@@ -18,6 +18,25 @@ const ProfileSkeleton = () => {
 
   return (
     <div className="min-h-screen bg-neutral-100 p-4 sm:p-6">
+      {/* Profile Header Skeleton */}
+      <motion.section
+        initial={{ opacity: 0, y: -50 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.8 }}
+        className="max-w-4xl mx-auto mb-8 sm:mb-12"
+      >
+        <div className="bg-gradient-to-r from-primary-500 to-primary-300 rounded-xl shadow-custom-medium p-6 sm:p-8 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div className="flex flex-col sm:flex-row items-center space-y-4 sm:space-y-0 sm:space-x-6 w-full sm:w-auto">
+            <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gray-300 rounded-full animate-pulse shrink-0" />
+            <div className="text-center sm:text-left space-y-2">
+              <div className="h-8 sm:h-10 w-40 sm:w-48 bg-gray-300 rounded animate-pulse" />
+              <div className="h-4 sm:h-5 w-32 sm:w-36 bg-gray-300 rounded animate-pulse" />
+            </div>
+          </div>
+          <div className="h-10 w-full sm:w-24 bg-gray-300 rounded-custom animate-pulse" />
+        </div>
+      </motion.section>
+
       {/* Tabs Navigation Skeleton */}
       <div className="max-w-4xl mx-auto mb-6">
         <div className="flex flex-col sm:flex-row border-b border-neutral-200">

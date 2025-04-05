@@ -639,6 +639,7 @@ app.delete("/api/compliance-history/:id", verifyToken, async (req, res) => {
 });
 
 // -------- Route Optimization Routes --------
+
 app.post("/api/route-optimization", async (req, res) => {
   try {
     const { from, to, weight } = req.body;
@@ -649,89 +650,172 @@ app.post("/api/route-optimization", async (req, res) => {
         .json({ error: "Missing required fields: from, to, and weight" });
     }
 
-    const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
+    const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    //route optimization
-    const prompt = `
-You are a route optimization AI designed to generate optimal shipping routes between two locations, using realistic logistics data and real-world considerations. Your task is to provide 9 routes categorized into 3 popular routes, 3 cost-efficient routes, and 3 time-efficient routes based on the provided origin, destination, and shipment weight.
+    // Refined route optimization prompt with realistic cost estimation
+    const prompt = `You are a route optimization AI tasked with generating 9 unique shipping routes between two locations, using real-world logistics insights as of April 4, 2025. Exactly 3 routes must be tagged as "popular" based on common usage or historical preference. Each route must differ in waypoints, transport modes, or both.
 
 **Inputs**:
 - Origin: ${from}
 - Destination: ${to}
 - Shipment Weight: ${weight} kg
 
-**Requirements**:
-- Generate exactly 9 routes: 3 popular, 3 cost-efficient, and 3 time-efficient.
-- Each route must consist of 2 to 5 waypoints (inclusive), representing realistic checkpoints between origin and destination.
-- Waypoints must be actual cities or locations with geographical relevance to the route.
-- For each segment between waypoints, specify the transport mode in the format:
-  { id: "string", waypoints: ["string", "string"], state: "land" | "sea" | "air" }
-- Verify port or airport existence:
-  - For "sea" routes, ensure waypoints have functional seaports (e.g., Mumbai has a port, but an inland city like Delhi does not).
-  - For "air" routes, ensure waypoints have operational airports.
-- Multi-segment routes:
-  - If a route uses the same mode consecutively (e.g., sea from Mumbai to Singapore, then sea to Japan), explicitly list each segment with its own waypoints and state.
-- Calculate for each route:
-  - totalCost (in USD, based on realistic cost rates below, considering weight and distance)
-  - totalTime (in hours, based on realistic speeds below, including transfer times)
-  - totalDistance (in kilometers, estimated realistically between waypoints)
-  - totalCarbonEmission (in kg CO2, based on transport mode and distance)
-- Use these realistic values:
-  - Land: $0.15/kg/km, 60 km/h, 0.07 kg CO2/km, add 2 hours per waypoint for loading/unloading
-  - Sea: $0.08/kg/km, 40 km/h, 0.01 kg CO2/km, add 12 hours per waypoint for port handling
-  - Air: $0.75/kg/km, 900 km/h, 0.60 kg CO2/km, add 3 hours per waypoint for airport processing
-- Ensure distances and times reflect real-world geography (e.g., use approximate great-circle distances between cities).
-- For cost-efficient routes, sort them in ascending order by totalCost (low to high).
+**Route Requirements**:
+- Provide 9 distinct routes, each with 2 to 5 waypoints (inclusive), using real, geographically relevant locations.
+- Tag exactly 3 routes with "popular" (property: "tag": "popular").
+- Use specific waypoints:
+  - Sea: Functional seaports (e.g., "Mumbai Port").
+  - Air: Operational airports (e.g., "Mumbai BOM").
+  - Land: Major cities or hubs.
+- Define each segment as:
+  { "id": "unique-string", "waypoints": ["start", "end"], "state": "land" | "sea" | "air" }
+- Categorize the 9 routes as follows:
+  - 3 routes must be multimodal (use at least two different modes: land, sea, or air).
+  - 3 routes must prioritize air (use air for the majority of segments).
+  - 3 routes must prioritize sea (use sea for the majority of segments).
+- For multi-segment routes, list consecutive same-mode segments separately.
+- Ensure transport mode matches waypoint capabilities (e.g., sea only between ports, air only between airports).
 
-**Output Rules**:
-- Return a strictly JSON-formatted response with no extra text outside the JSON.
-- Format:
-  {
-    "popularRoutes": [
-      {
-        "routeDirections": [
-          { "id": "string", "waypoints": ["string", "string"], "state": "land" | "sea" | "air" }
-        ],
-        "totalCost": number,
-        "totalTime": number,
-        "totalDistance": number,
-        "totalCarbonEmission": number
-      }
-    ],
-    "costEfficientRoutes": [
-      { ... } // Sorted by totalCost, ascending
-    ],
-    "timeEfficientRoutes": [{ ... }]
-  }
-- Numbers must be rounded to 2 decimal places.
-- Ensure waypoints make geographical sense and align with the transport mode (e.g., sea routes only between port cities).
+**Field Calculations**:
+- **totalCost (USD)**:
+  - Estimate the shipping cost for ${weight} kg across each route’s modes and waypoints.
+  - Use real-world rates as of April 4, 2025:
+    - Air: $3–$6/kg, plus airport fees (~$50–$100 per stop).
+    - Sea: $0.02–$0.05/kg, plus port fees (~$100–$200 per stop).
+    - Land: $0.10–$0.20/kg, plus transfer fees (~$20–$50 per stop).
+  - Adjust for:
+    - Economies of scale (reduce per-kg rate slightly for >100 kg, more for >500 kg).
+    - Distance (add ~10% surcharge if total distance > 10,000 km).
+  - Provide practical, industry-aligned estimates without a fixed formula.
+- **totalTime (hours)**:
+  - Calculate using:
+    - Land: 60 km/h, +2 hours per waypoint.
+    - Sea: 40 km/h, +12 hours per waypoint.
+    - Air: 900 km/h, +3 hours per waypoint.
+  - Sum segment times, including transfer delays.
+- **totalDistance (km)**:
+  - Approximate great-circle distances between waypoints (e.g., Mumbai to Tokyo ~6,700 km).
+  - Ensure estimates are reasonable and cumulative across segments.
+- **totalCarbonScore (0–100)**:
+  - Compute Raw CO2 = (CO2/km * totalDistance * ${weight}).
+  - CO2 rates: Land: 0.07 kg/km, Sea: 0.01 kg/km, Air: 0.60 kg/km.
+  - Normalize: totalCarbonScore = (Raw CO2 / Max Raw CO2 across all 9 routes) * 100.
+
+**Output Format**:
+- Return a JSON array of 9 routes, with no text outside the array:
+  [
+    {
+      "routeDirections": [
+        { "id": "string", "waypoints": ["string", "string"], "state": "land" | "sea" | "air" }
+      ],
+      "totalCost": number,
+      "totalTime": number,
+      "totalDistance": number,
+      "totalCarbonScore": number,
+      "tag": "popular" | undefined
+    },
+    ...
+  ]
+- Round all numbers to 2 decimal places.
+- Ensure mode-waypoint compatibility (e.g., no air routes between non-airports).
 `;
     const result = await model.generateContent(prompt);
     const rawResponse = result.response.text();
-    const jsonStart = rawResponse.indexOf("{");
-    const jsonEnd = rawResponse.lastIndexOf("}") + 1;
-    const jsonResponse = rawResponse.slice(jsonStart, jsonEnd).trim();
 
-    let parsedResponse = JSON.parse(jsonResponse);
-    const requiredFields = [
-      "popularRoutes",
-      "costEfficientRoutes",
-      "timeEfficientRoutes",
-    ];
-    const hasAllFields = requiredFields.every(
-      (field) =>
-        Array.isArray(parsedResponse[field]) &&
-        parsedResponse[field].length === 3
-    );
+    // Robust JSON extraction
+    const jsonMatch = rawResponse.match(/\[.*\]/s);
+    if (!jsonMatch) {
+      throw new Error("No valid JSON array found in AI response");
+    }
+    const jsonString = jsonMatch[0];
 
-    if (!hasAllFields) {
-      return res
-        .status(500)
-        .json({ error: "AI response missing required fields" });
+    let routes;
+    try {
+      routes = JSON.parse(jsonString);
+    } catch (parseError) {
+      console.error(
+        "JSON Parse Error:",
+        parseError,
+        "Raw Response:",
+        rawResponse
+      );
+      throw new Error("Invalid JSON format in AI response");
     }
 
-    res.json(parsedResponse);
+    // Enhanced validation
+    if (!Array.isArray(routes) || routes.length !== 9) {
+      return res
+        .status(500)
+        .json({ error: "AI response must contain exactly 9 unique routes" });
+    }
+
+    const popularRoutesCount = routes.filter(
+      (route) => route.tag === "popular"
+    ).length;
+    if (popularRoutesCount !== 3) {
+      return res
+        .status(500)
+        .json({ error: "AI response must tag exactly 3 routes as 'popular'" });
+    }
+
+    // Check for route uniqueness
+    const routeSignatures = new Set();
+    for (const route of routes) {
+      const signature = route.routeDirections
+        .map((seg) => `${seg.waypoints.join("-")}:${seg.state}`)
+        .join("|");
+      if (routeSignatures.has(signature)) {
+        return res
+          .status(500)
+          .json({ error: "AI response contains duplicate routes" });
+      }
+      routeSignatures.add(signature);
+    }
+
+    // Validate required fields and data types
+    const requiredFields = [
+      "routeDirections",
+      "totalCost",
+      "totalTime",
+      "totalDistance",
+      "totalCarbonScore",
+    ];
+    const isValid = routes.every((route) => {
+      return (
+        requiredFields.every((field) => field in route) &&
+        Array.isArray(route.routeDirections) &&
+        route.routeDirections.every(
+          (seg) =>
+            typeof seg.id === "string" &&
+            Array.isArray(seg.waypoints) &&
+            seg.waypoints.length === 2 &&
+            typeof seg.state === "string" &&
+            ["land", "sea", "air"].includes(seg.state)
+        ) &&
+        typeof route.totalCost === "number" &&
+        typeof route.totalTime === "number" &&
+        typeof route.totalDistance === "number" &&
+        typeof route.totalCarbonScore === "number" &&
+        (route.tag === undefined || route.tag === "popular")
+      );
+    });
+    if (!isValid) {
+      return res
+        .status(500)
+        .json({ error: "AI response contains invalid or missing route data" });
+    }
+
+    // Refine numbers to 2 decimal places
+    const refinedRoutes = routes.map((route) => ({
+      ...route,
+      totalCost: Number(route.totalCost.toFixed(2)),
+      totalTime: Number(route.totalTime.toFixed(2)),
+      totalDistance: Number(route.totalDistance.toFixed(2)),
+      totalCarbonScore: Number(route.totalCarbonScore.toFixed(2)),
+    }));
+
+    res.json(refinedRoutes);
   } catch (error) {
     console.error("Error in route optimization:", error);
     res.status(500).json({ error: "Failed to generate route optimization" });
