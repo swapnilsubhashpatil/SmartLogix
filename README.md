@@ -1,4 +1,7 @@
-![SmartLogix Banner](./screenshots/cover.png) <!-- Replace with your own banner -->
+<p align="center">
+  <img src="./screenshots/cover.png" alt="SmartLogix Banner" />
+</p>
+
 
 ---
 
