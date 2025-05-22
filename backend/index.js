@@ -580,7 +580,7 @@ You are a compliance checker AI for international trade shipments, designed to a
     // Initialize Gemini-AI
     const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
     const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-pro-exp-03-25",
+      model: "gemini-1.5-pro",
     });
 
     // Generate compliance response
@@ -651,9 +651,7 @@ app.post("/api/route-optimization", async (req, res) => {
     }
 
     const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
-    const model = genAI.getGenerativeModel({
-      model: "gemini-2.5-pro-preview-03-25",
-    });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     // Refined route optimization prompt with realistic cost estimation
     const prompt = `You are a route optimization AI tasked with generating 9 unique shipping routes between two locations, using real-world logistics insights as of April 4, 2025. Exactly 3 routes must be tagged as "popular" based on common usage or historical preference. Each route must differ in waypoints, transport modes, or both.
