@@ -79,7 +79,7 @@ const RouteOptimizer = () => {
       );
 
       const data = response.data; // Expecting an array of 9 unique routes
-      console.log(data);
+      // console.log(data);
       if (!Array.isArray(data) || data.length !== 9) {
         throw new Error("Expected 9 unique routes from the backend.");
       }

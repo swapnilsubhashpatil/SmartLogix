@@ -593,7 +593,7 @@ const ComplianceForm = () => {
 
   const handleSubmit = async () => {
     setLoading(true);
-    console.log(BACKEND_URL);
+    // console.log(BACKEND_URL);
     try {
       const token = localStorage.getItem("token"); // Retrieve token from localStorage
       if (!token) {
