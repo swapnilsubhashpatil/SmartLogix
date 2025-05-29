@@ -63,7 +63,6 @@ const RouteOptimization = () => {
     navigate("/dashboard");
   };
   const fetchDraftFromServer = async (draftId) => {
-    setLoading(true);
     try {
       const token = localStorage.getItem("token");
       if (!token) {
@@ -838,27 +837,24 @@ const RouteOptimization = () => {
                         )}
                       </Button>
                       <Button
-                        onClick={() => handleChooseClick(route, index)}
-                        disabled={
-                          chooseLoading === index ||
-                          !carbonAnalysisResults[index]
-                        }
+                        onClick={() => handleChooseRouteClick(route, index)}
+                        disabled={chooseRouteLoading === index}
                         sx={{
                           minWidth: "40px",
                           width: "40px",
                           height: "40px",
                           borderRadius: "50%",
-                          backgroundColor: "#e8f5e9",
-                          "&:hover": { backgroundColor: "#c8e6c9" },
+                          backgroundColor: "#e3f2f1",
+                          "&:hover": { backgroundColor: "#b39ddb" },
                         }}
                       >
-                        {chooseLoading === index ? (
+                        {chooseRouteLoading === index ? (
                           <CircularProgress
                             size={20}
-                            sx={{ color: "#388e3c" }}
+                            sx={{ color: "#5e35b1" }}
                           />
                         ) : (
-                          <RouteIcon sx={{ color: "#388e3c" }} />
+                          <CheckCircleIcon sx={{ color: "#5e35b1" }} />
                         )}
                       </Button>
                     </div>

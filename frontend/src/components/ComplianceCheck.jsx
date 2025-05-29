@@ -580,12 +580,14 @@ const ComplianceForm = () => {
               Compliance Check
             </h1>
           </div>
-          <button
-            onClick={() => navigate("/product-analysis")}
-            className="mt-4 sm:mt-0 py-2 px-4 bg-white text-teal-600 font-medium rounded-lg hover:bg-gray-100 transition-colors duration-200"
-          >
-            Product Analysis
-          </button>
+          {response && (
+            <button
+              onClick={() => navigate("/inventory-management")}
+              className="mt-4 sm:mt-0 py-2 px-4 bg-white text-teal-600 font-medium rounded-lg hover:bg-gray-100 transition-colors duration-200"
+            >
+              Inventory
+            </button>
+          )}
         </div>
       </header>
       <div className="bg-white mt-4 shadow-custom-light rounded-lg mb-4 sm:mb-6 overflow-x-auto">

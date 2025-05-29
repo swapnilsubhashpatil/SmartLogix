@@ -141,6 +141,10 @@ router.post("/api/choose-route", verifyToken, async (req, res) => {
       draft.markModified("statuses");
       await draft.save();
       console.log("Updated draft:", draft);
+      res.status(200).json({
+        message: "Draft updated successfully",
+        recordId: draft._id,
+      });
     } else {
       // Create new draft
       if (!formData || !formData.from || !formData.to || !formData.weight) {

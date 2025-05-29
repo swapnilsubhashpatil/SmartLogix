@@ -19,6 +19,8 @@ const ProductAnalysis = () => {
   const fileInputRef = useRef(null);
   const [toastProps, setToastProps] = useState({ type: "", message: "" });
 
+  const toHome = () => navigate("/dashboard");
+
   const handleDragOver = (e) => {
     e.preventDefault();
     setIsDragging(true);
@@ -156,15 +158,23 @@ const ProductAnalysis = () => {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-[#f4ce14] rounded-full flex items-center justify-center">
-              <Home onClick={() => navigate("/dashboard")} />
+              <Home onClick={toHome} />
             </div>
             <h1
               className="text-2xl sm:text-3xl font-bold text-white"
               style={{ fontFamily: "Poppins, sans-serif" }}
             >
-              Product Analysis
+              Compliance Check
             </h1>
           </div>
+          {analysisResult && (
+            <button
+              onClick={() => navigate("/inventory-management")}
+              className="mt-4 sm:mt-0 py-2 px-4 bg-white text-teal-600 font-medium rounded-lg hover:bg-gray-100 transition-colors duration-200"
+            >
+              Inventory
+            </button>
+          )}
         </div>
       </header>
 

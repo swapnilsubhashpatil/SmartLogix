@@ -500,7 +500,7 @@ const CsvUploadPage = () => {
                                 d="M13 10V3L4 14h7v7l9-11h-7z"
                               />
                             </svg>
-                            <span>Start Compliance Check</span>
+                            <span>Send to Compliance Check</span>
                           </span>
                         </button>
                       </div>

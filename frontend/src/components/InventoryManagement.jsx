@@ -521,7 +521,7 @@ const InventoryManagement = () => {
                               fontSize: "1.1rem",
                             }}
                           >
-                            Draft #{index + 1}
+                            Draft {index + 1}
                           </Typography>
                           <Chip
                             label={
