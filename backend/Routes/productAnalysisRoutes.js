@@ -4,6 +4,7 @@ const { GoogleGenerativeAI } = require("@google/generative-ai");
 const { upload, storage, visionClient } = require("../Config/multerConfig");
 const { verifyToken } = require("../Middleware/auth");
 const ProductAnalysis = require("../Database/productAnalysisSchema");
+const Draft = require("../Database/draftSchema");
 const mongoose = require("mongoose");
 
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
@@ -46,7 +47,7 @@ router.post(
       // Generate a signed URL for the image (expires in 7 days)
       const [signedUrl] = await blob.getSignedUrl({
         action: "read",
-        expires: Date.now() + 7 * 24 * 60 * 60 * 1000, // 7 days in milliseconds
+        expires: Date.now() + 7 * 24 * 60 * 60 * 1000,
       });
 
       // Analyze with Vision API
@@ -72,7 +73,7 @@ router.post(
       const prompt = `
 Analyze the following Google Vision API response and provide:
 
-1. The HS Code for the product.
+1. The Hair Code for the product.
 2. A detailed product description.
 3. Whether the product is perishable (true/false).
 4. Whether the product is hazardous (true/false).
@@ -109,13 +110,12 @@ ${JSON.stringify(visionResponse, null, 2)}
       const cleanResponseText = rawResponse.slice(jsonStart, jsonEnd).trim();
       const geminiResponse = JSON.parse(cleanResponseText);
 
-      // Ensure userId is a valid ObjectId
+      // Save product analysis to MongoDB
       if (!mongoose.Types.ObjectId.isValid(userId)) {
         return res.status(400).json({ error: "Invalid userId format" });
       }
       const validatedUserId = new mongoose.Types.ObjectId(userId);
 
-      // Save product analysis to MongoDB
       const productAnalysis = await ProductAnalysis.create({
         userId: validatedUserId,
         imageDetails: {
@@ -128,11 +128,32 @@ ${JSON.stringify(visionResponse, null, 2)}
         timestamp: new Date(),
       });
 
+      // Create new draft with product analysis data
+      const draft = await Draft.create({
+        userId: validatedUserId,
+        formData: {
+          ShipmentDetails: {
+            "HS Code": geminiResponse["HS Code"],
+            "Product Description": geminiResponse["Product Description"],
+          },
+          TradeAndRegulatoryDetails: {
+            Perishable: geminiResponse.Perishable,
+            "Hazardous Material": geminiResponse.Hazardous,
+          },
+        },
+        statuses: {
+          compliance: "notDone",
+          routeOptimization: "notDone",
+        },
+        timestamp: new Date(),
+      });
+
       // Send response to frontend
       res.json({
         data: geminiResponse,
         imageUrl: signedUrl,
         recordId: productAnalysis._id,
+        draftId: draft._id,
       });
     } catch (error) {
       console.error("Error in product analysis:", error);

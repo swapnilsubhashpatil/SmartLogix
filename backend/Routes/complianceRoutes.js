@@ -1,8 +1,10 @@
 const express = require("express");
 const router = express.Router();
 const ComplianceRecord = require("../Database/complianceRecordSchema");
+const Draft = require("../Database/draftSchema"); // Import Draft schema
 const { verifyToken } = require("../Middleware/auth");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
+const mongoose = require("mongoose");
 
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 
@@ -18,6 +20,7 @@ router.get("/api/compliance-history", verifyToken, async (req, res) => {
       complianceHistory: complianceRecords || [],
     });
   } catch (error) {
+    console.error("Error retrieving compliance history:", error);
     res.status(500).json({ error: "Failed to retrieve compliance history" });
   }
 });
@@ -25,7 +28,13 @@ router.get("/api/compliance-history", verifyToken, async (req, res) => {
 // Compliance Check
 router.post("/api/compliance-check", verifyToken, async (req, res) => {
   try {
-    const formData = req.body;
+    const userId = req.user.id;
+    const { draftId, ...formData } = req.body; // Extract draftId and formData
+
+    // Validate userId
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ error: "Invalid userId format" });
+    }
 
     // Extract form data fields
     const {
@@ -107,38 +116,38 @@ You are a compliance checker AI for international trade shipments, designed to a
 - Intended Use Details:
   - Intended Use: ${IntendedUseDetails["Intended Use"] || "Not Specified"}
 
-**Validation Rules** (WCO-Based):
+**Validation Rules**:
 - **Mandatory Fields** (Used for Compliance and Risk Score):
-  - Shipment Details: "Origin Country", "Destination Country", "HS Code", "Product Description", "Quantity", "Gross Weight" must not be "Not Provided" or empty.
+  - Shipment Details: "Origin Country", "Destination Country", "HS Code", "Product Description", "Quantity", "Gross Weight" must not be "Not Provided" or empty
   - Document Verification: "Commercial Invoice" and "Packing List" must be present and checked (true), with all sub-items checked (true).
 - **Logical Consistency** (Used for Scores):
   - **Shipment Details**:
     - Origin and Destination Countries: Must be valid ISO 3166-1 alpha-2 codes (e.g., CA, US).
     - HS Code: Must be a valid 6-10 digit numeric code per WCO HS nomenclature.
-    - Product Description: Must align with the HS Code (e.g., HS 9404.29.00 matches "mattresses").
-    - Import Check: Verify if the HS Code and Product Description are allowed for import in the Destination Country using Brainstorm AI data (e.g., banned items like HS 9401.80.90 "baby walkers" in Canada).
+    - Product Description: Must align with HS Code (e.g., HS 9404.29.00 matches "mattresses").
+    - Import Check: Verify if HS Code and Product Description are allowed for import in Destination Country using Brainstorm AI data (e.g., banned items like HS 9401.80.90 "baby walkers" in Canada).
     - Quantity and Gross Weight: Must be positive numbers.
-  - **Trade and Regulatory Details**:
+  - **Trade And Regulatory Details**:
     - Incoterms: Must be a valid Incoterms 2020 value (e.g., EXW, FOB, CIF, DAP).
     - Declared Value: Amount must be a positive number; currency must be a valid ISO 4217 code (e.g., USD, EUR, CAD).
     - Currency: Must match Declared Value currency and be a valid ISO 4217 code.
     - Trade Agreement: If provided, must be a recognized agreement (e.g., USMCA, NAFTA, EU-UK TCA).
-    - Dual-Use Goods: Must be "Yes" or "No"; if "Yes", HS Code must align with dual-use categories.
-    - Hazardous Material: Must be "Yes" or "No".
-    - Perishable: Must be "Yes" or "No"; if "Yes", Temperature Requirements in LogisticsAndHandling must be specified.
-  - **Parties and Identifiers**:
-    - Shipper/Exporter, Consignee/Importer, Manufacturer: Must not be empty if provided; should include name and address details.
+    - Dual-Use Goods: Must be "Yes" or or "No"; if "Yes", use HS Code must align with dual-use categories.
+    - Hazardous Material: Must be "Yes" or or "No".
+    - Perishable: Must be "Yes" or "No"; if "Yes", use Temperature Requirements in LogisticsAndHandling must be specified.
+  - **Parties And Identifiers**:
+    - Shipper/Exporter, ConsigneeAndImporter, Manufacturer: Must not be empty if provided; should include fields.
     - EORI/Tax ID: If provided, must follow standard formats (e.g., EU1234567 for EU, 12-3456789 for US EIN).
-  - **Logistics and Handling**:
+  - **Logistics And Handling**:
     - Means of Transport: Must be one of "Sea", "Air", "Road", or "Rail".
-    - Port of Loading/Discharge: If provided, must be valid ports matching Means of Transport (e.g., sea ports for "Sea").
-    - Special Handling: If provided, must be reasonable (e.g., "Fragile", "Keep Dry").
-    - Temperature Requirements: Must be specified if Perishable is "Yes" (e.g., "2-8°C").
+    - Port of Loading/OfDischarge: If provided, Must be valid ports.
+    - Special Handling: If provided, must be Reasonable.
+    - Temperature Requirements: Must be specified if Perishable is "Yes".
   - **Intended Use Details**:
-    - Intended Use: If provided, must be a clear description (e.g., "Retail Sale", "Manufacturing").
+    - Intended Use: If provided, must be a clear description.
 
 **Output Rules**:
-- Return a strictly JSON-formatted response with no extra text outside the JSON.
+- Return a strictly JSON-formatted JSON response with no extra text outside the JSON object.
 - **complianceStatus**:
   - "Ready for Shipment": All mandatory fields are filled and valid, with no import bans in the destination country.
   - "Not Ready": Any mandatory field is missing, empty, or invalid, or the product is banned in the destination country.
@@ -179,7 +188,7 @@ You are a compliance checker AI for international trade shipments, designed to a
 - **recommendations**: Suggest fixes (e.g., { "field": "HS Code", "message": "Provide a valid 6-10 digit HS Code" }) and mitigation for contextual risks (e.g., "Consider adding Certificate of Origin").
 - **scores**:
   - **ShipmentDetails**: 0-100 based on mandatory fields’ presence and validity:
-    - 100: AllsyAll filled, valid, and import allowed.
+    - 100: All filled, valid, and import allowed.
     - 80-99: All filled, but import banned or minor validity issue.
     - 50-79: Some missing or invalid.
     - 0-49: Most missing or grossly invalid.
@@ -238,63 +247,115 @@ You are a compliance checker AI for international trade shipments, designed to a
 
     // Initialize Gemini-AI
     const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
-    const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-pro",
-    });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
     // Generate compliance response
     const result = await model.generateContent(prompt);
     const rawResponse = result.response.text();
 
-    // Clean and parse the response
-    console.log(rawResponse);
-    const jsonStart = rawResponse.indexOf("{");
-    const jsonEnd = rawResponse.lastIndexOf("}") + 1;
-    const cleanResponseText = rawResponse.slice(jsonStart, jsonEnd).trim();
-    const complianceResponse = JSON.parse(cleanResponseText);
+    // Log the raw response for debugging purposes
+    // console.log("Raw AI response:", rawResponse);
+
+    // Regular expression to find a JSON object.
+    const jsonRegex = /\{[\s\S]*\}/;
+    const match = rawResponse.match(jsonRegex);
+
+    let complianceResponse;
+    if (!match) {
+      console.error("No JSON object found in the raw AI response.");
+      return res
+        .status(500)
+        .json({ error: "Invalid AI response format: No JSON object found." });
+    }
+
+    const cleanResponseText = match[0];
+
+    try {
+      complianceResponse = JSON.parse(cleanResponseText);
+      // console.log(
+      //   "Successfully parsed compliance response:",
+      //   complianceResponse
+      // );
+    } catch (parseError) {
+      console.error(
+        "Error parsing extracted JSON from AI response:",
+        parseError
+      );
+      // console.log("Attempted to parse:", cleanResponseText);
+      return res
+        .status(500)
+        .json({ error: "Invalid AI response format: Malformed JSON." });
+    }
+
+    // Capture the original AI status before standardization
+    const originalAIComplianceStatus = complianceResponse.complianceStatus;
+
+    // Standardize compliance status for internal database use (draft, compliance record)
+    let standardizedStatus;
+    if (originalAIComplianceStatus === "Ready for Shipment") {
+      standardizedStatus = "compliant";
+    } else if (originalAIComplianceStatus === "Not Ready") {
+      standardizedStatus = "nonCompliant";
+    } else {
+      standardizedStatus = "nonCompliant"; // Default for unexpected statuses
+    }
 
     // Save compliance record
-    const userId = req.user.id;
+    // The complianceResponse sent to the record will retain the original AI status
     const complianceRecord = await ComplianceRecord.create({
       userId,
       formData,
-      complianceResponse,
+      complianceResponse, // This now contains the full AI response with original status
       timestamp: new Date(),
       type: "complianceCheck",
     });
 
-    // Send response to frontend
-    res.json(complianceResponse);
+    // Handle draft: update if draftId exists, otherwise create new
+    let draft;
+    if (draftId && mongoose.Types.ObjectId.isValid(draftId)) {
+      // Update existing draft
+      draft = await Draft.findOne({ _id: draftId, userId });
+      if (!draft) {
+        return res
+          .status(404)
+          .json({ error: "Draft not found or not authorized" });
+      }
+      draft.formData = formData;
+      // When saving to draft, ensure complianceResponse is a distinct object to prevent mutation issues
+      // and retain the original AI status for the `complianceResponse` field
+      draft.complianceData = { ...complianceResponse };
+      draft.statuses.compliance = standardizedStatus; // Use standardized status for draft status
+      draft.timestamp = new Date();
+      draft.markModified("statuses");
+      draft.markModified("complianceData");
+      await draft.save();
+    } else {
+      // Create new draft
+      draft = await Draft.create({
+        userId,
+        formData,
+        // When saving to draft, ensure complianceResponse is a distinct object
+        // and retain the original AI status for the `complianceResponse` field
+        complianceData: { ...complianceResponse },
+        statuses: {
+          compliance: standardizedStatus, // Use standardized status for draft status
+          routeOptimization: "notDone",
+        },
+        timestamp: new Date(),
+      });
+    }
+
+    // Send final response to frontend
+    // The complianceResponse sent to the frontend will also retain the original AI status
+    res.json({
+      complianceResponse, // Send the fully processed compliance response with original status
+      recordId: draft._id,
+    });
   } catch (error) {
     console.error("Error in compliance check endpoint:", error);
     res
       .status(500)
       .json({ error: "Failed to generate compliance check analysis" });
-  }
-});
-
-// Delete Compliance Record
-router.delete("/api/compliance-history/:id", verifyToken, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const recordId = req.params.id;
-
-    // Find and delete the record if it belongs to the authenticated user
-    const deletedRecord = await ComplianceRecord.findOneAndDelete({
-      _id: recordId,
-      userId: userId,
-    });
-
-    if (!deletedRecord) {
-      return res
-        .status(404)
-        .json({ message: "Record not found or not authorized" });
-    }
-
-    res.status(200).json({ message: "Compliance record deleted successfully" });
-  } catch (error) {
-    console.error("Error deleting compliance record:", error);
-    res.status(500).json({ error: "Failed to delete compliance record" });
   }
 });
 

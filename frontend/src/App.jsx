@@ -11,6 +11,10 @@ import RouteMap from "./components/route";
 import CarbonFootprint from "./components/CarbonFootprint";
 import { LoadScript } from "@react-google-maps/api";
 import ProductAnalysis from "./components/ProductAnalysis";
+import InventoryManagement from "./components/InventoryManagement";
+import ExportReport from "./components/ExportReport";
+import Compliance from "./components/Compliance";
+import CsvUpload from "./components/CsvUpload";
 
 function App() {
   return (
@@ -74,6 +78,31 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route
+          path="/inventory-management"
+          element={
+            <ProtectedRoute>
+              <InventoryManagement />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/compliance"
+          element={
+            <ProtectedRoute>
+              <Compliance />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/csv-upload"
+          element={
+            <ProtectedRoute>
+              <CsvUpload />
+            </ProtectedRoute>
+          }
+        />
+        <Route path="/export-report/:draftId" element={<ExportReport />} />
       </Routes>
     </BrowserRouter>
   );

@@ -47,7 +47,7 @@ const ProductAnalysis = () => {
   const handleFile = (file) => {
     if (file && file.type.startsWith("image/")) {
       setSelectedImage(file);
-      setAnalysisResult(null); // Reset previous results when a new image is added
+      setAnalysisResult(null);
       setToastProps({
         type: "success",
         message: `Image uploaded successfully!`,
@@ -98,21 +98,22 @@ const ProductAnalysis = () => {
 
   const handleCopy = (text) => {
     navigator.clipboard.writeText(text);
-    alert(`Copied: ${text}`);
+    setToastProps({
+      type: "success",
+      message: `Copied: ${text}`,
+    });
   };
 
   const handleSendToCompliance = () => {
-    if (!analysisResult || !analysisResult.data) return;
+    if (!analysisResult || !analysisResult.draftId) {
+      setToastProps({
+        type: "error",
+        message: "No draft available to send to compliance check.",
+      });
+      return;
+    }
 
-    const complianceData = {
-      "HS Code": analysisResult.data["HS Code"],
-      "Product Description": analysisResult.data["Product Description"],
-      Perishable: analysisResult.data["Perishable"],
-      Hazardous: analysisResult.data["Hazardous"],
-    };
-
-    localStorage.setItem("productAnalysisData", JSON.stringify(complianceData));
-    navigate("/compliance-check");
+    navigate(`/compliance-check?draftId=${analysisResult.draftId}`);
   };
 
   const containerVariants = {
@@ -132,7 +133,6 @@ const ProductAnalysis = () => {
   return (
     <div className="min-h-screen bg-neutral-100 p-4 sm:p-6">
       <header className="relative bg-gradient-to-r from-teal-200 to-blue-400 text-white py-6 sm:py-8 rounded-b-3xl overflow-hidden">
-        {/* Wavy Background Shape */}
         <div className="absolute inset-0">
           <svg
             className="w-full h-full"
@@ -153,10 +153,7 @@ const ProductAnalysis = () => {
             />
           </svg>
         </div>
-
-        {/* Content */}
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between">
-          {/* Logo/Title */}
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-[#f4ce14] rounded-full flex items-center justify-center">
               <Home onClick={() => navigate("/dashboard")} />
@@ -178,7 +175,6 @@ const ProductAnalysis = () => {
         className="max-w-6xl mx-auto mt-6"
       >
         <div className="bg-white shadow-lg rounded-lg p-4 sm:p-6">
-          {/* Drag-and-Drop Area */}
           <div
             className={`border-2 border-dashed rounded-lg p-8 mb-6 text-center transition-colors ${
               isDragging
@@ -233,7 +229,6 @@ const ProductAnalysis = () => {
             )}
           </div>
 
-          {/* Analyze Button */}
           <button
             onClick={handleAnalyze}
             disabled={!selectedImage || isLoading}
@@ -246,7 +241,6 @@ const ProductAnalysis = () => {
             {isLoading ? "Analyzing..." : "Analyze Product"}
           </button>
 
-          {/* Analysis Result */}
           {isLoading && <ProductAnalysisSkeleton />}
           {analysisResult && (
             <motion.div
@@ -263,8 +257,6 @@ const ProductAnalysis = () => {
                   >
                     Analysis Results
                   </motion.h2>
-
-                  {/* Product Details */}
                   <motion.div
                     variants={itemVariants}
                     className="bg-gray-50 rounded-xl p-6 border border-gray-200 mb-6"
@@ -329,8 +321,6 @@ const ProductAnalysis = () => {
                       </div>
                     </div>
                   </motion.div>
-
-                  {/* Required Export Documents */}
                   <motion.div
                     variants={itemVariants}
                     className="bg-gray-50 rounded-xl p-6 border border-gray-200 mb-6"
@@ -346,8 +336,6 @@ const ProductAnalysis = () => {
                       )}
                     </ul>
                   </motion.div>
-
-                  {/* Recommendations */}
                   <motion.div
                     variants={itemVariants}
                     className="bg-gradient-to-r from-teal-50 to-yellow-50 rounded-xl p-6 border border-teal-200 mb-6"
@@ -364,8 +352,6 @@ const ProductAnalysis = () => {
                       {analysisResult.data.Recommendations.additionalTip}
                     </p>
                   </motion.div>
-
-                  {/* Send to Compliance Check */}
                   <motion.div variants={itemVariants}>
                     <button
                       onClick={handleSendToCompliance}

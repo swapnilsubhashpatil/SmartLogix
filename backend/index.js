@@ -2,14 +2,18 @@ const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const bodyParser = require("body-parser");
-const passport = require("passport");
+const passport = require("./Config/passportConfig");
 const connectMongoDB = require("./Database/connectDB");
 const authRoutes = require("./Routes/authRoutes");
 const complianceRoutes = require("./Routes/complianceRoutes");
 const routeOptimizationRoutes = require("./Routes/routeOptimizationRoutes");
 const carbonFootprintRoutes = require("./Routes/carbonFootprintRoutes");
 const productAnalysisRoutes = require("./Routes/productAnalysisRoutes");
+const draftRoutes = require("./Routes/draftRoutes");
+const chooseRoute = require("./Routes/chooseRoute");
+const draftsRouter = require("./Routes/csv"); // Adjust path to drafts.js
 
+// Load environment variables
 dotenv.config();
 connectMongoDB();
 
@@ -41,7 +45,9 @@ app.use(complianceRoutes);
 app.use(routeOptimizationRoutes);
 app.use(carbonFootprintRoutes);
 app.use(productAnalysisRoutes);
-
+app.use(draftRoutes);
+app.use(chooseRoute);
+app.use(draftsRouter);
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server is running on Port ${PORT}`);

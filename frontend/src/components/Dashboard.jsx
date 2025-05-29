@@ -14,6 +14,7 @@ import { IoMdClose } from "react-icons/io";
 import { useInView } from "react-intersection-observer";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -81,6 +82,9 @@ function MovexDashboard() {
     navigate("/profile");
   };
 
+  const handleInventoryClick = () => {
+    navigate("/inventory-management");
+  };
   const complianceCheck = () => {
     const token = localStorage.getItem("token");
 
@@ -92,7 +96,7 @@ function MovexDashboard() {
       localStorage.setItem("token", token);
     }
 
-    navigate("/compliance-check");
+    navigate("/compliance");
   };
 
   const routeOptimization = () => {
@@ -130,11 +134,19 @@ function MovexDashboard() {
             >
               About
             </motion.a>
+            <motion.a
+              onClick={handleInventoryClick}
+              whileHover={{ scale: 1.1, color: "#6B7280" }}
+              className="text-gray-600 text-base font-medium cursor-pointer"
+            >
+              Inventory
+            </motion.a>
+
             <motion.button
               onClick={handleProfileClick}
               whileHover={{ scale: 1.1, backgroundColor: "#D1D5DB" }}
               whileTap={{ scale: 0.95 }}
-              className="bg-gray-200 text-gray-900 font-semibold text-base px-4 py-2 rounded-full flex items-center gap-2"
+              className="bg-gray-200 text-gray-900 font-semibold text-base px-4 py-2 rounded-full flex items-center gap-2 cursor-pointer"
             >
               <FaUserCircle size={18} />
               Profile
@@ -168,6 +180,13 @@ function MovexDashboard() {
             onClick={() => setShowSidebar(false)}
           >
             About
+          </motion.a>
+          <motion.a
+            onClick={handleProfileClick}
+            whileHover={{ scale: 1.1, color: "#6B7280" }}
+            className="block text-base mb-4 text-gray-900"
+          >
+            Inventory
           </motion.a>
           <motion.button
             onClick={handleProfileClick}
@@ -231,52 +250,14 @@ function MovexDashboard() {
           {/* Right Side: Feature Highlights */}
 
           <ResponsiveHide breakpoint={1280}>
-            <div className="w-full lg:w-1/2 flex flex-col items-center lg:items-centre space-y-8 sm:bg-gray-50 sm:p-6 sm:rounded-3xl sm:shadow-sm">
-              {/* Feature Card: Route Optimization */}
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1.4, duration: 0.6 }}
-                whileHover={{
-                  scale: 1.05,
-                  boxShadow: "0 10px 20px rgba(0, 0, 0, 0.1)",
-                }}
-                className="bg-white rounded-3xl shadow-md p-6 w-full max-w-sm border border-gray-100 hover:border-emerald-200 transition-colors duration-300"
-              >
-                <div className="flex items-center mb-3">
-                  <FaRoute className="text-emerald-500 mr-2" size={20} />
-                  <h3 className="text-xl font-semibold text-gray-900">
-                    Route Optimization
-                  </h3>
-                </div>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  Leverage AI-powered insights to streamline cargo routes, cut
-                  costs, and boost delivery speed.
-                </p>
-              </motion.div>
-
-              {/* Feature Card: Compliance Check */}
-              <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 1.6, duration: 0.6 }}
-                whileHover={{
-                  scale: 1.05,
-                  boxShadow: "0 10px 20px rgba(0, 0, 0, 0.1)",
-                }}
-                className="bg-white rounded-3xl shadow-md p-6 w-full max-w-sm border border-gray-100 hover:border-blue-200 transition-colors duration-300"
-              >
-                <div className="flex items-center mb-3">
-                  <FaCheckCircle className="text-blue-500 mr-2" size={20} />
-                  <h3 className="text-xl font-semibold text-gray-900">
-                    Compliance Check
-                  </h3>
-                </div>
-                <p className="text-gray-600 text-sm leading-relaxed">
-                  Stay ahead of regulations with automated checks that ensure
-                  seamless, compliant logistics.
-                </p>
-              </motion.div>
+            {/* Added 'flex-grow' and 'h-full' to make the container expand */}
+            <div className="w-full lg:w-1/2 flex flex-col items-center justify-center lg:items-centre sm:bg-gray-50 sm:p-6 sm:rounded-3xl sm:shadow-sm flex-grow h-full">
+              {/* Added 'w-full' and 'h-full' to DotLottieReact to fill its parent */}
+              <DotLottieReact
+                src="https://lottie.host/cfa73982-a1bd-4fe8-ade0-923d2e7c46e7/pqRnKF0b7e.lottie"
+                loop
+                autoplay
+              />
             </div>
           </ResponsiveHide>
         </div>

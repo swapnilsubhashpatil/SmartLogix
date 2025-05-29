@@ -1,516 +1,242 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Tooltip } from "@mui/material";
 import { InfoOutlined, Home } from "@mui/icons-material";
 import axios from "axios";
+import { useNavigate, useLocation } from "react-router-dom";
 import ComplianceResponse from "./ComplianceResponse";
-import { useNavigate } from "react-router-dom";
-import CsvUpload from "./CsvUpload";
 import ComplianceResponseSkeleton from "./Skeleton/ComplianceResponseSkeleton";
-
-<link
-  href="https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap"
-  rel="stylesheet"
-/>;
+import {
+  initialFormData,
+  formStructure,
+  tabOrder,
+  countryOptions,
+  incotermsOptions,
+  currencyOptions,
+  booleanOptions,
+  transportOptions,
+} from "./constants";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 const ComplianceForm = () => {
   const navigate = useNavigate();
-
-  const toHome = () => {
-    navigate("/dashboard");
-  };
-
-  const storedData =
-    JSON.parse(localStorage.getItem("productAnalysisData")) || {};
-
-  const initialFormData = {
-    ShipmentDetails: {
-      "Origin Country": "",
-      "Destination Country": "",
-      "HS Code": storedData["HS Code"] || "",
-      "Product Description": storedData["Product Description"] || "",
-      Quantity: "",
-      "Gross Weight": "",
-    },
-    TradeAndRegulatoryDetails: {
-      "Incoterms 2020": "",
-      "Declared Value": { currency: "", amount: "" },
-      "Currency of Transaction": "",
-      "Trade Agreement Claimed": "",
-      "Dual-Use Goods": "No",
-      "Hazardous Material": storedData.Hazardous ? "Yes" : "No",
-      Perishable: storedData.Perishable ? "Yes" : "No",
-    },
-    PartiesAndIdentifiers: {
-      "Shipper/Exporter": "",
-      "Consignee/Importer": "",
-      "Manufacturer Information": "",
-      "EORI/Tax ID": "",
-    },
-    LogisticsAndHandling: {
-      "Means of Transport": "",
-      "Port of Loading": "",
-      "Port of Discharge": "",
-      "Special Handling": "",
-      "Temperature Requirements": "",
-    },
-    DocumentVerification: {
-      "Commercial Invoice": {
-        checked: true,
-        subItems: {
-          "Invoice number present": false,
-          "Details match shipment": false,
-          "Customs compliant": false,
-        },
-      },
-      "Packing List": {
-        checked: true,
-        subItems: {
-          "Contents accurate": false,
-          "Quantities match": false,
-          "Matches invoice": false,
-        },
-      },
-      "Certificate of Origin": {
-        checked: false,
-        subItems: {
-          "Origin verified": false,
-          "Trade agreement compliant": false,
-        },
-      },
-      "Licenses/Permits": {
-        checked: false,
-        subItems: {
-          "Valid number": false,
-          "Not expired": false,
-          "Authority verified": false,
-        },
-      },
-      "Bill of Lading": {
-        checked: false,
-        subItems: {
-          "Accurate details": false,
-          "Shipping regulations compliant": false,
-        },
-      },
-    },
-    IntendedUseDetails: {
-      "Intended Use": "",
-    },
-  };
-
+  const location = useLocation();
   const [formData, setFormData] = useState(initialFormData);
-
   const [activeTab, setActiveTab] = useState("ShipmentDetails");
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState(null);
+  const [toastProps, setToastProps] = useState(null);
 
-  const tabOrder = [
-    "ShipmentDetails",
-    "TradeAndRegulatoryDetails",
-    "PartiesAndIdentifiers",
-    "LogisticsAndHandling",
-    "DocumentVerification",
-    "IntendedUseDetails",
-  ];
+  const fetchDraft = async (draftId) => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setToastProps({ type: "error", message: "Please log in." });
+        navigate("/");
+        return;
+      }
 
-  const formStructure = {
-    ShipmentDetails: [
-      {
-        field: "Origin Country",
-        type: "Categorical",
-        why_checked:
-          "Determines export/import regulations, trade agreements, and restrictions.",
-        option_type: "Dropdown (ISO 3166-1 alpha-2)",
-        mandatory: true,
-      },
-      {
-        field: "Destination Country",
-        type: "Categorical",
-        why_checked:
-          "Identifies import regulations, duties, prohibited goods, and required documentation.",
-        option_type: "Dropdown (ISO 3166-1 alpha-2)",
-        mandatory: true,
-      },
-      {
-        field: "HS Code",
-        type: "Numeric",
-        why_checked:
-          "Essential for tariff classification, import duties, trade statistics, and product regulations.",
-        option_type: "Number input",
-        mandatory: true,
-        placeholder: "e.g., 12345678",
-      },
-      {
-        field: "Product Description",
-        type: "Text",
-        why_checked:
-          "Verifies HS Code, identifies restricted items, assesses safety, and determines handling/documentation needs.",
-        option_type: "Text area",
-        mandatory: true,
-        placeholder: "e.g., Woven cotton fabric, Electronic components",
-      },
-      {
-        field: "Quantity",
-        type: "Numeric",
-        why_checked:
-          "Needed for customs valuation, duty calculation, inventory control, and document verification.",
-        option_type: "Number input",
-        mandatory: true,
-        placeholder: "e.g., 100, 2500",
-      },
-      {
-        field: "Gross Weight",
-        type: "Numeric",
-        why_checked:
-          "Used for shipping costs, transportation requirements, and compliance with weight restrictions.",
-        option_type: "Number input",
-        mandatory: true,
-        placeholder: "e.g., 50.5 (kg), 110 (lbs)",
-      },
-    ],
-    TradeAndRegulatoryDetails: [
-      {
-        field: "Incoterms 2020",
-        type: "Categorical",
-        why_checked:
-          "Defines responsibilities for costs, risks, and documentation in international trade.",
-        option_type: "Dropdown",
-        mandatory: true,
-      },
-      {
-        field: "Declared Value",
-        type: "Alphanumeric & Numeric",
-        why_checked:
-          "Used for calculating import duties/taxes, insurance, and customs valuation.",
-        option_type: "Text input (Currency) & Number input (Amount)",
-        mandatory: true,
-        placeholder: "e.g., USD 1000.00",
-      },
-      {
-        field: "Currency of Transaction",
-        type: "Categorical",
-        why_checked:
-          "Relevant for financial compliance, currency exchange, and customs valuation.",
-        option_type: "Dropdown",
-        mandatory: true,
-      },
-      {
-        field: "Trade Agreement Claimed",
-        type: "Text",
-        why_checked:
-          "Determines eligibility for preferential duty treatment; requires specific documentation.",
-        option_type: "Text input",
-        mandatory: false,
-        placeholder: "e.g., NAFTA, USMCA",
-      },
-      {
-        field: "Dual-Use Goods",
-        type: "Boolean",
-        why_checked:
-          "Subject to export controls and licensing due to potential military applications.",
-        option_type: "Dropdown (Yes/No)",
-        mandatory: false,
-      },
-      {
-        field: "Hazardous Material",
-        type: "Boolean",
-        why_checked:
-          "Subject to regulations for packaging, labeling, transportation, and documentation to ensure safety.",
-        option_type: "Dropdown (Yes/No)",
-        mandatory: false,
-      },
-      {
-        field: "Perishable",
-        type: "Boolean",
-        why_checked:
-          "Determines if special handling and temperature control are required.",
-        option_type: "Dropdown (Yes/No)",
-        mandatory: true,
-      },
-    ],
-    PartiesAndIdentifiers: [
-      {
-        field: "Shipper/Exporter",
-        type: "Text",
-        why_checked:
-          "Relevant for export regulations, documentation, and communication.",
-        option_type: "Text input",
-        mandatory: false,
-        placeholder: "e.g., ABC Company Inc.",
-      },
-      {
-        field: "Consignee/Importer",
-        type: "Text",
-        why_checked:
-          "Relevant for import regulations, delivery arrangements, and communication.",
-        option_type: "Text input",
-        mandatory: false,
-        placeholder: "e.g., XYZ Corporation",
-      },
-      {
-        field: "Manufacturer Information",
-        type: "Text",
-        why_checked:
-          "May be required for certificates of origin, product safety, and compliance.",
-        option_type: "Text input",
-        mandatory: false,
-        placeholder: "e.g., Acme Manufacturing",
-      },
-      {
-        field: "EORI/Tax ID",
-        type: "Alphanumeric",
-        why_checked:
-          "Used for customs identification and tracking of economic operators.",
-        option_type: "Text input",
-        mandatory: false,
-        placeholder: "e.g., EU1234567, 12-3456789",
-      },
-    ],
-    LogisticsAndHandling: [
-      {
-        field: "Means of Transport",
-        type: "Categorical",
-        why_checked:
-          "Affects regulations, documentation, and handling requirements.",
-        option_type: "Dropdown",
-        mandatory: true,
-      },
-      {
-        field: "Port of Loading",
-        type: "Text",
-        why_checked:
-          "Relevant for customs procedures, port regulations, and logistics.",
-        option_type: "Text input",
-        mandatory: false,
-        placeholder: "e.g., Shanghai, Rotterdam",
-      },
-      {
-        field: "Port of Discharge",
-        type: "Text",
-        why_checked:
-          "Relevant for customs procedures, port regulations, and logistics.",
-        option_type: "Text input",
-        mandatory: false,
-        placeholder: "e.g., Long Beach, Hamburg",
-      },
-      {
-        field: "Special Handling",
-        type: "Text",
-        why_checked:
-          "Ensures proper care during transport/storage, especially for fragile/sensitive items.",
-        option_type: "Text area",
-        mandatory: false,
-        placeholder: "e.g., Fragile, Keep Dry",
-      },
-      {
-        field: "Temperature Requirements",
-        type: "Text",
-        why_checked:
-          "Critical for perishable/sensitive goods to maintain quality and safety.",
-        option_type: "Text input",
-        mandatory: false,
-        placeholder: "e.g., 2-8°C, -10°F",
-      },
-    ],
-    DocumentVerification: [
-      {
-        field: "Commercial Invoice",
-        type: "Checkbox",
-        why_checked:
-          "Mandatory document for customs clearance; verifies transaction details.",
-        option_type: "Checkbox",
-        mandatory: true,
-        placeholder: "Check if available",
-        sub_items: [
-          {
-            field: "Invoice number present",
-            type: "Checkbox",
-            why_checked:
-              "Verifies the presence of a unique invoice identifier.",
-            option_type: "Checkbox",
-            placeholder: "Check if present",
+      const response = await axios.get(`${BACKEND_URL}/api/drafts/${draftId}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      console.log(
+        "Draft API response:",
+        JSON.stringify(response.data, null, 2)
+      );
+
+      const draft = response.data.draft || response.data;
+      if (!draft || !draft.formData) {
+        throw new Error("Invalid draft data received");
+      }
+
+      const updatedFormData = {
+        ...initialFormData,
+        ShipmentDetails: {
+          ...initialFormData.ShipmentDetails,
+          "Origin Country":
+            draft.formData.ShipmentDetails?.["Origin Country"] || "",
+          "Destination Country":
+            draft.formData.ShipmentDetails?.["Destination Country"] || "",
+          "HS Code": draft.formData.ShipmentDetails?.["HS Code"] || "",
+          "Product Description":
+            draft.formData.ShipmentDetails?.["Product Description"] || "",
+          Quantity: draft.formData.ShipmentDetails?.Quantity
+            ? String(draft.formData.ShipmentDetails.Quantity)
+            : "",
+          "Gross Weight": draft.formData.ShipmentDetails?.["Gross Weight"]
+            ? String(draft.formData.ShipmentDetails["Gross Weight"])
+            : "",
+        },
+        TradeAndRegulatoryDetails: {
+          ...initialFormData.TradeAndRegulatoryDetails,
+          "Incoterms 2020":
+            draft.formData.TradeAndRegulatoryDetails?.["Incoterms 2020"] || "",
+          "Declared Value": {
+            currency:
+              draft.formData.TradeAndRegulatoryDetails?.["Declared Value"]
+                ?.currency || "",
+            amount:
+              draft.formData.TradeAndRegulatoryDetails?.["Declared Value"]
+                ?.amount || "",
           },
-          {
-            field: "Details match shipment",
-            type: "Checkbox",
-            why_checked: "Ensures consistency with other shipment information.",
-            option_type: "Checkbox",
-            placeholder: "Check if details match",
+          "Currency of Transaction":
+            draft.formData.TradeAndRegulatoryDetails?.[
+              "Currency of Transaction"
+            ] || "",
+          "Trade Agreement Claimed":
+            draft.formData.TradeAndRegulatoryDetails?.[
+              "Trade Agreement Claimed"
+            ] || "",
+          "Dual-Use Goods":
+            draft.formData.TradeAndRegulatoryDetails?.["Dual-Use Goods"] ||
+            "No",
+          "Hazardous Material":
+            draft.formData.TradeAndRegulatoryDetails?.["Hazardous Material"] ||
+            "No",
+          Perishable:
+            draft.formData.TradeAndRegulatoryDetails?.["Perishable"] || "No",
+        },
+        PartiesAndIdentifiers: {
+          ...initialFormData.PartiesAndIdentifiers,
+          "Shipper/Exporter":
+            draft.formData.PartiesAndIdentifiers?.["Shipper/Exporter"] || "",
+          "Consignee/Importer":
+            draft.formData.PartiesAndIdentifiers?.["Consignee/Importer"] || "",
+          "Manufacturer Information":
+            draft.formData.PartiesAndIdentifiers?.[
+              "Manufacturer Information"
+            ] || "",
+          "EORI/Tax ID":
+            draft.formData.PartiesAndIdentifiers?.["EORI/Tax ID"] || "",
+        },
+        LogisticsAndHandling: {
+          ...initialFormData.LogisticsAndHandling,
+          "Means of Transport":
+            draft.formData.LogisticsAndHandling?.["Means of Transport"] || "",
+          "Port of Loading":
+            draft.formData.LogisticsAndHandling?.["Port of Loading"] || "",
+          "Port of Discharge":
+            draft.formData.LogisticsAndHandling?.["Port of Discharge"] || "",
+          "Special Handling":
+            draft.formData.LogisticsAndHandling?.["Special Handling"] || "",
+          "Temperature Requirements":
+            draft.formData.LogisticsAndHandling?.["Temperature Requirements"] ||
+            "",
+        },
+        DocumentVerification: {
+          ...initialFormData.DocumentVerification,
+          "Commercial Invoice": {
+            checked:
+              draft.formData.DocumentVerification?.["Commercial Invoice"]
+                ?.checked || false,
+            subItems: {
+              "Invoice number present":
+                draft.formData.DocumentVerification?.["Commercial Invoice"]
+                  ?.subItems?.["Invoice number present"] || false,
+              "Details match shipment":
+                draft.formData.DocumentVerification?.["Commercial Invoice"]
+                  ?.subItems?.["Details match shipment"] || false,
+              "Customs compliant":
+                draft.formData.DocumentVerification?.["Commercial Invoice"]
+                  ?.subItems?.["Customs compliant"] || false,
+            },
           },
-          {
-            field: "Customs compliant",
-            type: "Checkbox",
-            why_checked: "Confirms the invoice meets customs requirements.",
-            option_type: "Checkbox",
-            placeholder: "Check if compliant",
+          "Packing List": {
+            checked:
+              draft.formData.DocumentVerification?.["Packing List"]?.checked ||
+              false,
+            subItems: {
+              "Contents accurate":
+                draft.formData.DocumentVerification?.["Packing List"]
+                  ?.subItems?.["Contents accurate"] || false,
+              "Quantities match":
+                draft.formData.DocumentVerification?.["Packing List"]
+                  ?.subItems?.["Quantities match"] || false,
+              "Matches invoice":
+                draft.formData.DocumentVerification?.["Packing List"]
+                  ?.subItems?.["Matches invoice"] || false,
+            },
           },
-        ],
-      },
-      {
-        field: "Packing List",
-        type: "Checkbox",
-        why_checked:
-          "Mandatory document; details contents and quantities of the shipment.",
-        option_type: "Checkbox",
-        mandatory: true,
-        placeholder: "Check if available",
-        sub_items: [
-          {
-            field: "Contents accurate",
-            type: "Checkbox",
-            why_checked: "Verifies the accuracy of the listed contents.",
-            option_type: "Checkbox",
-            placeholder: "Check if accurate",
+          "Certificate of Origin": {
+            checked:
+              draft.formData.DocumentVerification?.["Certificate of Origin"]
+                ?.checked || false,
+            subItems: {
+              "Origin verified":
+                draft.formData.DocumentVerification?.["Certificate of Origin"]
+                  ?.subItems?.["Origin verified"] || false,
+              "Trade agreement compliant":
+                draft.formData.DocumentVerification?.["Certificate of Origin"]
+                  ?.subItems?.["Trade agreement compliant"] || false,
+            },
           },
-          {
-            field: "Quantities match",
-            type: "Checkbox",
-            why_checked:
-              "Ensures quantities align with the invoice and other documents.",
-            option_type: "Checkbox",
-            placeholder: "Check if match",
+          "Licenses/Permits": {
+            checked:
+              draft.formData.DocumentVerification?.["Licenses/Permits"]
+                ?.checked || false,
+            subItems: {
+              "Valid number":
+                draft.formData.DocumentVerification?.["Licenses/Permits"]
+                  ?.subItems?.["Valid number"] || false,
+              "Not expired":
+                draft.formData.DocumentVerification?.["Licenses/Permits"]
+                  ?.subItems?.["Not expired"] || false,
+              "Authority verified":
+                draft.formData.DocumentVerification?.["Licenses/Permits"]
+                  ?.subItems?.["Authority verified"] || false,
+            },
           },
-          {
-            field: "Matches invoice",
-            type: "Checkbox",
-            why_checked: "Confirms consistency with the invoice.",
-            option_type: "Checkbox",
-            placeholder: "Check if matches",
+          "Bill of Lading": {
+            checked:
+              draft.formData.DocumentVerification?.["Bill of Lading"]
+                ?.checked || false,
+            subItems: {
+              "Accurate details":
+                draft.formData.DocumentVerification?.["Bill of Lading"]
+                  ?.subItems?.["Accurate details"] || false,
+              "Shipping regulations compliant":
+                draft.formData.DocumentVerification?.["Bill of Lading"]
+                  ?.subItems?.["Shipping regulations compliant"] || false,
+            },
           },
-        ],
-      },
-      {
-        field: "Certificate of Origin",
-        type: "Checkbox",
-        why_checked:
-          "Verifies the country where the goods were produced; may be required for trade agreements.",
-        option_type: "Checkbox",
-        mandatory: false,
-        placeholder: "Check if available",
-        sub_items: [
-          {
-            field: "Origin verified",
-            type: "Checkbox",
-            why_checked: "Confirms the origin of the goods is verified.",
-            option_type: "Checkbox",
-            placeholder: "Check if verified",
-          },
-          {
-            field: "Trade agreement compliant",
-            type: "Checkbox",
-            why_checked: "Checks compliance with trade agreement rules.",
-            option_type: "Checkbox",
-            placeholder: "Check if compliant",
-          },
-        ],
-      },
-      {
-        field: "Licenses/Permits",
-        type: "Checkbox",
-        why_checked:
-          "Verifies the presence of required licenses or permits for export/import.",
-        option_type: "Checkbox",
-        mandatory: false,
-        placeholder: "Check if available",
-        sub_items: [
-          {
-            field: "Valid number",
-            type: "Checkbox",
-            why_checked: "Checks if the license/permit number is valid.",
-            option_type: "Checkbox",
-            placeholder: "Check if valid",
-          },
-          {
-            field: "Not expired",
-            type: "Checkbox",
-            why_checked: "Ensures the license/permit is not expired.",
-            option_type: "Checkbox",
-            placeholder: "Check if not expired",
-          },
-          {
-            field: "Authority verified",
-            type: "Checkbox",
-            why_checked:
-              "Verifies the issuing authority of the license/permit.",
-            option_type: "Checkbox",
-            placeholder: "Check if verified",
-          },
-        ],
-      },
-      {
-        field: "Bill of Lading",
-        type: "Checkbox",
-        why_checked:
-          "Mandatory document for sea transport; acts as a receipt for the goods.",
-        option_type: "Checkbox",
-        mandatory: false,
-        placeholder: "Check if available",
-        sub_items: [
-          {
-            field: "Accurate details",
-            type: "Checkbox",
-            why_checked:
-              "Checks if the details on the bill of lading are accurate.",
-            option_type: "Checkbox",
-            placeholder: "Check if accurate",
-          },
-          {
-            field: "Shipping regulations compliant",
-            type: "Checkbox",
-            why_checked: "Ensures compliance with shipping regulations.",
-            option_type: "Checkbox",
-            placeholder: "Check if compliant",
-          },
-        ],
-      },
-    ],
-    IntendedUseDetails: [
-      {
-        field: "Intended Use",
-        type: "Text",
-        why_checked:
-          "Relevant for regulatory compliance, product safety, and determining applicable standards.",
-        option_type: "Text area",
-        mandatory: false,
-        placeholder: "e.g., Retail sale, Manufacturing use",
-      },
-    ],
+        },
+        IntendedUseDetails: {
+          ...initialFormData.IntendedUseDetails,
+          "Intended Use":
+            draft.formData.IntendedUseDetails?.["Intended Use"] || "",
+        },
+      };
+
+      setFormData(updatedFormData);
+      console.log(
+        "Updated formData:",
+        JSON.stringify(updatedFormData, null, 2)
+      );
+    } catch (error) {
+      console.error("Error fetching draft:", error);
+      const errorMessage =
+        error.response?.data?.error ||
+        error.message ||
+        "Failed to fetch draft.";
+      setToastProps({ type: "error", message: errorMessage });
+      navigate("/inventory-management");
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const countryOptions = [
-    { value: "US", label: "United States" },
-    { value: "CA", label: "Canada" },
-    { value: "MX", label: "Mexico" },
-    { value: "GB", label: "United Kingdom" },
-    { value: "AU", label: "Australia" },
-    { value: "CN", label: "China" },
-    { value: "JP", label: "Japan" },
-  ];
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const draftId = params.get("draftId");
+    if (draftId) {
+      console.log("Fetching draft with ID:", draftId);
+      fetchDraft(draftId);
+    }
+  }, [location]);
 
-  const incotermsOptions = [
-    { value: "EXW", label: "EXW" },
-    { value: "FOB", label: "FOB" },
-    { value: "CIF", label: "CIF" },
-  ];
-
-  const currencyOptions = [
-    { value: "USD", label: "USD" },
-    { value: "EUR", label: "EUR" },
-    { value: "GBP", label: "GBP" },
-  ];
-
-  const booleanOptions = [
-    { value: "Yes", label: "Yes" },
-    { value: "No", label: "No" },
-  ];
-
-  const transportOptions = [
-    { value: "Sea", label: "Sea" },
-    { value: "Air", label: "Air" },
-    { value: "Road", label: "Road" },
-  ];
+  const toHome = () => navigate("/dashboard");
 
   const areCurrentTabMandatoryFieldsFilled = () => {
     for (const fieldData of formStructure[activeTab]) {
@@ -593,20 +319,22 @@ const ComplianceForm = () => {
 
   const handleSubmit = async () => {
     setLoading(true);
-    // console.log(BACKEND_URL);
     try {
-      const token = localStorage.getItem("token"); // Retrieve token from localStorage
+      const token = localStorage.getItem("token");
       if (!token) {
         throw new Error("No authentication token found. Please log in.");
       }
 
+      const params = new URLSearchParams(location.search);
+      const draftId = params.get("draftId");
+
       const res = await axios.post(
         `${BACKEND_URL}/api/compliance-check`,
-        formData, // Send the entire formData object directly
+        { draftId, ...formData },
         {
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`, // Add Authorization header with Bearer token
+            Authorization: `Bearer ${token}`,
           },
         }
       );
@@ -623,7 +351,7 @@ const ComplianceForm = () => {
   };
 
   const renderInput = (section, fieldData) => {
-    const { field, type, option_type, mandatory, placeholder } = fieldData;
+    const { field, option_type, mandatory, placeholder } = fieldData;
     const value = formData[section][field];
 
     switch (option_type) {
@@ -820,7 +548,6 @@ const ComplianceForm = () => {
   return (
     <div className="min-h-screen bg-neutral-100 p-4 sm:p-6">
       <header className="relative bg-gradient-to-r from-teal-200 to-blue-400 text-white py-6 sm:py-8 rounded-b-3xl overflow-hidden">
-        {/* Wavy Background Shape */}
         <div className="absolute inset-0">
           <svg
             className="w-full h-full"
@@ -841,10 +568,7 @@ const ComplianceForm = () => {
             />
           </svg>
         </div>
-
-        {/* Content */}
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between">
-          {/* Logo/Title */}
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 bg-[#f4ce14] rounded-full flex items-center justify-center">
               <Home onClick={toHome} />
@@ -864,18 +588,12 @@ const ComplianceForm = () => {
           </button>
         </div>
       </header>
-      {activeTab === "ShipmentDetails" && (
-        <div className="bg-white mt-4 shadow-custom-light rounded-lg mb-4 sm:mb-6 overflow-x-auto">
-          <CsvUpload setFormData={setFormData} />
-        </div>
-      )}
-
       <div className="bg-white mt-4 shadow-custom-light rounded-lg mb-4 sm:mb-6 overflow-x-auto">
         <div className="flex border-b border-neutral-200 whitespace-nowrap">
           {tabOrder.map((tab) => (
             <button
               key={tab}
-              // onClick={() => setActiveTab(tab)}
+              onClick={() => setActiveTab(tab)}
               className={`px-4 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm font-medium transition-colors duration-200 ${
                 activeTab === tab
                   ? "border-b-2 border-primary-500 text-primary-500"
@@ -891,7 +609,6 @@ const ComplianceForm = () => {
         <h2 className="text-xl sm:text-2xl font-bold text-tertiary-500 mb-4 sm:mb-6">
           {activeTab.replace(/([A-Z])/g, " $1").trim()}
         </h2>
-        {/* Render CsvUpload Component only on ShipmentDetails Tab */}
         <div className="grid grid-cols-1 gap-4 sm:gap-6">
           {formStructure[activeTab].map((fieldData) => (
             <div key={fieldData.field} className="flex flex-col">

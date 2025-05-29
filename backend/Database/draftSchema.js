@@ -27,18 +27,6 @@ const draftSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.Mixed,
       default: {},
     },
-    status: {
-      complianceStatus: {
-        type: String,
-        enum: ["not_done", "ready", "not_ready"],
-        default: "not_done",
-      },
-      routeOptimizationStatus: {
-        type: String,
-        enum: ["done", "not_done"],
-        default: "not_done",
-      },
-    },
     timestamp: {
       type: Date,
       default: Date.now,
