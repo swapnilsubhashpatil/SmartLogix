@@ -15,6 +15,12 @@ router.post("/createAccount", async (req, res) => {
     const { firstName, lastName, emailAddress, password } = req.body;
     const userExists = await userModel.findOne({ emailAddress });
     if (userExists) {
+      if (userExists.password === "GOOGLE_AUTH_PLACEHOLDER") {
+        return res.status(400).send({
+          message:
+            "This email is already registered through Google sign-in. Please sign in with Google.",
+        });
+      }
       return res.status(400).send({ message: "User already exists" });
     }
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -50,6 +56,12 @@ router.post("/loginUser", async (req, res) => {
     const user = await userModel.findOne({ emailAddress });
     if (!user) {
       return res.status(401).send({ message: "User not found!" });
+    }
+    if (user.password === "GOOGLE_AUTH_PLACEHOLDER") {
+      return res.status(401).send({
+        message:
+          "User registered through Google sign-in. Please sign in with Google.",
+      });
     }
     const matchPassword = await bcrypt.compare(password, user.password);
     if (!matchPassword) {
@@ -105,6 +117,7 @@ router.get("/protectedRoute", verifyToken, async (req, res) => {
         firstName: user.firstName,
         lastName: user.lastName,
         emailAddress: user.emailAddress,
+        profilePhoto: user.profilePhoto,
       },
     });
   } catch (error) {

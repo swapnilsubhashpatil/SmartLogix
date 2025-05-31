@@ -15,6 +15,7 @@ import {
   booleanOptions,
   transportOptions,
 } from "./constants";
+import Header from "./Header";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -243,10 +244,8 @@ const ComplianceForm = () => {
       if (fieldData.mandatory) {
         if (activeTab === "DocumentVerification") {
           const doc = formData.DocumentVerification[fieldData.field];
-          if (
-            fieldData.mandatory &&
-            (!doc.checked || !Object.values(doc.subItems).every((item) => item))
-          ) {
+          // For mandatory documents, ensure all sub-items are checked
+          if (!Object.values(doc.subItems).every((item) => item)) {
             return false;
           }
         } else {
@@ -547,49 +546,11 @@ const ComplianceForm = () => {
 
   return (
     <div className="min-h-screen bg-neutral-100 p-4 sm:p-6">
-      <header className="relative bg-gradient-to-r from-teal-200 to-blue-400 text-white py-6 sm:py-8 rounded-b-3xl overflow-hidden">
-        <div className="absolute inset-0">
-          <svg
-            className="w-full h-full"
-            viewBox="0 0 1440 200"
-            preserveAspectRatio="none"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M0 100C240 30 480 170 720 100C960 30 1200 170 1440 100V200H0V100Z"
-              fill="white"
-              fillOpacity="0.1"
-            />
-            <path
-              d="M0 150C240 80 480 220 720 150C960 80 1200 220 1440 150V200H0V150Z"
-              fill="white"
-              fillOpacity="0.2"
-            />
-          </svg>
-        </div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-[#f4ce14] rounded-full flex items-center justify-center">
-              <Home onClick={toHome} />
-            </div>
-            <h1
-              className="text-2xl sm:text-3xl font-bold text-white"
-              style={{ fontFamily: "Poppins, sans-serif" }}
-            >
-              Compliance Check
-            </h1>
-          </div>
-          {response && (
-            <button
-              onClick={() => navigate("/inventory-management")}
-              className="mt-4 sm:mt-0 py-2 px-4 bg-white text-teal-600 font-medium rounded-lg hover:bg-gray-100 transition-colors duration-200"
-            >
-              Inventory
-            </button>
-          )}
-        </div>
-      </header>
+      <Header
+        title="Compliance Check Form"
+        response={response}
+        page="compliance-check"
+      />
       <div className="bg-white mt-4 shadow-custom-light rounded-lg mb-4 sm:mb-6 overflow-x-auto">
         <div className="flex border-b border-neutral-200 whitespace-nowrap">
           {tabOrder.map((tab) => (

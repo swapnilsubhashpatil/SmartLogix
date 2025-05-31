@@ -122,6 +122,7 @@ ${JSON.stringify(visionResponse, null, 2)}
           bucketName,
           fileName,
           mimeType: imageFile.mimetype,
+          signedUrl, // Add the signedUrl field
         },
         visionResponse,
         geminiResponse,
@@ -161,6 +162,56 @@ ${JSON.stringify(visionResponse, null, 2)}
         success: false,
         error: error.message || "Failed to analyze product",
       });
+    }
+  }
+);
+
+router.get("/api/product-analysis-history", verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const productAnalysisRecords = await ProductAnalysis.find({ userId }).sort({
+      timestamp: -1,
+    });
+    res.status(200).json({
+      message: "Product analysis history retrieved successfully",
+      productAnalysisHistory: productAnalysisRecords || [],
+    });
+  } catch (error) {
+    console.error("Error retrieving product analysis history:", error);
+    res
+      .status(500)
+      .json({ error: "Failed to retrieve product analysis history" });
+  }
+});
+
+// Delete Product Analysis Record
+router.delete(
+  "/api/product-analysis-history/:recordId",
+  verifyToken,
+  async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { recordId } = req.params;
+
+      const record = await ProductAnalysis.findOneAndDelete({
+        _id: recordId,
+        userId,
+      });
+
+      if (!record) {
+        return res
+          .status(404)
+          .json({ error: "Product analysis record not found" });
+      }
+
+      res
+        .status(200)
+        .json({ message: "Product analysis record deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting product analysis record:", error);
+      res
+        .status(500)
+        .json({ error: "Failed to delete product analysis record" });
     }
   }
 );

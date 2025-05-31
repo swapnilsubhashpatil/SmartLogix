@@ -138,33 +138,37 @@ router.get("/api/drafts", verifyToken, async (req, res) => {
     }
 
     let query = { userId };
-    switch (tab) {
-      case "yet-to-be-checked":
-        query.$or = [
-          {
-            "statuses.compliance": "notDone",
-            "statuses.routeOptimization": "notDone",
-          },
-          {
-            "statuses.compliance": "notDone",
-            "statuses.routeOptimization": "done",
-          },
-        ];
-        break;
-      case "compliant":
-        query["statuses.compliance"] = "compliant";
-        query["statuses.routeOptimization"] = "notDone";
-        break;
-      case "non-compliant":
-        query["statuses.compliance"] = "nonCompliant";
-        query["statuses.routeOptimization"] = "notDone";
-        break;
-      case "ready-for-shipment":
-        query["statuses.compliance"] = "compliant";
-        query["statuses.routeOptimization"] = "done";
-        break;
-      default:
-        return res.status(400).json({ error: "Invalid tab parameter" });
+
+    // Apply tab filter if provided
+    if (tab) {
+      switch (tab) {
+        case "yet-to-be-checked":
+          query.$or = [
+            {
+              "statuses.compliance": "notDone",
+              "statuses.routeOptimization": "notDone",
+            },
+            {
+              "statuses.compliance": "notDone",
+              "statuses.routeOptimization": "done",
+            },
+          ];
+          break;
+        case "compliant":
+          query["statuses.compliance"] = "compliant";
+          query["statuses.routeOptimization"] = "notDone";
+          break;
+        case "non-compliant":
+          query["statuses.compliance"] = "nonCompliant";
+          query["statuses.routeOptimization"] = "notDone";
+          break;
+        case "ready-for-shipment":
+          query["statuses.compliance"] = "compliant";
+          query["statuses.routeOptimization"] = "done";
+          break;
+        default:
+          return res.status(400).json({ error: "Invalid tab parameter" });
+      }
     }
 
     const drafts = await Draft.find(query).sort({ timestamp: -1 }); // Newest first

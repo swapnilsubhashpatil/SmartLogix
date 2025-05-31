@@ -32,7 +32,7 @@ import CheckCircleIcon from "@mui/icons-material/CheckCircle"; // New icon for C
 import { useNavigate, useLocation } from "react-router-dom";
 import RouteResultsSkeleton from "./Skeleton/RouteResultsSkeleton";
 import Toast from "./Toast";
-
+import Header from "./Header";
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 const RouteOptimization = () => {
@@ -275,7 +275,7 @@ const RouteOptimization = () => {
       }));
       const response = await axios.post(
         `${BACKEND_URL}/api/routes`,
-        routeData,
+        routeData, // Send array directly
         {
           headers: {
             "Content-Type": "application/json",
@@ -283,13 +283,15 @@ const RouteOptimization = () => {
           },
         }
       );
-      const routeDataObj = {
-        originalRoute: route,
-        processedRoutes: response.data,
-      };
-      const routeKey = `route_data_${index}`;
-      localStorage.setItem(routeKey, JSON.stringify(routeDataObj));
-      window.open("/map", "_blank");
+
+      // Create a temporary link to open the new tab
+      const link = document.createElement("a");
+      link.href = `/map/${response.data.draftId}`;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } catch (error) {
       console.error("Error fetching map data:", error);
       setToastProps({ type: "error", message: "Failed to fetch map data." });
@@ -299,11 +301,11 @@ const RouteOptimization = () => {
   };
 
   // [Existing handleCarbonClick, unchanged]
+
   const handleCarbonClick = async (route, index) => {
     setCarbonLoading(index);
     try {
       const carbonParams = {
-        draftId: selectedDraftId,
         origin: route.routeDirections[0].waypoints[0],
         destination:
           route.routeDirections[route.routeDirections.length - 1].waypoints[1],
@@ -322,9 +324,15 @@ const RouteOptimization = () => {
         }
       );
       setCarbonAnalysisResults((prev) => ({ ...prev, [index]: response.data }));
-      const carbonKey = `carbon_data_${Date.now()}`;
-      localStorage.setItem(carbonKey, JSON.stringify(carbonParams));
-      window.open(`/carbon-footprint`, "_blank");
+
+      // Create a temporary link to open the new tab
+      const link = document.createElement("a");
+      link.href = `/carbon-footprint/${response.data.draftId}`;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer"; // Security best practice
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
     } catch (error) {
       console.error("Error fetching carbon data:", error);
       setToastProps({
@@ -476,66 +484,8 @@ const RouteOptimization = () => {
 
   return (
     <>
-      <div className="p-4 sm:p-6 font-sans min-h-screen flex flex-col items-center">
-        <header className="relative bg-gradient-to-r from-teal-200 to-blue-400 text-white py-6 sm:py-8 rounded-b-3xl overflow-hidden w-full">
-          <div className="absolute inset-0">
-            <svg
-              className="w-full h-full"
-              viewBox="0 0 1440 200"
-              preserveAspectRatio="none"
-              fill="none"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M0 100C240 30 480 170 720 100C960 30 1200 170 1440 100V200H0V100Z"
-                fill="white"
-                fillOpacity="0.1"
-              />
-              <path
-                d="M0 150C240 80 480 220 720 150C960 80 1200 220 1440 150V200H0V150Z"
-                fill="white"
-                fillOpacity="0.2"
-              />
-            </svg>
-          </div>
-          <div className="relative max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-[#f4ce14] rounded-full flex items-center justify-center">
-                <HomeIcon
-                  onClick={toHome}
-                  sx={{ color: "#000", cursor: "pointer" }}
-                />
-              </div>
-              <h1
-                className="text-2xl sm:text-3xl font-bold text-white"
-                style={{ fontFamily: "Poppins, sans-serif" }}
-              >
-                Route Optimization
-              </h1>
-            </div>
-            <div>
-              {showResults && (
-                <IconButton onClick={handleInfoClick} sx={{ color: "white" }}>
-                  <Button
-                    onClick={handleInfoClick}
-                    sx={{
-                      color: "white",
-                      borderColor: "white",
-                      "&:hover": {
-                        borderColor: "#e0e0e0",
-                        backgroundColor: "rgba(255, 255, 255, 0.1)",
-                      },
-                    }}
-                    variant="outlined"
-                  >
-                    <InfoIcon className="mx-2" />
-                    How It Works
-                  </Button>
-                </IconButton>
-              )}
-            </div>
-          </div>
-        </header>
+      <div className="min-h-screen bg-neutral-100 p-4 sm:p-6 flex flex-col items-center">
+        <Header title="Route Optimization" />
 
         <div className="w-full max-w-4xl mt-6 flex flex-col gap-4 mb-6 sm:mb-8 items-center justify-center">
           <form

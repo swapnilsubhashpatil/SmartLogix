@@ -4,6 +4,7 @@ import Papa from "papaparse";
 import axios from "axios";
 import { Home } from "@mui/icons-material";
 import Toast from "./Toast";
+import Header from "./Header";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -14,6 +15,7 @@ const CsvUploadPage = () => {
   const [uploadedFile, setUploadedFile] = useState(null);
   const [formData, setFormData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [send, setSend] = useState(true);
   const fileInputRef = useRef(null);
   const [toastProps, setToastProps] = useState({ type: "", message: "" });
 
@@ -161,6 +163,7 @@ const CsvUploadPage = () => {
     }
 
     setLoading(true);
+    setSend(false);
     try {
       const token = localStorage.getItem("token");
       if (!token) {
@@ -320,42 +323,7 @@ const CsvUploadPage = () => {
   return (
     <div className="min-h-screen bg-neutral-100 p-4 sm:p-6">
       {/* Header - Unchanged */}
-      <header className="relative bg-gradient-to-r from-teal-200 to-blue-400 text-white py-6 sm:py-8 rounded-b-3xl overflow-hidden w-full">
-        <div className="absolute inset-0">
-          <svg
-            className="w-full h-full"
-            viewBox="0 0 1440 200"
-            preserveAspectRatio="none"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M0 100C240 30 480 170 720 100C960 30 1200 170 1440 100V200H0V100Z"
-              fill="white"
-              fillOpacity="0.1"
-            />
-            <path
-              d="M0 150C240 80 480 220 720 150C960 80 1200 220 1440 150V200H0V150Z"
-              fill="white"
-              fillOpacity="0.2"
-            />
-          </svg>
-        </div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-[#f4ce14] rounded-full flex items-center justify-center">
-              <Home onClick={toHome} />
-            </div>
-            <h1
-              className="text-2xl sm:text-3xl font-bold text-white"
-              style={{ fontFamily: "Poppins, sans-serif" }}
-            >
-              CSV Upload for Compliance
-            </h1>
-          </div>
-        </div>
-      </header>
-
+      <Header title="CSV Upload" page="compliance-check" />
       {/* Main Content */}
       <div className="flex flex-col items-center px-4 sm:px-6 py-12">
         {/* Upload Card */}
@@ -571,58 +539,60 @@ const CsvUploadPage = () => {
               </div>
 
               {/* Template Download Section */}
-              <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl p-6 mb-8 border border-emerald-200">
-                <div className="flex flex-col sm:flex-row items-center justify-between">
-                  <div className="flex items-center space-x-4 mb-4 sm:mb-0">
-                    <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-xl flex items-center justify-center">
-                      <svg
-                        className="w-6 h-6 text-white"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                        />
-                      </svg>
+              {send && (
+                <div className="bg-gradient-to-r from-emerald-50 to-teal-50 rounded-2xl p-6 mb-8 border border-emerald-200">
+                  <div className="flex flex-col sm:flex-row items-center justify-between">
+                    <div className="flex items-center space-x-4 mb-4 sm:mb-0">
+                      <div className="w-12 h-12 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-xl flex items-center justify-center">
+                        <svg
+                          className="w-6 h-6 text-white"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-semibold text-gray-800">
+                          Need a template?
+                        </h4>
+                        <p className="text-gray-600 text-sm">
+                          Download our pre-formatted CSV template to get started
+                        </p>
+                      </div>
                     </div>
-                    <div>
-                      <h4 className="text-lg font-semibold text-gray-800">
-                        Need a template?
-                      </h4>
-                      <p className="text-gray-600 text-sm">
-                        Download our pre-formatted CSV template to get started
-                      </p>
-                    </div>
-                  </div>
 
-                  <button
-                    onClick={handleDownloadTemplate}
-                    className="group relative px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-medium transition-all duration-200 hover:shadow-lg hover:scale-105 hover:from-emerald-600 hover:to-teal-600 focus:outline-none focus:ring-4 focus:ring-emerald-500/50"
-                    disabled={loading}
-                  >
-                    <span className="relative flex items-center justify-center space-x-2">
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                        />
-                      </svg>
-                      <span>Download Template</span>
-                    </span>
-                  </button>
+                    <button
+                      onClick={handleDownloadTemplate}
+                      className="group relative px-6 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white rounded-xl font-medium transition-all duration-200 hover:shadow-lg hover:scale-105 hover:from-emerald-600 hover:to-teal-600 focus:outline-none focus:ring-4 focus:ring-emerald-500/50"
+                      disabled={loading}
+                    >
+                      <span className="relative flex items-center justify-center space-x-2">
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                        <span>Download Template</span>
+                      </span>
+                    </button>
+                  </div>
                 </div>
-              </div>
+              )}
 
               {/* Error Display */}
               {csvError && (
@@ -663,36 +633,38 @@ const CsvUploadPage = () => {
               )}
 
               {/* Instructions */}
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200">
-                <div className="flex items-start space-x-3">
-                  <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mt-0.5">
-                    <svg
-                      className="w-4 h-4 text-blue-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                  </div>
-                  <div>
-                    <h4 className="font-semibold text-gray-800 mb-2">
-                      File Format Requirements
-                    </h4>
-                    <p className="text-gray-600 text-sm leading-relaxed">
-                      Upload a CSV file with headers matching the form fields
-                      (e.g., "Origin Country", "HS Code", etc.). Use the
-                      template above for the correct format and ensure all
-                      required fields are included.
-                    </p>
+              {send && (
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl p-6 border border-blue-200">
+                  <div className="flex items-start space-x-3">
+                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center mt-0.5">
+                      <svg
+                        className="w-4 h-4 text-blue-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-800 mb-2">
+                        File Format Requirements
+                      </h4>
+                      <p className="text-gray-600 text-sm leading-relaxed">
+                        Upload a CSV file with headers matching the form fields
+                        (e.g., "Origin Country", "HS Code", etc.). Use the
+                        template above for the correct format and ensure all
+                        required fields are included.
+                      </p>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

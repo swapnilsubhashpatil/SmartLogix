@@ -6,6 +6,9 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ComplianceCheck from "./components/ComplianceCheck";
 import Profile from "./components/Profile";
+import History from "./components/History";
+import ManageAccount from "./components/ManageAccount";
+import Analysis from "./components/Analysis";
 import RouteOptimization from "./components/RouteOptimization";
 import RouteMap from "./components/route";
 import CarbonFootprint from "./components/CarbonFootprint";
@@ -46,6 +49,7 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/map/:draftId" element={<RouteMap />} />
         <Route
           path="/map"
           element={
@@ -54,13 +58,13 @@ function App() {
             </ProtectedRoute>
           }
         />
+        <Route path="/profile/:userId" element={<Profile />} />
+        <Route path="/history/:userId" element={<History />} />
+        <Route path="/manage-account/:userId" element={<ManageAccount />} />
+        <Route path="/analysis/:userId" element={<Analysis />} />
         <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          }
+          path="/carbon-footprint/:draftId"
+          element={<CarbonFootprint />}
         />
         <Route
           path="/carbon-footprint"

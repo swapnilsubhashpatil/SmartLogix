@@ -32,7 +32,8 @@ passport.use(
             firstName: profile.name.givenName,
             lastName: profile.name.familyName,
             emailAddress: profile.emails[0].value,
-            password: await bcrypt.hash(profile.id, 10),
+            password: "GOOGLE_AUTH_PLACEHOLDER", // Set placeholder password
+            profilePhoto: profile.photos[0]?.value || "", // Save Google profile photo
           });
         }
         return done(null, user);

@@ -10,6 +10,7 @@
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@google-cloud/bigquery": "^8.1.0",
     "@google-cloud/storage": "^7.15.2",
     "@google-cloud/vision": "^5.1.0",
     "@google/generative-ai": "^0.24.0",
@@ -22,7 +23,7 @@
     "express-rate-limit": "^7.5.0",
     "google-auth-library": "^9.15.1",
     "jsonwebtoken": "^9.0.2",
-    "mongoose": "^8.13.0",
+    "mongoose": "^8.15.1",
     "multer": "^1.4.5-lts.2",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0"

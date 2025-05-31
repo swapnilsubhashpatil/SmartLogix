@@ -6,9 +6,11 @@ import {
   Marker,
   InfoWindow,
 } from "@react-google-maps/api";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams } from "react-router-dom";
+import axios from "axios";
 
 const MAPS = "AIzaSyADQ_BDioK6c7t5VPAfkVPNvuAc7lzX9qw";
+const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 function decodePolyline(encoded) {
   if (!encoded) return [];
@@ -63,84 +65,220 @@ function calculateMapCenter(routes) {
   };
 }
 
-function getRouteTypeIcon(type) {
-  switch (type) {
-    case "land":
-      return (
-        <svg
-          className="w-5 h-5 mr-2"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"
-          ></path>
-        </svg>
-      );
-    case "sea":
-      return (
-        <svg
-          className="w-5 h-5 mr-2"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"
-          ></path>
-        </svg>
-      );
-    case "air":
-      return (
-        <svg
-          className="w-5 h-5 mr-2"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"
-          ></path>
-        </svg>
-      );
-    default:
-      return null;
-  }
-}
+// Animation component for moving vehicles
+function AnimatedVehicle({ path, routeType, isActive }) {
+  const [position, setPosition] = useState(0);
+  const animationRef = useRef();
+  const animationStartTimeRef = useRef(null);
+  const animationDuration = 5000; // 10 seconds for the animation (adjust as needed)
 
-function formatRouteName(id, routes) {
-  const route = routes[id];
-  if (route) {
-    return `${route.origin} to ${route.destination}`;
-  }
-  return `Route ${id}`;
+  useEffect(() => {
+    if (!isActive || !path || path.length < 2) {
+      // Reset position if animation is not active or path is invalid
+      setPosition(0);
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+      animationStartTimeRef.current = null;
+      return;
+    }
+
+    const animate = (timestamp) => {
+      if (!animationStartTimeRef.current) {
+        animationStartTimeRef.current = timestamp;
+      }
+
+      const elapsed = timestamp - animationStartTimeRef.current;
+      const progress = Math.min(elapsed / animationDuration, 1); // Clamp progress between 0 and 1
+
+      setPosition(progress * 100); // Scale to 0-100 for path interpolation
+
+      if (progress < 1) {
+        animationRef.current = requestAnimationFrame(animate);
+      } else {
+        // Animation finished, ensure it stays at the end
+        setPosition(100);
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+
+    animationRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [isActive, path, animationDuration]);
+
+  if (!isActive || !path || path.length < 2) return null;
+
+  // Ensure position is always valid for path interpolation
+  const currentPathProgress = position / 100;
+  const currentIndex = Math.floor(currentPathProgress * (path.length - 1));
+  const nextIndex = Math.min(currentIndex + 1, path.length - 1);
+  const t = currentPathProgress * (path.length - 1) - currentIndex;
+
+  const currentPos = {
+    lat:
+      path[currentIndex].lat +
+      (path[nextIndex].lat - path[currentIndex].lat) * t,
+    lng:
+      path[currentIndex].lng +
+      (path[nextIndex].lng - path[currentIndex].lng) * t,
+  };
+
+  const getVehicleIcon = () => {
+    const iconSize = 60;
+    switch (routeType) {
+      case "land": // 🚚 Cargo Truck
+        return {
+          url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+          <svg width="800px" height="800px" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g clip-path="url(#clip0_901_3167)">
+<path d="M27.9731 6L28.9731 17H18.9731V5H26.9731C27.5031 5 27.8831 5.27 27.9731 6Z" fill="#FFE6EA"/>
+<path d="M24.9731 25C26.6331 25 27.9731 26.34 27.9731 28C27.9731 29.66 26.6331 31 24.9731 31C23.3131 31 21.9731 29.66 21.9731 28C21.9731 26.34 23.3131 25 24.9731 25ZM7.97308 25C9.63308 25 10.9731 26.34 10.9731 28C10.9731 29.66 9.63308 31 7.97308 31C6.31308 31 4.97308 29.66 4.97308 28C4.97308 27.69 5.02308 27.38 5.11308 27.1C5.49308 25.88 6.62308 25 7.97308 25Z" fill="#668077"/>
+<path d="M1.05318 3L2.55318 12L3.87318 20L5.05318 27.08L5.11318 27.1C5.49318 25.88 6.62318 25 7.97318 25C9.63318 25 10.9732 26.34 10.9732 28H21.9731C21.9731 26.34 23.3131 25 24.9731 25C26.6331 25 27.9731 26.34 27.9731 28H30.9731V19C30.9731 18 29.9731 17 28.9731 17H18.9732V2C18.9732 1.48 18.4832 1 17.9732 1H2.97318C1.63318 1 0.773177 1.34 1.05318 3Z" fill="#FFC44D"/>
+<path d="M28 28C28 26.344 26.656 25 25 25C23.344 25 22 26.344 22 28C22 29.656 23.344 31 25 31C26.656 31 28 29.656 28 28ZM28 28H31V19C31 18 30 17 29 17M11 28C11 26.344 9.656 25 8 25C6.344 25 5 26.344 5 28C5 29.656 6.344 31 8 31C9.656 31 11 29.656 11 28ZM11 28H19V2C19 1.484 18.515 1 18 1H3C1.656 1 0.797 1.344 1.078 3L2 9M29 17H22M29 17L28 6C27.906 5.266 27.531 5 27 5H22M8 16H2M9 20H3M7 12H1" stroke="#000000" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+</g>
+<defs>
+<clipPath id="clip0_901_3167">
+<rect width="32" height="32" fill="white"/>
+</clipPath>
+</defs>
+</svg>
+        `)}`,
+          scaledSize: new window.google.maps.Size(iconSize, iconSize),
+          anchor: new window.google.maps.Point(iconSize / 2, iconSize / 2),
+        };
+
+      case "sea": // 🚢 Cargo Ship
+        return {
+          url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+          <svg version="1.1" id="_x36_" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
+	 viewBox="0 0 512 512"  xml:space="preserve">
+<g>
+	<g>
+		<g>
+			<path style="fill:#5E4E44;" d="M483.547,55.859l-20.953-9.132c1.794-4.158,1.875-8.805,0.245-13.043
+				c-1.631-4.24-4.892-7.583-9.05-9.377c-4.158-1.793-8.724-1.875-12.963-0.244c-4.24,1.63-7.582,4.892-9.458,9.05
+				c-1.793,4.158-1.875,8.806-0.244,12.963c1.712,4.24,4.892,7.583,9.05,9.458l10.517,4.566l-15.653,35.627l-3.098,7.094
+				l-20.953-9.132l3.914-8.967l6.277-14.349c-4.973-4.24-8.886-9.621-11.332-15.899c-3.914-9.946-3.669-20.789,0.57-30.573
+				c4.321-9.702,12.148-17.284,22.013-21.116c9.62-3.832,20.138-3.668,29.677,0.245c0.326,0.082,0.571,0.163,0.897,0.325
+				c9.62,4.158,16.958,11.741,20.871,21.442c0.082,0.163,0.163,0.408,0.245,0.571C488.031,35.314,487.867,46.157,483.547,55.859z"/>
+		</g>
+		<path style="fill:#B8CAD1;" d="M450.935,131.355v108.189c0,26.578-21.768,48.346-48.346,48.346c-1.06,0-2.12,0-3.098-0.163
+			c-13.534-0.815-25.6-7.337-33.835-17.121c-7.093-8.479-11.332-19.241-11.332-31.062V131.355c0-26.497,21.686-48.265,48.265-48.265
+			c4.24,0,8.397,0.57,12.311,1.631c7.582,1.957,14.512,5.87,20.137,11.005c0.571,0.49,1.141,0.979,1.712,1.55
+			C445.473,106.08,450.935,118.146,450.935,131.355z"/>
+		<rect x="80.224" y="12.077" style="fill:#D05C8F;" width="146.589" height="169.906"/>
+		<rect x="42.966" y="62.137" style="fill:#FFFFFF;" width="265.294" height="169.906"/>
+		<polygon style="fill:#5E4E44;" points="512,197.066 488.031,390.208 472.377,447.604 39.623,447.604 32.041,419.884 
+			23.969,390.208 0,197.066 		"/>
+		<polygon style="fill:#E5E5E4;" points="488.031,390.208 472.377,447.604 39.623,447.604 32.041,419.884 23.969,390.208 		"/>
+		<rect x="89.657" y="104.029" style="fill:#B8CAD1;" width="77.422" height="58.174"/>
+		<rect x="194.867" y="104.029" style="fill:#B8CAD1;" width="77.422" height="58.174"/>
+		<path style="fill:#5E4E44;" d="M404.571,141.26L404.571,141.26c-7.679,0-13.962-6.283-13.962-13.962v0
+			c0-7.679,6.283-13.962,13.962-13.962l0,0c7.679,0,13.962,6.283,13.962,13.962v0C418.532,134.977,412.25,141.26,404.571,141.26z"/>
+		<g>
+			<circle style="fill:#D7E6BC;" cx="141.98" cy="303.916" r="33.638"/>
+			<circle style="fill:#D7E6BC;" cx="256" cy="303.916" r="33.638"/>
+			<circle style="fill:#D7E6BC;" cx="370.021" cy="303.916" r="33.638"/>
+		</g>
+	</g>
+	<path style="fill:none;" d="M354.297,197.099v-65.713c0-2.156,0.193-4.263,0.47-6.345l-46.513,46.513v25.545H354.297z"/>
+	<path style="fill:none;" d="M414.906,84.746l6.287-14.381c-2.124-1.795-4.001-3.849-5.702-6.049l-19.24,19.24
+		c2.083-0.277,4.191-0.47,6.346-0.47C406.855,83.087,410.967,83.7,414.906,84.746z"/>
+	<path style="fill:none;" d="M440.793,24.062c-4.233,1.658-7.566,4.865-9.387,9.029c-1.821,4.164-1.911,8.788-0.252,13.021
+		c0.233,0.595,0.564,1.127,0.857,1.684l22.88-22.88c-0.365-0.191-0.695-0.434-1.077-0.601
+		C449.651,22.495,445.027,22.406,440.793,24.062z"/>
+	<g>
+		<path style="opacity:0.09;fill:#040000;" d="M462.842,33.701c1.658,4.233,1.568,8.856-0.253,13.021l20.968,9.167
+			c4.27-9.765,4.482-20.608,0.594-30.532c-2.67-6.819-7.151-12.536-12.802-16.899l-16.457,16.457
+			C458.51,26.819,461.339,29.858,462.842,33.701z"/>
+		<path style="opacity:0.09;fill:#040000;" d="M450.899,131.387c0-14.08-6.143-26.763-15.838-35.613l15.604-35.691l-10.484-4.584
+			c-3.578-1.566-6.381-4.293-8.17-7.703l-16.52,16.521c1.7,2.2,3.578,4.254,5.702,6.049l-6.287,14.381
+			c-3.94-1.047-8.051-1.66-12.308-1.66c-2.156,0-4.263,0.193-6.346,0.47l-41.485,41.485c-0.277,2.082-0.47,4.19-0.47,6.345v65.713
+			h-46.044v-25.545L38.007,441.801l1.584,5.83h432.818l15.591-57.385l23.969-193.147h-61.07V131.387z"/>
+	</g>
+</g>
+</svg>
+        `)}`,
+          scaledSize: new window.google.maps.Size(iconSize, iconSize),
+          anchor: new window.google.maps.Point(iconSize / 2, iconSize / 2),
+        };
+
+      case "air": // ✈️ Airplane
+        return {
+          url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+      <svg height="800px" width="800px" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
+	 viewBox="0 0 511.988 511.988" xml:space="preserve">
+<g>
+	<path style="fill:#CCD1D9;" d="M127.997,195.109c-5.891,0-10.672,4.773-10.672,10.672v12.039c0,5.89,4.781,10.664,10.672,10.664
+		s10.672-4.773,10.672-10.664v-12.039C138.669,199.882,133.888,195.109,127.997,195.109z"/>
+	<path style="fill:#CCD1D9;" d="M63.998,226.998c-5.89,0-10.671,4.773-10.671,10.664v12.617c0,5.891,4.781,10.664,10.671,10.664
+		c5.891,0,10.672-4.773,10.672-10.664v-12.617C74.67,231.772,69.889,226.998,63.998,226.998z"/>
+	<path style="fill:#CCD1D9;" d="M383.993,195.109c-5.891,0-10.672,4.773-10.672,10.672v12.039c0,5.89,4.781,10.664,10.672,10.664
+		s10.671-4.773,10.671-10.664v-12.039C394.664,199.882,389.884,195.109,383.993,195.109z"/>
+	<path style="fill:#CCD1D9;" d="M447.991,226.998c-5.891,0-10.672,4.773-10.672,10.664v12.617c0,5.891,4.781,10.664,10.672,10.664
+		s10.672-4.773,10.672-10.664v-12.617C458.663,231.772,453.882,226.998,447.991,226.998z"/>
+</g>
+<g>
+	<path style="fill:#E6E9ED;" d="M10.672,341.34c-2.438,0-4.812-0.844-6.734-2.406C1.454,336.903,0,333.872,0,330.653v-42.654
+		c0-4.016,2.266-7.688,5.844-9.516l202.668-102.795c5.25-2.664,11.671-0.57,14.328,4.688c2.672,5.25,0.562,11.672-4.688,14.336
+		l-4.437,82.85c5.765-1.203,11.406,2.5,12.609,8.266s-2.5,11.422-8.266,12.609l-205.215,42.67
+		C12.125,341.246,11.391,341.34,10.672,341.34z"/>
+	<path style="fill:#E6E9ED;" d="M501.318,341.34c-0.719,0-1.438-0.094-2.172-0.234l-205.215-42.67
+		c-5.765-1.188-9.468-6.844-8.265-12.609s6.843-9.469,12.608-8.266l-4.438-82.85c-5.249-2.664-7.358-9.086-4.687-14.336
+		c2.655-5.258,9.077-7.352,14.343-4.688l202.652,102.795c3.594,1.828,5.844,5.5,5.844,9.516v42.654c0,3.219-1.438,6.25-3.938,8.281
+		C506.131,340.496,503.756,341.34,501.318,341.34z"/>
+</g>
+<g>
+	<path style="fill:#4A89DC;" d="M225.808,374.465c-3.5-1.75-7.688-1.469-10.906,0.781l-61.015,42.67
+		c-2.859,2-4.562,5.266-4.562,8.734v42.688c0,3.438,1.656,6.656,4.453,8.656c1.844,1.312,4.016,2,6.219,2
+		c1.156,0,2.312-0.188,3.422-0.562l62.889-21.344c4.438-1.5,7.375-5.719,7.234-10.406l-1.859-63.998
+		C231.574,379.777,229.308,376.215,225.808,374.465z"/>
+	<path style="fill:#4A89DC;" d="M358.102,417.916l-61.015-42.67c-3.219-2.25-7.405-2.531-10.905-0.781s-5.766,5.312-5.875,9.219
+		l-1.859,63.998c-0.141,4.688,2.797,8.906,7.234,10.406l62.889,21.344c1.109,0.375,2.266,0.562,3.422,0.562
+		c2.203,0,4.375-0.688,6.219-2c2.797-2,4.453-5.219,4.453-8.656V426.65C362.665,423.182,360.962,419.916,358.102,417.916z"/>
+</g>
+<path style="fill:#5D9CEC;" d="M287.511,479.994h-64c-5.766,0-10.484-4.578-10.656-10.344
+	c-0.438-14.375-10.672-352.399-10.672-373.649c0-13.344,5.047-31.078,12.875-45.179c10.562-19.015,24.937-29.484,40.453-29.484
+	s29.891,10.469,40.437,29.484c7.828,14.101,12.891,31.835,12.891,45.179c0,21.25-10.234,359.274-10.672,373.649
+	C297.994,475.416,293.275,479.994,287.511,479.994z"/>
+<path style="fill:#F5F7FA;" d="M286.823,92.228c-0.469-1.234-2.375-5.586-7.297-9.727c-4.25-3.57-11.859-7.836-24.016-7.836
+	c-19.484,0-28.843,11.039-31.312,17.562c-2.078,5.516,0.703,11.672,6.203,13.75c1.25,0.469,2.516,0.695,3.766,0.695
+	c4.156,0,8.078-2.445,9.812-6.453C244.354,99.563,246.791,96,255.51,96c8.719,0,11.156,3.562,11.531,4.219
+	c2.25,5.211,8.219,7.781,13.578,5.757C286.12,103.892,288.901,97.736,286.823,92.228z"/>
+<path style="fill:#4A89DC;" d="M255.511,490.65c-5.891,0-10.672-4.766-10.672-10.656V405.34c0-5.906,4.781-10.688,10.672-10.688
+	c5.891,0,10.672,4.781,10.672,10.688v74.654C266.183,485.885,261.401,490.65,255.511,490.65z"/>
+</svg>
+    `)}`,
+          scaledSize: new window.google.maps.Size(iconSize, iconSize),
+          anchor: new window.google.maps.Point(iconSize / 2, iconSize / 2),
+        };
+
+      default:
+        return null;
+    }
+  };
+
+  return <Marker position={currentPos} icon={getVehicleIcon()} zIndex={1000} />;
 }
 
 function RouteMap() {
-  const { routeId, routeData } = useParams();
-  const navigate = useNavigate();
+  const { draftId } = useParams();
   const [routes, setRoutes] = useState({});
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [mapCenter, setMapCenter] = useState({ lat: 0, lng: 0 });
   const [mapZoom, setMapZoom] = useState(3);
   const [selectedRoute, setSelectedRoute] = useState(null);
   const [activeMarker, setActiveMarker] = useState(null);
-  const [showSidebar, setShowSidebar] = useState(false); // Default to hidden on mobile
+  const [showSidebar, setShowSidebar] = useState(false);
   const [isGoogleLoaded, setIsGoogleLoaded] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const [animatingRoute, setAnimatingRoute] = useState(null);
   const mapRef = useRef(null);
 
   // Check if device is mobile
@@ -148,7 +286,7 @@ function RouteMap() {
     const checkMobile = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
-      setShowSidebar(!mobile); // Show sidebar by default on desktop, hide on mobile
+      setShowSidebar(!mobile);
     };
 
     checkMobile();
@@ -157,54 +295,58 @@ function RouteMap() {
   }, []);
 
   useEffect(() => {
-    // Find the latest route data in localStorage
-    const routeKeys = Object.keys(localStorage).filter((key) =>
-      key.startsWith("route_data_")
-    );
-    if (routeKeys.length === 0) {
-      setLoading(false);
-      return;
-    }
+    const fetchMapData = async () => {
+      setLoading(true);
+      setError(null);
 
-    // Use the latest key (assuming the last one is the most recent)
-    const latestKey = routeKeys.sort().pop();
-    try {
-      const routeDataObj = JSON.parse(localStorage.getItem(latestKey));
-      console.log("Route data retrieved from local storage:", routeDataObj);
-      if (!routeDataObj) throw new Error("No route data found in localStorage");
+      try {
+        if (!draftId) {
+          throw new Error("No draft ID provided in URL");
+        }
 
-      const { originalRoute, processedRoutes } = routeDataObj;
+        const token = localStorage.getItem("token");
+        if (!token) throw new Error("No authentication token found");
 
-      const formattedRoutes = {};
-      Object.entries(processedRoutes).forEach(([id, route]) => {
-        const routeDirection = originalRoute.routeDirections.find(
-          (dir) => dir.id === id
+        const response = await axios.get(
+          `${BACKEND_URL}/api/routes/${draftId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
         );
-        formattedRoutes[id] = {
-          ...route,
-          origin: routeDirection.waypoints[0],
-          destination: routeDirection.waypoints[1],
-          name: `${routeDirection.waypoints[0]} to ${routeDirection.waypoints[1]}`,
-          state: routeDirection.state,
-        };
-      });
 
-      setRoutes(formattedRoutes);
-      setSelectedRoute(Object.keys(formattedRoutes)[0]);
-      const center = calculateMapCenter(formattedRoutes);
-      setMapCenter(center);
-      setLoading(false);
+        const { routes: processedRoutes, originalRoute } = response.data;
+        const formattedRoutes = {};
+        Object.entries(processedRoutes).forEach(([id, route]) => {
+          const routeDirection = originalRoute.find((dir) => dir.id === id);
+          formattedRoutes[id] = {
+            ...route,
+            origin: routeDirection.waypoints[0],
+            destination: routeDirection.waypoints[1],
+            name: `${routeDirection.waypoints[0]} to ${routeDirection.waypoints[1]}`,
+            state: routeDirection.state,
+          };
+        });
 
-      // Clean up after use
-      localStorage.removeItem(latestKey);
-    } catch (error) {
-      console.error("Error processing route data:", error);
-      setLoading(false);
-    }
-  }, []);
+        setRoutes(formattedRoutes);
+        setSelectedRoute(Object.keys(formattedRoutes)[0]);
+        // Set the first route to animate initially
+        setAnimatingRoute(Object.keys(formattedRoutes)[0]);
+        const center = calculateMapCenter(formattedRoutes);
+        setMapCenter(center);
+      } catch (err) {
+        console.error("Error fetching map data:", err);
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchMapData();
+  }, [draftId]);
 
   const handleRouteClick = (routeId) => {
     setSelectedRoute(routeId);
+    setAnimatingRoute(routeId); // Start animation for the selected route
 
     if (mapRef.current) {
       const bounds = new window.google.maps.LatLngBounds();
@@ -222,7 +364,6 @@ function RouteMap() {
       mapRef.current.fitBounds(bounds);
     }
 
-    // Auto-hide sidebar on mobile after selecting a route
     if (isMobile) {
       setShowSidebar(false);
     }
@@ -231,7 +372,7 @@ function RouteMap() {
   const getRouteIcon = (state) => {
     switch (state) {
       case "land":
-        return "🚗";
+        return "🚛";
       case "sea":
         return "🚢";
       case "air":
@@ -248,23 +389,26 @@ function RouteMap() {
 
     const types = {
       land: {
-        color: "bg-green-500",
-        textColor: "text-green-700",
-        bgColor: "bg-green-100",
+        color: "from-emerald-500 to-green-600",
+        textColor: "text-emerald-800",
+        bgColor: "bg-gradient-to-r from-emerald-50 to-green-50",
+        borderColor: "border-emerald-200",
         name: "Land Route",
-        icon: "🚗",
+        icon: "🚛",
       },
       sea: {
-        color: "bg-blue-500",
-        textColor: "text-blue-700",
-        bgColor: "bg-blue-100",
+        color: "from-blue-500 to-cyan-600",
+        textColor: "text-blue-800",
+        bgColor: "bg-gradient-to-r from-blue-50 to-cyan-50",
+        borderColor: "border-blue-200",
         name: "Sea Route",
         icon: "🚢",
       },
       air: {
-        color: "bg-red-500",
-        textColor: "text-red-700",
-        bgColor: "bg-red-100",
+        color: "from-red-500 to-rose-600",
+        textColor: "text-red-800",
+        bgColor: "bg-gradient-to-r from-red-50 to-rose-50",
+        borderColor: "border-red-200",
         name: "Air Route",
         icon: "✈️",
       },
@@ -277,13 +421,32 @@ function RouteMap() {
     switch (state) {
       case "land":
         return {
-          strokeColor: "#10B981",
-          strokeWeight: 5,
-          strokeOpacity: 0.8,
+          strokeColor: "#059669",
+          strokeWeight: 6,
+          strokeOpacity: 0.9,
         };
       case "sea":
         return {
-          strokeColor: "#3B82F6",
+          strokeColor: "#0ea5e9",
+          strokeWeight: 6,
+          strokeOpacity: 0.9,
+          geodesic: true,
+          icons: [
+            {
+              icon: {
+                path: "M 0,-2 0,2",
+                strokeOpacity: 1,
+                scale: 4,
+                strokeColor: "#0369a1",
+              },
+              offset: "0",
+              repeat: "25px",
+            },
+          ],
+        };
+      case "air":
+        return {
+          strokeColor: "#ef4444",
           strokeWeight: 5,
           strokeOpacity: 0.8,
           geodesic: true,
@@ -293,27 +456,10 @@ function RouteMap() {
                 path: "M 0,-1 0,1",
                 strokeOpacity: 1,
                 scale: 3,
+                strokeColor: "#dc2626",
               },
               offset: "0",
               repeat: "20px",
-            },
-          ],
-        };
-      case "air":
-        return {
-          strokeColor: "#EF4444",
-          strokeWeight: 4,
-          strokeOpacity: 0.6,
-          geodesic: true,
-          icons: [
-            {
-              icon: {
-                path: "M 0,-0.1 0,0.1",
-                strokeOpacity: 1,
-                scale: 3,
-              },
-              offset: "0",
-              repeat: "15px",
             },
           ],
         };
@@ -328,152 +474,217 @@ function RouteMap() {
 
   if (loading) {
     return (
-      <div className="flex h-screen w-screen items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading routes data...</p>
+      <div className="flex h-screen w-screen items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
+        <div className="text-center p-8 bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mx-auto"></div>
+          <p className="mt-6 text-slate-700 font-medium">
+            Loading routes data...
+          </p>
         </div>
       </div>
     );
   }
 
+  if (error) {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-gradient-to-br from-slate-50 to-red-50">
+        <div className="text-center p-8 bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl">
+          <p className="text-red-600 mb-6 font-medium">{error}</p>
+          <button
+            className="bg-gradient-to-r from-yellow-400 to-orange-400 py-3 px-6 rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 font-medium text-gray-800"
+            onClick={handleBackClick}
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Modern map styles
+  const mapStyles = [
+    {
+      featureType: "all",
+      elementType: "geometry",
+      stylers: [{ saturation: -100 }, { lightness: 40 }],
+    },
+    {
+      featureType: "water",
+      elementType: "geometry",
+      stylers: [{ color: "#a2d2ff" }, { lightness: 20 }],
+    },
+    {
+      featureType: "landscape",
+      elementType: "geometry",
+      stylers: [{ color: "#f8fafc" }, { lightness: 20 }],
+    },
+    {
+      featureType: "road",
+      elementType: "geometry",
+      stylers: [{ color: "#ffffff" }, { lightness: 30 }],
+    },
+    {
+      featureType: "poi",
+      elementType: "geometry",
+      stylers: [{ color: "#e2e8f0" }],
+    },
+    {
+      featureType: "administrative",
+      elementType: "geometry.stroke",
+      stylers: [{ color: "#cbd5e1" }, { weight: 1 }],
+    },
+  ];
+
   return (
     <LoadScript googleMapsApiKey={MAPS} onLoad={() => setIsGoogleLoaded(true)}>
-      <div className="flex h-screen bg-gray-50 overflow-hidden relative">
-        {/* Sidebar - Full screen overlay on mobile when open */}
+      <div className="flex h-screen bg-gradient-to-br from-slate-100 to-blue-100 overflow-hidden relative p-4">
+        {/* Sidebar */}
         <div
           className={`${
             showSidebar
               ? isMobile
-                ? "fixed inset-0 z-30 overflow-y-auto bg-white"
-                : "w-80 md:w-3/10"
+                ? "fixed inset-4 z-30 overflow-y-auto"
+                : "w-[35%]"
+              : isMobile
+              ? "hidden"
               : "w-0"
-          } bg-white transition-all duration-300 shadow-lg h-full`}
+          } bg-white/90 backdrop-blur-xl transition-all duration-500 shadow-2xl h-full rounded-3xl border border-white/50`}
         >
           {showSidebar && (
             <div className="h-full flex flex-col">
-              <div className="p-4 border-b border-gray-200 flex justify-between items-center">
-                <div>
-                  <h1 className="text-2xl font-bold text-gray-800">
-                    Route Finder
-                  </h1>
-                  <p className="text-sm text-gray-500">
-                    Explore Cargo routes around the world
-                  </p>
-                </div>
-                {isMobile && (
-                  <button
-                    className="p-2 rounded-full hover:bg-gray-100"
-                    onClick={() => setShowSidebar(false)}
-                  >
-                    <svg
-                      className="w-6 h-6 text-gray-700"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
+              <div className="p-6 border-b border-slate-200/50">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-blue-800 bg-clip-text text-transparent">
+                      Route Explorer
+                    </h1>
+                    <p className="text-sm text-slate-500 mt-1">
+                      Discover cargo routes worldwide
+                    </p>
+                  </div>
+                  {isMobile && (
+                    <button
+                      className="p-2 rounded-full hover:bg-slate-100 transition-colors duration-200"
+                      onClick={() => setShowSidebar(false)}
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M6 18L18 6M6 6l12 12"
-                      ></path>
-                    </svg>
-                  </button>
-                )}
-              </div>
-
-              <div className="p-4 bg-gray-50 border-b border-gray-200">
-                <div className="flex items-center space-x-2">
-                  <span className="inline-block w-3 h-3 rounded-full bg-green-500"></span>
-                  <span className="text-sm font-medium text-gray-700">
-                    Land Routes
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2 mt-2">
-                  <span className="inline-block w-3 h-3 rounded-full bg-blue-500"></span>
-                  <span className="text-sm font-medium text-gray-700">
-                    Sea Routes
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2 mt-2">
-                  <span className="inline-block w-3 h-3 rounded-full bg-red-500"></span>
-                  <span className="text-sm font-medium text-gray-700">
-                    Air Routes
-                  </span>
+                      <svg
+                        className="w-6 h-6 text-slate-700"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M6 18L18 6M6 6l12 12"
+                        ></path>
+                      </svg>
+                    </button>
+                  )}
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto">
-                <div className="p-4">
-                  <h2 className="text-lg font-semibold text-gray-700 mb-3">
-                    Available Routes
-                  </h2>
-                  <div className="space-y-2">
-                    {Object.entries(routes).map(([id, route]) => {
-                      const { bgColor, textColor, icon } = getRouteTypeInfo(id);
-                      return (
-                        <div
-                          key={id}
-                          className={`p-3 rounded-lg cursor-pointer transition-all duration-200 ${
-                            selectedRoute === id
-                              ? bgColor + " " + textColor
-                              : "bg-white hover:bg-gray-50"
-                          } border ${
-                            selectedRoute === id
-                              ? "border-gray-300"
-                              : "border-gray-200"
-                          }`}
-                          onClick={() => handleRouteClick(id)}
-                        >
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <span className="text-lg mr-2">{icon}</span>
-                              <span className="font-medium">{route.name}</span>
-                            </div>
-                            <div
-                              className={`px-2 py-1 rounded text-xs font-medium ${
-                                route.state === "land"
-                                  ? "bg-green-100 text-green-800"
-                                  : route.state === "sea"
-                                  ? "bg-blue-100 text-blue-800"
-                                  : "bg-red-100 text-red-800"
-                              }`}
-                            >
-                              {route.state.toUpperCase()}
-                            </div>
-                          </div>
-                          <div className="mt-2 text-sm text-gray-500">
-                            <div>From: {route.origin}</div>
-                            <div>To: {route.destination}</div>
-                          </div>
-                        </div>
-                      );
-                    })}
+              <div className="p-6 bg-gradient-to-r from-slate-50 to-blue-50 border-b border-slate-200/50">
+                <h3 className="text-sm font-semibold text-slate-700 mb-3">
+                  Route Types
+                </h3>
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-4 h-4 rounded-full bg-gradient-to-r from-emerald-500 to-green-600 shadow-sm"></div>
+                    <span className="text-sm font-medium text-slate-700">
+                      Land Routes
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-4 h-4 rounded-full bg-gradient-to-r from-blue-500 to-cyan-600 shadow-sm"></div>
+                    <span className="text-sm font-medium text-slate-700">
+                      Sea Routes
+                    </span>
+                  </div>
+                  <div className="flex items-center space-x-3">
+                    <div className="w-4 h-4 rounded-full bg-gradient-to-r from-red-500 to-rose-600 shadow-sm"></div>
+                    <span className="text-sm font-medium text-slate-700">
+                      Air Routes
+                    </span>
                   </div>
                 </div>
               </div>
 
+              <div className="flex-1 overflow-y-auto p-6">
+                <h2 className="text-lg font-semibold text-slate-700 mb-4">
+                  Available Routes
+                </h2>
+                <div className="space-y-3">
+                  {Object.entries(routes).map(([id, route]) => {
+                    const { bgColor, textColor, icon, borderColor, color } =
+                      getRouteTypeInfo(id);
+                    const isSelected = selectedRoute === id;
+                    return (
+                      <div
+                        key={id}
+                        className={`p-4 rounded-2xl cursor-pointer transition-all duration-300 transform hover:scale-[1.02] ${
+                          isSelected
+                            ? `${bgColor} ${borderColor} border-2 shadow-lg`
+                            : "bg-white hover:bg-slate-50 border border-slate-200 hover:shadow-md"
+                        }`}
+                        onClick={() => handleRouteClick(id)}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center">
+                            <span className="text-xl mr-3">{icon}</span>
+                            <span className="font-semibold text-slate-800">
+                              {route.name}
+                            </span>
+                          </div>
+                          <div
+                            className={`px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r ${color} text-white shadow-sm`}
+                          >
+                            {route.state.toUpperCase()}
+                          </div>
+                        </div>
+                        <div className="text-sm text-slate-600 space-y-1">
+                          <div className="flex items-center">
+                            <span className="w-2 h-2 bg-green-400 rounded-full mr-2"></span>
+                            <span className="font-medium">From:</span>{" "}
+                            <span className="ml-1">{route.origin}</span>
+                          </div>
+                          <div className="flex items-center">
+                            <span className="w-2 h-2 bg-red-400 rounded-full mr-2"></span>
+                            <span className="font-medium">To:</span>{" "}
+                            <span className="ml-1">{route.destination}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
               {selectedRoute && routes[selectedRoute] && (
-                <div className="p-4 border-t border-gray-200 bg-gray-50">
-                  <h3 className="font-semibold text-gray-700">
-                    Selected Route Details
+                <div className="p-6 border-t border-slate-200/50 bg-gradient-to-r from-slate-50 to-blue-50">
+                  <h3 className="font-semibold text-slate-800 mb-3">
+                    Route Details
                   </h3>
-                  <div className="mt-2 text-sm text-gray-600">
-                    <p>
-                      <span className="font-medium">Type:</span>{" "}
-                      {routes[selectedRoute].state.charAt(0).toUpperCase() +
-                        routes[selectedRoute].state.slice(1)}
-                    </p>
-                    <p>
-                      <span className="font-medium">Origin:</span>{" "}
-                      {routes[selectedRoute].origin}
-                    </p>
-                    <p>
-                      <span className="font-medium">Destination:</span>{" "}
-                      {routes[selectedRoute].destination}
-                    </p>
+                  <div className="space-y-2 text-sm text-slate-600">
+                    <div className="flex justify-between">
+                      <span className="font-medium">Type:</span>
+                      <span className="capitalize">
+                        {routes[selectedRoute].state}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">Origin:</span>
+                      <span className="text-right max-w-32 truncate">
+                        {routes[selectedRoute].origin}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="font-medium">Destination:</span>
+                      <span className="text-right max-w-32 truncate">
+                        {routes[selectedRoute].destination}
+                      </span>
+                    </div>
                   </div>
                 </div>
               )}
@@ -481,246 +692,254 @@ function RouteMap() {
           )}
         </div>
 
-        {/* Map container */}
         <div
           className={`${
-            showSidebar && !isMobile ? "w-full md:w-7/10" : "w-full"
-          } transition-all duration-300 relative`}
+            showSidebar && !isMobile ? "w-[65%] ml-6" : "w-full"
+          } transition-all duration-500 relative`}
         >
-          {/* Improved mobile toggle button */}
-          <button
-            className="absolute top-4 left-4 z-20 bg-white p-2 rounded-full shadow-md hover:bg-gray-100 transition-colors duration-200"
-            onClick={() => setShowSidebar(!showSidebar)}
-            aria-label={showSidebar ? "Hide sidebar" : "Show sidebar"}
-          >
-            {showSidebar && !isMobile ? (
-              <svg
-                className="w-5 h-5 text-gray-700"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M15 19l-7-7 7-7"
-                ></path>
-              </svg>
-            ) : (
-              <svg
-                className="w-5 h-5 text-gray-700"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M4 6h16M4 12h16M4 18h16"
-                ></path>
-              </svg>
-            )}
-          </button>
-
-          {/* Route info pill (mobile only) */}
-          {isMobile &&
-            selectedRoute &&
-            routes[selectedRoute] &&
-            !showSidebar && (
-              <div className="absolute top-4 left-16 right-4 z-10 bg-white rounded-full shadow-md py-2 px-4 flex items-center justify-between">
-                <div className="flex items-center">
-                  <span className="text-lg mr-2">
-                    {getRouteIcon(routes[selectedRoute].state)}
-                  </span>
-                  <span className="font-medium text-sm truncate max-w-32">
-                    {routes[selectedRoute].name}
-                  </span>
-                </div>
-                <div
-                  className={`ml-2 px-2 py-1 rounded text-xs font-medium ${
-                    routes[selectedRoute].state === "land"
-                      ? "bg-green-100 text-green-800"
-                      : routes[selectedRoute].state === "sea"
-                      ? "bg-blue-100 text-blue-800"
-                      : "bg-red-100 text-red-800"
-                  }`}
-                >
-                  {routes[selectedRoute].state.toUpperCase()}
-                </div>
-              </div>
-            )}
-
-          {/* Back button at bottom - better mobile positioning */}
-          <button
-            className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10 bg-yellow-400 py-2 px-4 rounded-full shadow-md hover:bg-yellow-500 transition-colors duration-200 flex items-center gap-2"
-            onClick={handleBackClick}
-          >
-            <span className="text-gray-800 font-medium">Close</span>
-          </button>
-
-          {isGoogleLoaded ? (
-            <GoogleMap
-              mapContainerStyle={{ width: "100%", height: "100%" }}
-              center={mapCenter}
-              zoom={mapZoom}
-              options={{
-                styles: [
-                  {
-                    featureType: "water",
-                    elementType: "geometry",
-                    stylers: [{ color: "#e9e9e9" }, { lightness: 17 }],
-                  },
-                  {
-                    featureType: "landscape",
-                    elementType: "geometry",
-                    stylers: [{ color: "#f5f5f5" }, { lightness: 20 }],
-                  },
-                  {
-                    featureType: "road.highway",
-                    elementType: "geometry.fill",
-                    stylers: [{ color: "#ffffff" }, { lightness: 17 }],
-                  },
-                  {
-                    featureType: "administrative",
-                    elementType: "geometry.stroke",
-                    stylers: [
-                      { color: "#cacaca" },
-                      { lightness: 17 },
-                      { weight: 1.2 },
-                    ],
-                  },
-                ],
-                zoomControl: true,
-                mapTypeControl: false,
-                streetViewControl: false,
-                fullscreenControl: true,
-              }}
-              onLoad={(map) => {
-                mapRef.current = map;
-              }}
+          {/* Map window with modern styling */}
+          <div className="h-full bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 overflow-hidden relative">
+            {/* Controls */}
+            <button
+              className="absolute top-6 left-6 z-20 bg-white/90 backdrop-blur-sm p-3 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+              onClick={() => setShowSidebar(!showSidebar)}
             >
-              {Object.entries(routes).map(([id, route]) => {
-                const isSelected = selectedRoute === id;
-                const options = getRouteColorOptions(route.state);
+              {showSidebar && !isMobile ? (
+                <svg
+                  className="w-5 h-5 text-slate-700"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M15 19l-7-7 7-7"
+                  ></path>
+                </svg>
+              ) : (
+                <svg
+                  className="w-5 h-5 text-slate-700"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M4 6h16M4 12h16M4 18h16"
+                  ></path>
+                </svg>
+              )}
+            </button>
 
-                if (isSelected) {
-                  options.strokeWeight += 2;
-                  options.strokeOpacity = 1;
-                  options.zIndex = 10;
-                } else {
-                  options.strokeOpacity = 0.5;
-                  options.zIndex = 1;
-                }
+            {/* Mobile route info */}
+            {isMobile &&
+              selectedRoute &&
+              routes[selectedRoute] &&
+              !showSidebar && (
+                <div className="absolute top-6 left-20 right-6 z-10 bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg py-3 px-4 flex items-center justify-between">
+                  <div className="flex items-center">
+                    <span className="text-lg mr-2">
+                      {getRouteIcon(routes[selectedRoute].state)}
+                    </span>
+                    <span className="font-semibold text-sm truncate max-w-32">
+                      {routes[selectedRoute].name}
+                    </span>
+                  </div>
+                  <div
+                    className={`ml-2 px-2 py-1 rounded-lg text-xs font-semibold bg-gradient-to-r ${
+                      getRouteTypeInfo(selectedRoute).color
+                    } text-white`}
+                  >
+                    {routes[selectedRoute].state.toUpperCase()}
+                  </div>
+                </div>
+              )}
 
-                if (route.state === "land" && route.encodedPolyline) {
-                  return (
-                    <Polyline
-                      key={id}
-                      path={decodePolyline(route.encodedPolyline)}
-                      options={options}
-                    />
-                  );
-                } else if (
-                  (route.state === "sea" || route.state === "air") &&
-                  route.coordinates
-                ) {
-                  return (
-                    <Polyline
-                      key={id}
-                      path={route.coordinates}
-                      options={options}
-                    />
-                  );
-                }
-                return null;
-              })}
+            {/* Close button */}
+            <button
+              className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-10 bg-gradient-to-r from-yellow-400 to-orange-400 py-3 px-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+              onClick={handleBackClick}
+            >
+              <span className="text-gray-800 font-semibold flex items-center gap-2">
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  ></path>
+                </svg>
+                Close
+              </span>
+            </button>
 
-              {isGoogleLoaded &&
-                Object.entries(routes).flatMap(([id, route]) => {
+            {/* Google Map */}
+            {isGoogleLoaded ? (
+              <GoogleMap
+                mapContainerStyle={{ width: "100%", height: "100%" }}
+                center={mapCenter}
+                zoom={mapZoom}
+                options={{
+                  styles: mapStyles,
+                  zoomControl: true,
+                  mapTypeControl: false,
+                  streetViewControl: false,
+                  fullscreenControl: true,
+                  minZoom: 2,
+                  maxZoom: 18,
+                  restriction: {
+                    latLngBounds: {
+                      north: 85,
+                      south: -85,
+                      west: -180,
+                      east: 180,
+                    },
+                  },
+                }}
+                onLoad={(map) => {
+                  mapRef.current = map;
+                }}
+              >
+                {/* Route polylines */}
+                {Object.entries(routes).map(([id, route]) => {
                   const isSelected = selectedRoute === id;
-                  const markerColor =
-                    route.state === "land"
-                      ? "#10B981"
-                      : route.state === "sea"
-                      ? "#3B82F6"
-                      : "#EF4444";
+                  const options = getRouteColorOptions(route.state);
+
+                  if (isSelected) {
+                    options.strokeWeight += 2;
+                    options.strokeOpacity = 1;
+                    options.zIndex = 10;
+                  } else {
+                    options.strokeOpacity = 0.6;
+                    options.zIndex = 1;
+                  }
 
                   let path = [];
-                  if (route.encodedPolyline) {
+                  if (route.state === "land" && route.encodedPolyline) {
                     path = decodePolyline(route.encodedPolyline);
-                  } else if (route.coordinates) {
+                  } else if (
+                    (route.state === "sea" || route.state === "air") &&
+                    route.coordinates
+                  ) {
                     path = route.coordinates;
                   }
 
                   if (path.length > 0) {
-                    return [
-                      <Marker
-                        key={`${id}-start`}
-                        position={path[0]}
-                        icon={{
-                          path: window.google.maps.SymbolPath.CIRCLE,
-                          scale: isSelected ? 10 : 7,
-                          fillColor: markerColor,
-                          fillOpacity: 1,
-                          strokeWeight: 2,
-                          strokeColor: "#FFFFFF",
-                        }}
-                        onClick={() => setActiveMarker(`${id}-start`)}
-                      >
-                        {activeMarker === `${id}-start` && (
-                          <InfoWindow
-                            onCloseClick={() => setActiveMarker(null)}
-                          >
-                            <div className="p-1">
-                              <p className="font-semibold">{route.origin}</p>
-                              <p className="text-xs">Starting point</p>
-                            </div>
-                          </InfoWindow>
-                        )}
-                      </Marker>,
-                      <Marker
-                        key={`${id}-end`}
-                        position={path[path.length - 1]}
-                        icon={{
-                          path: window.google.maps.SymbolPath.CIRCLE,
-                          scale: isSelected ? 10 : 7,
-                          fillColor: markerColor,
-                          fillOpacity: 1,
-                          strokeWeight: 2,
-                          strokeColor: "#FFFFFF",
-                        }}
-                        onClick={() => setActiveMarker(`${id}-end`)}
-                      >
-                        {activeMarker === `${id}-end` && (
-                          <InfoWindow
-                            onCloseClick={() => setActiveMarker(null)}
-                          >
-                            <div className="p-1">
-                              <p className="font-semibold">
-                                {route.destination}
-                              </p>
-                              <p className="text-xs">Destination point</p>
-                            </div>
-                          </InfoWindow>
-                        )}
-                      </Marker>,
-                    ];
+                    return (
+                      <React.Fragment key={id}>
+                        <Polyline path={path} options={options} />
+                        <AnimatedVehicle
+                          path={path}
+                          routeType={route.state}
+                          isActive={animatingRoute === id}
+                        />
+                      </React.Fragment>
+                    );
                   }
-                  return [];
+                  return null;
                 })}
-            </GoogleMap>
-          ) : (
-            <div className="flex h-full w-full items-center justify-center">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500 mx-auto"></div>
-                <p className="mt-4 text-gray-600">Loading Google Maps...</p>
+
+                {/* Start and end markers */}
+                {isGoogleLoaded &&
+                  Object.entries(routes).flatMap(([id, route]) => {
+                    const isSelected = selectedRoute === id;
+                    const markerColor =
+                      route.state === "land"
+                        ? "#059669"
+                        : route.state === "sea"
+                        ? "#0ea5e9"
+                        : "#ef4444";
+
+                    let path = [];
+                    if (route.encodedPolyline) {
+                      path = decodePolyline(route.encodedPolyline);
+                    } else if (route.coordinates) {
+                      path = route.coordinates;
+                    }
+
+                    if (path.length > 0) {
+                      return [
+                        <Marker
+                          key={`${id}-start`}
+                          position={path[0]}
+                          icon={{
+                            path: window.google.maps.SymbolPath.CIRCLE,
+                            scale: isSelected ? 12 : 8,
+                            fillColor: markerColor,
+                            fillOpacity: 0.9,
+                            strokeWeight: 3,
+                            strokeColor: "#FFFFFF",
+                          }}
+                          onClick={() => setActiveMarker(`${id}-start`)}
+                        >
+                          {activeMarker === `${id}-start` && (
+                            <InfoWindow
+                              onCloseClick={() => setActiveMarker(null)}
+                            >
+                              <div className="p-2">
+                                <p className="font-semibold text-slate-800">
+                                  {route.origin}
+                                </p>
+                                <p className="text-xs text-slate-600">
+                                  Starting point
+                                </p>
+                              </div>
+                            </InfoWindow>
+                          )}
+                        </Marker>,
+                        <Marker
+                          key={`${id}-end`}
+                          position={path[path.length - 1]}
+                          icon={{
+                            path: window.google.maps.SymbolPath.CIRCLE,
+                            scale: isSelected ? 12 : 8,
+                            fillColor: markerColor,
+                            fillOpacity: 0.9,
+                            strokeWeight: 3,
+                            strokeColor: "#FFFFFF",
+                          }}
+                          onClick={() => setActiveMarker(`${id}-end`)}
+                        >
+                          {activeMarker === `${id}-end` && (
+                            <InfoWindow
+                              onCloseClick={() => setActiveMarker(null)}
+                            >
+                              <div className="p-2">
+                                <p className="font-semibold text-slate-800">
+                                  {route.destination}
+                                </p>
+                                <p className="text-xs text-slate-600">
+                                  Destination point
+                                </p>
+                              </div>
+                            </InfoWindow>
+                          )}
+                        </Marker>,
+                      ];
+                    }
+                    return [];
+                  })}
+              </GoogleMap>
+            ) : (
+              <div className="flex h-full w-full items-center justify-center">
+                <div className="text-center p-8 bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl">
+                  <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-500 mx-auto"></div>
+                  <p className="mt-6 text-slate-700 font-medium">
+                    Loading Google Maps...
+                  </p>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </LoadScript>

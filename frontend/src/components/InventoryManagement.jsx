@@ -38,6 +38,7 @@ import axios from "axios";
 import Toast from "./Toast";
 import HomeIcon from "@mui/icons-material/Home";
 import { countryOptions } from "./constants";
+import Header from "./Header";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -345,45 +346,7 @@ const InventoryManagement = () => {
   return (
     <div className="min-h-screen bg-neutral-100 p-4 sm:p-6">
       {/* Header remains unchanged */}
-      <header className="relative bg-gradient-to-r from-teal-200 to-blue-400 text-white py-6 sm:py-8 rounded-b-3xl overflow-hidden w-full">
-        <div className="absolute inset-0">
-          <svg
-            className="w-full h-full"
-            viewBox="0 0 1440 200"
-            preserveAspectRatio="none"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <path
-              d="M0 100C240 30 480 170 720 100C960 30 1200 170 1440 100V200H0V100Z"
-              fill="white"
-              fillOpacity="0.1"
-            />
-            <path
-              d="M0 150C240 80 480 220 720 150C960 80 1200 220 1440 150V200H0V150Z"
-              fill="white"
-              fillOpacity="0.2"
-            />
-          </svg>
-        </div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 bg-[#f4ce14] rounded-full flex items-center justify-center">
-              <HomeIcon
-                onClick={toHome}
-                sx={{ color: "#000", cursor: "pointer" }}
-              />
-            </div>
-            <h1
-              className="text-2xl sm:text-3xl font-bold text-white"
-              style={{ fontFamily: "Poppins, sans-serif" }}
-            >
-              Route Optimization
-            </h1>
-          </div>
-          <div></div>
-        </div>
-      </header>
+      <Header title="Inventory" page="profile" />
 
       {/* Enhanced Content Area */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">

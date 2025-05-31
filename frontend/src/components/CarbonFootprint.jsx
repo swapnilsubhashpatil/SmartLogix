@@ -11,6 +11,8 @@ import {
   Tooltip,
   Legend,
 } from "chart.js";
+import { useNavigate, useParams } from "react-router-dom";
+import axios from "axios";
 import Toast from "./Toast";
 
 // Register Chart.js components
@@ -30,6 +32,8 @@ function CarbonFootprint() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [toastProps, setToastProps] = useState({ type: "", message: "" });
+  const navigate = useNavigate();
+  const { draftId } = useParams(); // Get draftId from URL params
 
   const showToast = (type, message) => {
     setToastProps({ type, message });
@@ -37,58 +41,40 @@ function CarbonFootprint() {
   };
 
   useEffect(() => {
-    fetchCarbonFootprint();
-  }, []);
+    const fetchCarbonData = async () => {
+      setLoading(true);
+      setCarbonData(null);
+      setError(null);
 
-  const fetchCarbonFootprint = async () => {
-    setLoading(true);
-    setCarbonData(null);
-    setError(null);
+      try {
+        if (!draftId) {
+          throw new Error("No draft ID provided in URL");
+        }
 
-    try {
-      const carbonKeys = Object.keys(localStorage).filter((key) =>
-        key.startsWith("carbon_data_")
-      );
-      if (carbonKeys.length === 0) {
-        throw new Error("No carbon footprint data found in localStorage");
+        const token = localStorage.getItem("token");
+        if (!token) throw new Error("No authentication token found");
+
+        const response = await axios.get(
+          `${BACKEND_URL}/api/carbon-footprint/${draftId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        setCarbonData(response.data);
+      } catch (err) {
+        console.error("Error fetching carbon footprint:", err);
+        setError(err.message);
+        showToast("error", err.message);
+      } finally {
+        setLoading(false);
       }
+    };
 
-      const latestKey = carbonKeys.sort().pop();
-      const params = JSON.parse(localStorage.getItem(latestKey));
-      console.log("Retrieved params:", params);
-
-      if (!params || !params.routeDirections) {
-        throw new Error("Invalid or missing route data in localStorage");
-      }
-
-      const response = await fetch(`${BACKEND_URL}/api/carbon-footprint`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(params),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Server error: ${await response.text()}`);
-      }
-
-      const jsonData = await response.json();
-      console.log("Carbon data:", jsonData);
-      setCarbonData(jsonData);
-      localStorage.removeItem(latestKey);
-    } catch (err) {
-      console.error("Error fetching carbon footprint:", err);
-      setError(err.message);
-      setToastProps({
-        type: "error",
-        message: "Error fetching carbon footprint:",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+    fetchCarbonData();
+  }, [draftId]);
 
   const handleClose = () => {
-    window.close();
+    window.close(); // Close the tab
   };
 
   const chartData = carbonData?.routeAnalysis
@@ -181,7 +167,7 @@ function CarbonFootprint() {
                 <FaLeaf className="w-full h-full text-green-400" />
               </motion.div>
               <p className="text-green-300 text-lg font-medium">
-                Calculating your carbon footprint...
+                Loading carbon footprint data...
               </p>
             </div>
           ) : error ? (
@@ -193,10 +179,10 @@ function CarbonFootprint() {
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
-                onClick={fetchCarbonFootprint}
+                onClick={handleClose}
                 className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700"
               >
-                Retry
+                Close
               </motion.button>
             </div>
           ) : carbonData ? (

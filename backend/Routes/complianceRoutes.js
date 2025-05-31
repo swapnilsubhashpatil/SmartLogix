@@ -8,23 +8,6 @@ const mongoose = require("mongoose");
 
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 
-// Get Compliance History
-router.get("/api/compliance-history", verifyToken, async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const complianceRecords = await ComplianceRecord.find({ userId }).sort({
-      timestamp: -1,
-    });
-    res.status(200).json({
-      message: "Compliance history retrieved successfully",
-      complianceHistory: complianceRecords || [],
-    });
-  } catch (error) {
-    console.error("Error retrieving compliance history:", error);
-    res.status(500).json({ error: "Failed to retrieve compliance history" });
-  }
-});
-
 // Compliance Check
 router.post("/api/compliance-check", verifyToken, async (req, res) => {
   try {
@@ -358,5 +341,47 @@ You are a compliance checker AI for international trade shipments, designed to a
       .json({ error: "Failed to generate compliance check analysis" });
   }
 });
+
+// Get Compliance History
+router.get("/api/compliance-history", verifyToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const complianceRecords = await ComplianceRecord.find({ userId }).sort({
+      timestamp: -1,
+    });
+    res.status(200).json({
+      message: "Compliance history retrieved successfully",
+      complianceHistory: complianceRecords || [],
+    });
+  } catch (error) {
+    console.error("Error retrieving compliance history:", error);
+    res.status(500).json({ error: "Failed to retrieve compliance history" });
+  }
+});
+
+router.delete(
+  "/api/compliance-history/:recordId",
+  verifyToken,
+  async (req, res) => {
+    try {
+      const userId = req.user.id;
+      const { recordId } = req.params;
+
+      const record = await ComplianceRecord.findOneAndDelete({
+        _id: recordId,
+        userId,
+      });
+
+      if (!record) {
+        return res.status(404).json({ error: "Route record not found" });
+      }
+
+      res.status(200).json({ message: "Route record deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting route record:", error);
+      res.status(500).json({ error: "Failed to delete route record" });
+    }
+  }
+);
 
 module.exports = router;
