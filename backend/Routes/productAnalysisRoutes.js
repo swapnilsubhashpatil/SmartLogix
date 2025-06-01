@@ -33,7 +33,7 @@ router.post(
       const blob = bucket.file(fileName);
 
       // Upload image to Google Cloud Storage
-      console.log("Uploading to:", bucketName, fileName);
+      // console.log("Uploading to:", bucketName, fileName);
       await new Promise((resolve, reject) => {
         const stream = blob
           .createWriteStream({
@@ -51,7 +51,7 @@ router.post(
       });
 
       // Analyze with Vision API
-      console.log("Analyzing with Vision API...");
+      // console.log("Analyzing with Vision API...");
       const [visionResult] = await visionClient.labelDetection({
         image: {
           source: {

@@ -64,7 +64,7 @@ router.put("/api/user/update-password", verifyToken, async (req, res) => {
     if (user.password === "GOOGLE_AUTH_PLACEHOLDER") {
       return res.status(403).json({
         error:
-          "You are authorized by Google. Your password cannot be modified. Please contact Google.",
+          "You are authorized by Google. Password changes are not allowed for this account",
       });
     }
 
@@ -86,34 +86,98 @@ router.put("/api/user/update-password", verifyToken, async (req, res) => {
 // Update Profile Information
 router.put("/api/user/update-profile", verifyToken, async (req, res) => {
   try {
-    const userId = req.user.id;
-    const { phoneNumber, companyName, companyAddress, taxId } = req.body;
-
-    const updateData = {
-      phoneNumber: phoneNumber || undefined,
-      companyName: companyName || undefined,
-      companyAddress: {
-        street: companyAddress?.street || undefined,
-        city: companyAddress?.city || undefined,
-        state: companyAddress?.state || undefined,
-        postalCode: companyAddress?.postalCode || undefined,
-        country: companyAddress?.country || undefined,
-      },
-      taxId: taxId || undefined,
-    };
-
-    const updatedUser = await User.findByIdAndUpdate(userId, updateData, {
-      new: true,
-    });
-
-    if (!updatedUser) {
-      return res.status(404).json({ error: "User not found" });
+    // Validate user ID from token
+    const userId = req.user?.id;
+    if (!userId) {
+      return res
+        .status(401)
+        .json({ error: "Unauthorized: Invalid or missing user ID" });
     }
 
-    res.status(200).json({
-      message: "Profile updated successfully",
-      user: updatedUser,
-    });
+    // Extract only the allowed fields from request body
+    const { phoneNumber, companyName, companyAddress, taxId } = req.body;
+
+    // Validate required fields (making phoneNumber required, similar to firstName in the reference)
+    if (!phoneNumber) {
+      return res.status(400).json({ error: "Phone number is required" });
+    }
+
+    // Build update data, excluding undefined values and restricting to allowed fields
+    const updateData = {};
+    updateData.phoneNumber = phoneNumber; // Required field, already validated
+    if (companyName !== undefined) updateData.companyName = companyName;
+    if (taxId !== undefined) updateData.taxId = taxId;
+
+    // Handle nested companyAddress using dot notation
+    if (companyAddress) {
+      const addressFields = {
+        "companyAddress.street": companyAddress.street,
+        "companyAddress.city": companyAddress.city,
+        "companyAddress.state": companyAddress.state,
+        "companyAddress.postalCode": companyAddress.postalCode,
+        "companyAddress.country": companyAddress.country,
+      };
+
+      Object.entries(addressFields).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          updateData[key] = value;
+        }
+      });
+    }
+
+    // Log the update data for debugging
+    // console.log("Update data:", updateData);
+
+    // Check if user exists by userId
+    let user = await User.findById(userId);
+
+    if (user) {
+      // User exists, update their profile
+      const updatedUser = await User.findByIdAndUpdate(
+        userId,
+        { $set: updateData },
+        { new: true, runValidators: true }
+      );
+
+      if (!updatedUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+
+      // Prepare response with only the updated fields
+      const responseUser = {
+        phoneNumber: updatedUser.phoneNumber,
+        companyName: updatedUser.companyName,
+        companyAddress: updatedUser.companyAddress || {},
+        taxId: updatedUser.taxId,
+      };
+
+      return res.status(200).json({
+        message: "Profile updated successfully",
+        user: responseUser,
+      });
+    } else {
+      // User does not exist, create a new user with only the allowed fields
+      const newUserData = {
+        ...updateData,
+        createdAt: new Date(),
+      };
+
+      const newUser = new User(newUserData);
+      const savedUser = await newUser.save();
+
+      // Prepare response with only the created fields
+      const responseUser = {
+        phoneNumber: savedUser.phoneNumber,
+        companyName: savedUser.companyName,
+        companyAddress: savedUser.companyAddress || {},
+        taxId: savedUser.taxId,
+      };
+
+      return res.status(201).json({
+        message: "Profile created successfully",
+        user: responseUser,
+      });
+    }
   } catch (error) {
     console.error("Error updating profile:", error);
     res.status(500).json({ error: "Failed to update profile" });

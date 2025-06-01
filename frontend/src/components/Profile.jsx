@@ -2,9 +2,29 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
 import { motion } from "framer-motion";
-import { FaUserCircle, FaSignOutAlt, FaLeaf, FaUser } from "react-icons/fa";
+import {
+  FaUserCircle,
+  FaSignOutAlt,
+  FaLeaf,
+  FaUser,
+  FaSearch,
+} from "react-icons/fa";
 import Toast from "./Toast";
 import Header from "./Header";
+
+// MUI Imports
+import Table from "@mui/material/Table";
+import TableBody from "@mui/material/TableBody";
+import TableCell from "@mui/material/TableCell";
+import TableContainer from "@mui/material/TableContainer";
+import TableHead from "@mui/material/TableHead";
+import TableRow from "@mui/material/TableRow";
+import Paper from "@mui/material/Paper";
+import IconButton from "@mui/material/IconButton";
+import Collapse from "@mui/material/Collapse";
+import Box from "@mui/material/Box";
+import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import KeyboardArrowUpIcon from "@mui/icons-material/KeyboardArrowUp";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -15,14 +35,114 @@ const Profile = () => {
     firstName: "",
     lastName: "",
     emailAddress: "",
-    profilePhoto: ``,
+    profilePhoto: "",
   });
   const [badge, setBadge] = useState({ tier: "Bronze", score: 0, details: {} });
+  const [drafts, setDrafts] = useState([]);
+  const [filteredDrafts, setFilteredDrafts] = useState([]);
+  const [tabCounts, setTabCounts] = useState({
+    all: 0,
+    "yet-to-be-checked": 0,
+    "non-compliant": 0,
+    compliant: 0,
+    "ready-for-shipment": 0,
+  });
   const [loading, setLoading] = useState(true);
   const [status, showBadge] = useState(true);
-
+  const [searchQuery, setSearchQuery] = useState("");
   const [toastProps, setToastProps] = useState({ type: "", message: "" });
   const token = localStorage.getItem("token");
+
+  const fetchDrafts = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setToastProps({
+          type: "error",
+          message: "Please log in to view drafts.",
+        });
+        navigate("/");
+        return;
+      }
+
+      const tabValues = [
+        "yet-to-be-checked",
+        "compliant",
+        "non-compliant",
+        "ready-for-shipment",
+      ];
+      const draftPromises = tabValues.map((tab) =>
+        axios.get(`${BACKEND_URL}/api/drafts`, {
+          headers: { Authorization: `Bearer ${token}` },
+          params: { tab },
+        })
+      );
+
+      const responses = await Promise.all(draftPromises);
+      const allDrafts = responses.flatMap(
+        (response) => response.data.drafts || []
+      );
+
+      const standardizedDrafts = allDrafts.map((draft) => ({
+        ...draft,
+        statuses: {
+          ...draft.statuses,
+          compliance:
+            draft.statuses?.compliance === "Ready" ||
+            draft.statuses?.compliance === "Compliant"
+              ? "compliant"
+              : draft.statuses?.compliance,
+        },
+      }));
+
+      const uniqueDrafts = Array.from(
+        new Map(
+          standardizedDrafts.map((draft) => [draft._id.toString(), draft])
+        ).values()
+      );
+
+      const counts = {
+        all: uniqueDrafts.length,
+        "yet-to-be-checked": 0,
+        "non-compliant": 0,
+        compliant: 0,
+        "ready-for-shipment": 0,
+      };
+
+      uniqueDrafts.forEach((draft) => {
+        const compliance = draft.statuses?.compliance;
+        const routeOpt = draft.statuses?.routeOptimization;
+        if (
+          compliance === "notDone" &&
+          (routeOpt === "notDone" || routeOpt === "done")
+        ) {
+          counts["yet-to-be-checked"]++;
+        } else if (compliance === "nonCompliant" && routeOpt === "notDone") {
+          counts["non-compliant"]++;
+        } else if (compliance === "compliant" && routeOpt === "notDone") {
+          counts.compliant++;
+        } else if (compliance === "compliant" && routeOpt === "done") {
+          counts["ready-for-shipment"]++;
+        }
+      });
+
+      setDrafts(uniqueDrafts);
+      setFilteredDrafts(uniqueDrafts);
+      setTabCounts(counts);
+    } catch (error) {
+      console.error("Error fetching drafts:", error);
+      const errorMessage =
+        error.response?.data?.error || "Failed to fetch drafts.";
+      setToastProps({ type: "error", message: errorMessage });
+      if (error.response?.status === 401) {
+        localStorage.removeItem("token");
+        navigate("/");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -33,25 +153,21 @@ const Profile = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         setUser(userResponse.data.user);
-        console.log(userResponse.data.user);
+        // console.log(userResponse.data.user);
 
-        // Fetch drafts for carbon score calculation
-        const draftsResponse = await axios.get(`${BACKEND_URL}/api/drafts`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const drafts = draftsResponse.data.drafts || [];
-        console.log("Total drafts:", drafts.length);
+        // Fetch drafts using the provided logic
+        await fetchDrafts();
 
-        // Filter drafts that are both compliant and done
+        // Filter drafts that are both compliant and done for badge calculation
         const compliantAndDoneDrafts = drafts.filter(
           (draft) =>
             draft.statuses?.compliance === "compliant" &&
             draft.statuses?.routeOptimization === "done"
         );
-        console.log(
-          "Compliant and done drafts:",
-          compliantAndDoneDrafts.length
-        );
+        // console.log(
+        //   "Compliant and done drafts:",
+        //   compliantAndDoneDrafts.length
+        // );
 
         // Calculate badge metrics based on carbon efficiency from filtered drafts
         if (compliantAndDoneDrafts.length === 0) {
@@ -96,6 +212,21 @@ const Profile = () => {
     fetchUserData();
   }, [token]);
 
+  // Handle search functionality
+  useEffect(() => {
+    const filtered = drafts.filter((draft) => {
+      const productDescription =
+        draft.formData?.ShipmentDetails?.[
+          "Product Description"
+        ]?.toLowerCase() || "";
+      const hsCode =
+        draft.formData?.ShipmentDetails?.["HS Code"]?.toLowerCase() || "";
+      const query = searchQuery.toLowerCase();
+      return productDescription.includes(query) || hsCode.includes(query);
+    });
+    setFilteredDrafts(filtered);
+  }, [searchQuery, drafts]);
+
   const handleLogout = () => {
     setToastProps({
       type: "success",
@@ -116,6 +247,128 @@ const Profile = () => {
     visible: { opacity: 1, y: 0, transition: { duration: 0.6 } },
   };
 
+  // Collapsible Row Component
+  const Row = ({ draft }) => {
+    const [open, setOpen] = useState(false);
+
+    // Categorize compliance status
+    const complianceStatus = !draft.statuses?.compliance
+      ? "notDone"
+      : draft.statuses.compliance === "compliant"
+      ? "compliant"
+      : draft.statuses.compliance === "notDone"
+      ? "notDone"
+      : "nonCompliant";
+
+    // Categorize route optimization status
+    const routeStatus = !draft.statuses?.routeOptimization
+      ? "notDone"
+      : draft.statuses.routeOptimization === "done"
+      ? "done"
+      : "notDone";
+
+    return (
+      <>
+        <TableRow
+          sx={{ "& > *": { borderBottom: "unset" } }}
+          className="hover:bg-gray-50 transition-all duration-200"
+        >
+          <TableCell>
+            <IconButton
+              aria-label="expand row"
+              size="small"
+              onClick={() => setOpen(!open)}
+            >
+              {open ? <KeyboardArrowUpIcon /> : <KeyboardArrowDownIcon />}
+            </IconButton>
+          </TableCell>
+          <TableCell component="th" scope="row">
+            {draft.formData?.ShipmentDetails?.["Origin Country"]} to{" "}
+            {draft.formData?.ShipmentDetails?.["Destination Country"]}
+          </TableCell>
+          <TableCell>
+            <span
+              className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                complianceStatus === "compliant"
+                  ? "bg-green-100 text-green-800"
+                  : complianceStatus === "nonCompliant"
+                  ? "bg-red-100 text-red-800"
+                  : "bg-gray-100 text-gray-800"
+              }`}
+            >
+              {complianceStatus === "compliant"
+                ? "Compliant"
+                : complianceStatus === "nonCompliant"
+                ? "Noncompliant"
+                : "Not Done"}
+            </span>
+          </TableCell>
+          <TableCell>
+            <span
+              className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                routeStatus === "done"
+                  ? "bg-blue-100 text-blue-800"
+                  : "bg-gray-100 text-gray-800"
+              }`}
+            >
+              {routeStatus === "done" ? "Done" : "Not Done"}
+            </span>
+          </TableCell>
+        </TableRow>
+        <TableRow>
+          <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={4}>
+            <Collapse in={open} timeout="auto" unmountOnExit>
+              <Box
+                sx={{
+                  margin: 2,
+                  backgroundColor: "#f9fafb",
+                  borderRadius: "8px",
+                  padding: "16px",
+                }}
+              >
+                <h3 className="text-sm font-semibold text-gray-800 mb-2">
+                  Draft Details
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600">
+                  <p>
+                    <span className="font-medium">Product:</span>{" "}
+                    {draft.formData?.ShipmentDetails?.["Product Description"] ||
+                      "N/A"}
+                  </p>
+                  <p>
+                    <span className="font-medium">HS Code:</span>{" "}
+                    {draft.formData?.ShipmentDetails?.["HS Code"] || "N/A"}
+                  </p>
+                  <p>
+                    <span className="font-medium">Quantity:</span>{" "}
+                    {draft.formData?.ShipmentDetails?.Quantity || "N/A"}
+                  </p>
+                  <p>
+                    <span className="font-medium">Gross Weight:</span>{" "}
+                    {draft.formData?.ShipmentDetails?.["Gross Weight"] || "N/A"}{" "}
+                    kg
+                  </p>
+                  <p>
+                    <span className="font-medium">Shipper:</span>{" "}
+                    {draft.formData?.PartiesAndIdentifiers?.[
+                      "Shipper/Exporter"
+                    ] || "N/A"}
+                  </p>
+                  <p>
+                    <span className="font-medium">Consignee:</span>{" "}
+                    {draft.formData?.PartiesAndIdentifiers?.[
+                      "Consignee/Importer"
+                    ] || "N/A"}
+                  </p>
+                </div>
+              </Box>
+            </Collapse>
+          </TableCell>
+        </TableRow>
+      </>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-neutral-100 p-4 sm:p-6">
       <Header title="Profile" />
@@ -128,7 +381,7 @@ const Profile = () => {
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
+          className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8"
         >
           {/* User Info Section */}
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-8 mb-8">
@@ -159,7 +412,6 @@ const Profile = () => {
                     {user.emailAddress}
                   </p>
                   {/* Badge */}
-
                   {status && (
                     <div className="group relative inline-flex items-center gap-2">
                       <span
@@ -207,7 +459,7 @@ const Profile = () => {
           </div>
 
           {/* Navigation Buttons */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
@@ -224,15 +476,107 @@ const Profile = () => {
             >
               History
             </motion.button>
+            {/* Disabled */}
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
-              disabled
               onClick={() => handleNavigation("analysis")}
+              disabled
               className="bg-purple-500 hover:bg-purple-600 text-white font-medium py-4 rounded-xl shadow-lg transition-all duration-200"
             >
               Analysis
             </motion.button>
+          </div>
+
+          {/* Drafts Table Section */}
+          <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-4 sm:p-6 mb-8">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4">
+              Drafts Overview
+            </h2>
+            {/* Summary Counts */}
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-4 mb-6">
+              <div className="p-4 bg-gray-50 rounded-xl">
+                <p className="text-sm text-gray-600">All Drafts</p>
+                <p className="text-lg font-semibold text-gray-800">
+                  {tabCounts.all}
+                </p>
+              </div>
+              <div className="p-4 bg-gray-50 rounded-xl">
+                <p className="text-sm text-gray-600">Yet to be Checked</p>
+                <p className="text-lg font-semibold text-gray-800">
+                  {tabCounts["yet-to-be-checked"]}
+                </p>
+              </div>
+              <div className="p-4 bg-gray-50 rounded-xl">
+                <p className="text-sm text-gray-600">Non-Compliant</p>
+                <p className="text-lg font-semibold text-gray-800">
+                  {tabCounts["non-compliant"]}
+                </p>
+              </div>
+              <div className="p-4 bg-gray-50 rounded-xl">
+                <p className="text-sm text-gray-600">Compliant</p>
+                <p className="text-lg font-semibold text-gray-800">
+                  {tabCounts.compliant}
+                </p>
+              </div>
+              <div className="p-4 bg-gray-50 rounded-xl">
+                <p className="text-sm text-gray-600">Ready for Shipment</p>
+                <p className="text-lg font-semibold text-gray-800">
+                  {tabCounts["ready-for-shipment"]}
+                </p>
+              </div>
+            </div>
+
+            {/* Search Bar */}
+            <div className="relative max-w-md mb-4">
+              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by Product Description or HS Code..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+              />
+            </div>
+
+            {/* Collapsible Table */}
+            <TableContainer
+              component={Paper}
+              sx={{ boxShadow: "none", border: "1px solid rgba(0, 0, 0, 0.1)" }}
+            >
+              <Table aria-label="collapsible table">
+                <TableHead>
+                  <TableRow sx={{ backgroundColor: "#f1f5f9" }}>
+                    <TableCell />
+                    <TableCell sx={{ fontWeight: "bold", color: "#1f2937" }}>
+                      Route
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: "bold", color: "#1f2937" }}>
+                      Compliance
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: "bold", color: "#1f2937" }}>
+                      Route Optimization
+                    </TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {filteredDrafts.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+                        colSpan={4}
+                        className="text-center text-gray-500"
+                      >
+                        No drafts found matching your search.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    filteredDrafts.map((draft) => (
+                      <Row key={draft._id} draft={draft} />
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </TableContainer>
           </div>
         </motion.div>
       )}

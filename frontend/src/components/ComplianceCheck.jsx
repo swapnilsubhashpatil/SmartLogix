@@ -42,10 +42,10 @@ const ComplianceForm = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      console.log(
-        "Draft API response:",
-        JSON.stringify(response.data, null, 2)
-      );
+      // console.log(
+      //   "Draft API response:",
+      //   JSON.stringify(response.data, null, 2)
+      // );
 
       const draft = response.data.draft || response.data;
       if (!draft || !draft.formData) {
@@ -211,10 +211,10 @@ const ComplianceForm = () => {
       };
 
       setFormData(updatedFormData);
-      console.log(
-        "Updated formData:",
-        JSON.stringify(updatedFormData, null, 2)
-      );
+      // console.log(
+      //   "Updated formData:",
+      //   JSON.stringify(updatedFormData, null, 2)
+      // );
     } catch (error) {
       console.error("Error fetching draft:", error);
       const errorMessage =
@@ -232,7 +232,7 @@ const ComplianceForm = () => {
     const params = new URLSearchParams(location.search);
     const draftId = params.get("draftId");
     if (draftId) {
-      console.log("Fetching draft with ID:", draftId);
+      // console.log("Fetching draft with ID:", draftId);
       fetchDraft(draftId);
     }
   }, [location]);
@@ -551,7 +551,7 @@ const ComplianceForm = () => {
         response={response}
         page="compliance-check"
       />
-      <div className="bg-white mt-4 shadow-custom-light rounded-lg mb-4 sm:mb-6 overflow-x-auto">
+      <div className=" max-w-7xl mx-auto bg-white mt-4 shadow-custom-light rounded-lg mb-4 sm:mb-6 overflow-x-auto">
         <div className="flex border-b border-neutral-200 whitespace-nowrap">
           {tabOrder.map((tab) => (
             <button
@@ -568,7 +568,7 @@ const ComplianceForm = () => {
           ))}
         </div>
       </div>
-      <div className="bg-white shadow-custom-medium rounded-lg p-4 sm:p-6">
+      <div className="max-w-7xl mx-auto bg-white shadow-custom-medium rounded-lg p-4 sm:p-6">
         <h2 className="text-xl sm:text-2xl font-bold text-tertiary-500 mb-4 sm:mb-6">
           {activeTab.replace(/([A-Z])/g, " $1").trim()}
         </h2>

@@ -110,7 +110,7 @@ const FeatureCarousel = ({ features }) => {
   };
 
   return (
-    <div className="relative w-full max-w-6xl mx-auto px-4">
+    <div className="relative w-full max-w-6xl min-w-3xlmx-auto px-4">
       {/* Apple-style Glassmorphic Carousel Window */}
       <div
         className="relative bg-white/20 backdrop-blur-2xl rounded-3xl p-8 md:p-12 shadow-2xl border border-white/30 overflow-hidden"
@@ -132,7 +132,7 @@ const FeatureCarousel = ({ features }) => {
         {/* Cards Container */}
         <div className="relative h-72 md:h-80 flex items-center justify-center">
           <div className="relative w-full h-full flex items-center justify-center">
-            <AnimatePresence mode="wait">
+            <AnimatePresence mode="sync">
               {visibleCards.map((card, index) => {
                 const isCenter = card.position === "center";
                 const feature = features[card.index];

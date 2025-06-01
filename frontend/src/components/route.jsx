@@ -43,38 +43,15 @@ function decodePolyline(encoded) {
   return poly;
 }
 
-function calculateMapCenter(routes) {
-  let allCoords = [];
-
-  Object.values(routes).forEach((route) => {
-    if (route.encodedPolyline) {
-      allCoords = [...allCoords, ...decodePolyline(route.encodedPolyline)];
-    } else if (route.coordinates) {
-      allCoords = [...allCoords, ...route.coordinates];
-    }
-  });
-
-  if (allCoords.length === 0) return { lat: 0, lng: 0 };
-
-  const sumLat = allCoords.reduce((sum, coord) => sum + coord.lat, 0);
-  const sumLng = allCoords.reduce((sum, coord) => sum + coord.lng, 0);
-
-  return {
-    lat: sumLat / allCoords.length,
-    lng: sumLng / allCoords.length,
-  };
-}
-
 // Animation component for moving vehicles
-function AnimatedVehicle({ path, routeType, isActive }) {
+function AnimatedVehicle({ path, routeType, shouldAnimate }) {
   const [position, setPosition] = useState(0);
   const animationRef = useRef();
   const animationStartTimeRef = useRef(null);
-  const animationDuration = 5000; // 10 seconds for the animation (adjust as needed)
+  const animationDuration = 5000; // 5 seconds for the animation
 
   useEffect(() => {
-    if (!isActive || !path || path.length < 2) {
-      // Reset position if animation is not active or path is invalid
+    if (!shouldAnimate || !path || path.length < 2) {
       setPosition(0);
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current);
@@ -89,19 +66,19 @@ function AnimatedVehicle({ path, routeType, isActive }) {
       }
 
       const elapsed = timestamp - animationStartTimeRef.current;
-      const progress = Math.min(elapsed / animationDuration, 1); // Clamp progress between 0 and 1
+      const progress = Math.min(elapsed / animationDuration, 1);
 
-      setPosition(progress * 100); // Scale to 0-100 for path interpolation
+      setPosition(progress * 100);
 
       if (progress < 1) {
         animationRef.current = requestAnimationFrame(animate);
       } else {
-        // Animation finished, ensure it stays at the end
         setPosition(100);
         cancelAnimationFrame(animationRef.current);
       }
     };
 
+    // Start animation only when shouldAnimate is true
     animationRef.current = requestAnimationFrame(animate);
 
     return () => {
@@ -109,11 +86,10 @@ function AnimatedVehicle({ path, routeType, isActive }) {
         cancelAnimationFrame(animationRef.current);
       }
     };
-  }, [isActive, path, animationDuration]);
+  }, [shouldAnimate, path, animationDuration]);
 
-  if (!isActive || !path || path.length < 2) return null;
+  if (!shouldAnimate || !path || path.length < 2) return null;
 
-  // Ensure position is always valid for path interpolation
   const currentPathProgress = position / 100;
   const currentIndex = Math.floor(currentPathProgress * (path.length - 1));
   const nextIndex = Math.min(currentIndex + 1, path.length - 1);
@@ -131,7 +107,7 @@ function AnimatedVehicle({ path, routeType, isActive }) {
   const getVehicleIcon = () => {
     const iconSize = 60;
     switch (routeType) {
-      case "land": // 🚚 Cargo Truck
+      case "land":
         return {
           url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
           <svg width="800px" height="800px" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -151,8 +127,7 @@ function AnimatedVehicle({ path, routeType, isActive }) {
           scaledSize: new window.google.maps.Size(iconSize, iconSize),
           anchor: new window.google.maps.Point(iconSize / 2, iconSize / 2),
         };
-
-      case "sea": // 🚢 Cargo Ship
+      case "sea":
         return {
           url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
           <svg version="1.1" id="_x36_" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
@@ -207,8 +182,7 @@ function AnimatedVehicle({ path, routeType, isActive }) {
           scaledSize: new window.google.maps.Size(iconSize, iconSize),
           anchor: new window.google.maps.Point(iconSize / 2, iconSize / 2),
         };
-
-      case "air": // ✈️ Airplane
+      case "air":
         return {
           url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
       <svg height="800px" width="800px" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" 
@@ -257,7 +231,6 @@ function AnimatedVehicle({ path, routeType, isActive }) {
           scaledSize: new window.google.maps.Size(iconSize, iconSize),
           anchor: new window.google.maps.Point(iconSize / 2, iconSize / 2),
         };
-
       default:
         return null;
     }
@@ -271,14 +244,15 @@ function RouteMap() {
   const [routes, setRoutes] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [mapCenter, setMapCenter] = useState({ lat: 0, lng: 0 });
-  const [mapZoom, setMapZoom] = useState(3);
+  const [mapCenter] = useState({ lat: 0, lng: 0 });
+  const [mapZoom] = useState(2);
   const [selectedRoute, setSelectedRoute] = useState(null);
   const [activeMarker, setActiveMarker] = useState(null);
   const [showSidebar, setShowSidebar] = useState(false);
   const [isGoogleLoaded, setIsGoogleLoaded] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
-  const [animatingRoute, setAnimatingRoute] = useState(null);
+  const [animationTrigger, setAnimationTrigger] = useState(null);
+  const [mapStyle, setMapStyle] = useState("custom");
   const mapRef = useRef(null);
 
   // Check if device is mobile
@@ -328,11 +302,6 @@ function RouteMap() {
         });
 
         setRoutes(formattedRoutes);
-        setSelectedRoute(Object.keys(formattedRoutes)[0]);
-        // Set the first route to animate initially
-        setAnimatingRoute(Object.keys(formattedRoutes)[0]);
-        const center = calculateMapCenter(formattedRoutes);
-        setMapCenter(center);
       } catch (err) {
         console.error("Error fetching map data:", err);
         setError(err.message);
@@ -346,7 +315,7 @@ function RouteMap() {
 
   const handleRouteClick = (routeId) => {
     setSelectedRoute(routeId);
-    setAnimatingRoute(routeId); // Start animation for the selected route
+    setAnimationTrigger(routeId); // Trigger animation for the selected route
 
     if (mapRef.current) {
       const bounds = new window.google.maps.LatLngBounds();
@@ -472,6 +441,15 @@ function RouteMap() {
     window.close();
   };
 
+  const handleMapStyleChange = (style) => {
+    setMapStyle(style);
+    if (mapRef.current) {
+      mapRef.current.setMapTypeId(
+        style === "custom" ? window.google.maps.MapTypeId.ROADMAP : style
+      );
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50">
@@ -501,8 +479,7 @@ function RouteMap() {
     );
   }
 
-  // Modern map styles
-  const mapStyles = [
+  const customMapStyles = [
     {
       featureType: "all",
       elementType: "geometry",
@@ -537,14 +514,14 @@ function RouteMap() {
 
   return (
     <LoadScript googleMapsApiKey={MAPS} onLoad={() => setIsGoogleLoaded(true)}>
-      <div className="flex h-screen bg-gradient-to-br from-slate-100 to-blue-100 overflow-hidden relative p-4">
+      <div className="flex h-screen bg-gradient-to-br from-slate-100 to-blue-100 overflow-hidden relative p-2 sm:p-4">
         {/* Sidebar */}
         <div
           className={`${
             showSidebar
               ? isMobile
-                ? "fixed inset-4 z-30 overflow-y-auto"
-                : "w-[35%]"
+                ? "fixed inset-2 z-30 overflow-y-auto"
+                : "w-full sm:w-1/3 lg:w-[30%]"
               : isMobile
               ? "hidden"
               : "w-0"
@@ -552,13 +529,13 @@ function RouteMap() {
         >
           {showSidebar && (
             <div className="h-full flex flex-col">
-              <div className="p-6 border-b border-slate-200/50">
+              <div className="p-4 sm:p-6 border-b border-slate-200/50">
                 <div className="flex justify-between items-center">
                   <div>
-                    <h1 className="text-2xl font-bold bg-gradient-to-r from-slate-800 to-blue-800 bg-clip-text text-transparent">
+                    <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-slate-800 to-blue-800 bg-clip-text text-transparent">
                       Route Explorer
                     </h1>
-                    <p className="text-sm text-slate-500 mt-1">
+                    <p className="text-xs sm:text-sm text-slate-500 mt-1">
                       Discover cargo routes worldwide
                     </p>
                   </div>
@@ -568,7 +545,7 @@ function RouteMap() {
                       onClick={() => setShowSidebar(false)}
                     >
                       <svg
-                        className="w-6 h-6 text-slate-700"
+                        className="w-5 h-5 sm:w-6 sm:h-6 text-slate-700"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -578,41 +555,41 @@ function RouteMap() {
                           strokeLinejoin="round"
                           strokeWidth="2"
                           d="M6 18L18 6M6 6l12 12"
-                        ></path>
+                        />
                       </svg>
                     </button>
                   )}
                 </div>
               </div>
 
-              <div className="p-6 bg-gradient-to-r from-slate-50 to-blue-50 border-b border-slate-200/50">
+              <div className="p-4 sm:p-6 bg-gradient-to-r from-slate-50 to-blue-50 border-b border-slate-200/50">
                 <h3 className="text-sm font-semibold text-slate-700 mb-3">
                   Route Types
                 </h3>
                 <div className="space-y-3">
                   <div className="flex items-center space-x-3">
                     <div className="w-4 h-4 rounded-full bg-gradient-to-r from-emerald-500 to-green-600 shadow-sm"></div>
-                    <span className="text-sm font-medium text-slate-700">
+                    <span className="text-xs sm:text-sm font-medium text-slate-700">
                       Land Routes
                     </span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <div className="w-4 h-4 rounded-full bg-gradient-to-r from-blue-500 to-cyan-600 shadow-sm"></div>
-                    <span className="text-sm font-medium text-slate-700">
+                    <span className="text-xs sm:text-sm font-medium text-slate-700">
                       Sea Routes
                     </span>
                   </div>
                   <div className="flex items-center space-x-3">
                     <div className="w-4 h-4 rounded-full bg-gradient-to-r from-red-500 to-rose-600 shadow-sm"></div>
-                    <span className="text-sm font-medium text-slate-700">
+                    <span className="text-xs sm:text-sm font-medium text-slate-700">
                       Air Routes
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6">
-                <h2 className="text-lg font-semibold text-slate-700 mb-4">
+              <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+                <h2 className="text-base sm:text-lg font-semibold text-slate-700 mb-4">
                   Available Routes
                 </h2>
                 <div className="space-y-3">
@@ -623,7 +600,7 @@ function RouteMap() {
                     return (
                       <div
                         key={id}
-                        className={`p-4 rounded-2xl cursor-pointer transition-all duration-300 transform hover:scale-[1.02] ${
+                        className={`p-3 sm:p-4 rounded-2xl cursor-pointer transition-all duration-300 transform hover:scale-[1.02] ${
                           isSelected
                             ? `${bgColor} ${borderColor} border-2 shadow-lg`
                             : "bg-white hover:bg-slate-50 border border-slate-200 hover:shadow-md"
@@ -632,18 +609,20 @@ function RouteMap() {
                       >
                         <div className="flex items-center justify-between mb-2">
                           <div className="flex items-center">
-                            <span className="text-xl mr-3">{icon}</span>
-                            <span className="font-semibold text-slate-800">
+                            <span className="text-lg sm:text-xl mr-2 sm:mr-3">
+                              {icon}
+                            </span>
+                            <span className="font-semibold text-slate-800 text-sm sm:text-base">
                               {route.name}
                             </span>
                           </div>
                           <div
-                            className={`px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r ${color} text-white shadow-sm`}
+                            className={`px-2 sm:px-3 py-1 rounded-full text-xs font-semibold bg-gradient-to-r ${color} text-white shadow-sm`}
                           >
                             {route.state.toUpperCase()}
                           </div>
                         </div>
-                        <div className="text-sm text-slate-600 space-y-1">
+                        <div className="text-xs sm:text-sm text-slate-600 space-y-1">
                           <div className="flex items-center">
                             <span className="w-2 h-2 bg-green-400 rounded-full mr-2"></span>
                             <span className="font-medium">From:</span>{" "}
@@ -662,11 +641,11 @@ function RouteMap() {
               </div>
 
               {selectedRoute && routes[selectedRoute] && (
-                <div className="p-6 border-t border-slate-200/50 bg-gradient-to-r from-slate-50 to-blue-50">
-                  <h3 className="font-semibold text-slate-800 mb-3">
+                <div className="p-4 sm:p-6 border-t border-slate-200/50 bg-gradient-to-r from-slate-50 to-blue-50">
+                  <h3 className="font-semibold text-slate-800 mb-3 text-sm sm:text-base">
                     Route Details
                   </h3>
-                  <div className="space-y-2 text-sm text-slate-600">
+                  <div className="space-y-2 text-xs sm:text-sm text-slate-600">
                     <div className="flex justify-between">
                       <span className="font-medium">Type:</span>
                       <span className="capitalize">
@@ -694,19 +673,21 @@ function RouteMap() {
 
         <div
           className={`${
-            showSidebar && !isMobile ? "w-[65%] ml-6" : "w-full"
+            showSidebar && !isMobile
+              ? "w-full sm:w-2/3 lg:w-[70%] ml-2 sm:ml-4"
+              : "w-full"
           } transition-all duration-500 relative`}
         >
-          {/* Map window with modern styling */}
+          {/* Map window */}
           <div className="h-full bg-white/70 backdrop-blur-xl rounded-3xl shadow-2xl border border-white/50 overflow-hidden relative">
             {/* Controls */}
             <button
-              className="absolute top-6 left-6 z-20 bg-white/90 backdrop-blur-sm p-3 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+              className="absolute top-4 sm:top-6 left-4 sm:left-6 z-20 bg-white/90 backdrop-blur-sm p-2 sm:p-3 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
               onClick={() => setShowSidebar(!showSidebar)}
             >
               {showSidebar && !isMobile ? (
                 <svg
-                  className="w-5 h-5 text-slate-700"
+                  className="w-4 h-4 sm:w-5 sm:h-5 text-slate-700"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -716,11 +697,11 @@ function RouteMap() {
                     strokeLinejoin="round"
                     strokeWidth="2"
                     d="M15 19l-7-7 7-7"
-                  ></path>
+                  />
                 </svg>
               ) : (
                 <svg
-                  className="w-5 h-5 text-slate-700"
+                  className="w-4 h-4 sm:w-5 sm:h-5 text-slate-700"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -730,7 +711,7 @@ function RouteMap() {
                     strokeLinejoin="round"
                     strokeWidth="2"
                     d="M4 6h16M4 12h16M4 18h16"
-                  ></path>
+                  />
                 </svg>
               )}
             </button>
@@ -740,17 +721,17 @@ function RouteMap() {
               selectedRoute &&
               routes[selectedRoute] &&
               !showSidebar && (
-                <div className="absolute top-6 left-20 right-6 z-10 bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg py-3 px-4 flex items-center justify-between">
+                <div className="absolute top-4 sm:top-6 left-16 sm:left-20 right-4 sm:right-6 z-10 bg-white/90 backdrop-blur-sm rounded-2xl shadow-lg py-2 sm:py-3 px-3 sm:px-4 flex items-center justify-between">
                   <div className="flex items-center">
-                    <span className="text-lg mr-2">
+                    <span className="text-base sm:text-lg mr-1 sm:mr-2">
                       {getRouteIcon(routes[selectedRoute].state)}
                     </span>
-                    <span className="font-semibold text-sm truncate max-w-32">
+                    <span className="font-semibold text-xs sm:text-sm truncate max-w-24 sm:max-w-32">
                       {routes[selectedRoute].name}
                     </span>
                   </div>
                   <div
-                    className={`ml-2 px-2 py-1 rounded-lg text-xs font-semibold bg-gradient-to-r ${
+                    className={`ml-2 px-1 sm:px-2 py-0.5 sm:py-1 rounded-lg text-xs font-semibold bg-gradient-to-r ${
                       getRouteTypeInfo(selectedRoute).color
                     } text-white`}
                   >
@@ -759,14 +740,31 @@ function RouteMap() {
                 </div>
               )}
 
+            {/* Map style selector */}
+            <div className="absolute bottom-16 sm:bottom-20 left-1/2 transform -translate-x-1/2 z-10 flex space-x-2 sm:space-x-3">
+              {["custom", "roadmap", "satellite", "terrain"].map((style) => (
+                <button
+                  key={style}
+                  className={`${
+                    mapStyle === style
+                      ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white"
+                      : "bg-white/90 text-slate-700 hover:bg-slate-100"
+                  } backdrop-blur-sm py-1 sm:py-2 px-3 sm:px-4 rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105 text-xs sm:text-sm capitalize font-medium`}
+                  onClick={() => handleMapStyleChange(style)}
+                >
+                  {style === "custom" ? "Modern" : style}
+                </button>
+              ))}
+            </div>
+
             {/* Close button */}
             <button
-              className="absolute bottom-6 left-1/2 transform -translate-x-1/2 z-10 bg-gradient-to-r from-yellow-400 to-orange-400 py-3 px-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+              className="absolute bottom-4 sm:bottom-6 left-1/2 transform -translate-x-1/2 z-10 bg-gradient-to-r from-yellow-400 to-orange-400 py-2 sm:py-3 px-4 sm:px-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
               onClick={handleBackClick}
             >
-              <span className="text-gray-800 font-semibold flex items-center gap-2">
+              <span className="text-gray-800 font-semibold flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
                 <svg
-                  className="w-4 h-4"
+                  className="w-3 h-3 sm:w-4 sm:h-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -776,7 +774,7 @@ function RouteMap() {
                     strokeLinejoin="round"
                     strokeWidth="2"
                     d="M6 18L18 6M6 6l12 12"
-                  ></path>
+                  />
                 </svg>
                 Close
               </span>
@@ -789,12 +787,12 @@ function RouteMap() {
                 center={mapCenter}
                 zoom={mapZoom}
                 options={{
-                  styles: mapStyles,
+                  styles: mapStyle === "custom" ? customMapStyles : [],
                   zoomControl: true,
                   mapTypeControl: false,
                   streetViewControl: false,
                   fullscreenControl: true,
-                  minZoom: 2,
+                  minZoom: 1,
                   maxZoom: 18,
                   restriction: {
                     latLngBounds: {
@@ -840,7 +838,7 @@ function RouteMap() {
                         <AnimatedVehicle
                           path={path}
                           routeType={route.state}
-                          isActive={animatingRoute === id}
+                          shouldAnimate={animationTrigger === id}
                         />
                       </React.Fragment>
                     );
@@ -886,7 +884,7 @@ function RouteMap() {
                               onCloseClick={() => setActiveMarker(null)}
                             >
                               <div className="p-2">
-                                <p className="font-semibold text-slate-800">
+                                <p className="font-semibold text-slate-800 text-xs sm:text-sm">
                                   {route.origin}
                                 </p>
                                 <p className="text-xs text-slate-600">
@@ -914,7 +912,7 @@ function RouteMap() {
                               onCloseClick={() => setActiveMarker(null)}
                             >
                               <div className="p-2">
-                                <p className="font-semibold text-slate-800">
+                                <p className="font-semibold text-slate-800 text-xs sm:text-sm">
                                   {route.destination}
                                 </p>
                                 <p className="text-xs text-slate-600">

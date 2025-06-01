@@ -8,6 +8,7 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogActions,
   IconButton,
   Select,
   MenuItem,
@@ -52,10 +53,15 @@ const RouteOptimization = () => {
   const [selectedDraftId, setSelectedDraftId] = useState(null);
   const [isManualEntry, setIsManualEntry] = useState(true);
   const [carbonAnalysisResults, setCarbonAnalysisResults] = useState({});
-  const [chooseRouteLoading, setChooseRouteLoading] = useState(null); // New state for Choose Route button
+  const [chooseRouteLoading, setChooseRouteLoading] = useState(null);
+  const [openCarbonWarning, setOpenCarbonWarning] = useState(false); // New state for carbon warning dialog
+  const [selectedRoute, setSelectedRoute] = useState(null); // Store the selected route for confirmation
+  const [carbonWarningSeverity, setCarbonWarningSeverity] = useState(""); // "yellow" or "red"
   const token = localStorage.getItem("token");
   const [toastProps, setToastProps] = useState({ type: "", message: "" });
   const [saveLoading, setSaveLoading] = useState(null);
+  const [Description, setDescription] = useState(true);
+
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -75,10 +81,10 @@ const RouteOptimization = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      console.log(
-        "Draft API response:",
-        JSON.stringify(response.data, null, 2)
-      );
+      // console.log(
+      //   "Draft API response:",
+      //   JSON.stringify(response.data, null, 2)
+      // );
 
       const draft = response.data.draft || response.data;
       if (!draft || !draft.formData?.ShipmentDetails) {
@@ -93,7 +99,7 @@ const RouteOptimization = () => {
       setIsManualEntry(false);
       setSelectedDraftId(draft._id);
 
-      console.log("Updated state - from:", from, "to:", to, "weight:", weight);
+      // console.log("Updated state - from:", from, "to:", to, "weight:", weight);
     } catch (error) {
       console.error("Error fetching draft:", error);
       const errorMessage =
@@ -118,7 +124,7 @@ const RouteOptimization = () => {
       }
 
       if (draftId) {
-        console.log("Fetching draft with ID:", draftId);
+        // console.log("Fetching draft with ID:", draftId);
         await fetchDraftFromServer(draftId);
       } else {
       }
@@ -135,6 +141,7 @@ const RouteOptimization = () => {
   // [Existing handleSubmit, unchanged]
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
+    setDescription(false);
     if (!token) {
       setToastProps({
         type: "error",
@@ -346,6 +353,21 @@ const RouteOptimization = () => {
 
   // New function for Choose Route button
   const handleChooseRouteClick = async (route, index) => {
+    // Check carbon score before proceeding
+    const carbonScore = route.totalCarbonScore || 0;
+    if (carbonScore > 30) {
+      // Show warning dialog
+      setSelectedRoute({ route, index });
+      setCarbonWarningSeverity(carbonScore > 60 ? "red" : "yellow");
+      setOpenCarbonWarning(true);
+      return; // Wait for user confirmation
+    }
+
+    // If carbon score is <= 30, proceed directly
+    await proceedWithChooseRoute(route, index);
+  };
+
+  const proceedWithChooseRoute = async (route, index) => {
     setChooseRouteLoading(index);
     try {
       if (!from || !from.trim()) throw new Error("Origin (from) is required");
@@ -359,7 +381,6 @@ const RouteOptimization = () => {
       )
         throw new Error("Route data is invalid");
 
-      // Use selectedDraftId from state, fallback to URL query
       let draftId = selectedDraftId;
       if (!draftId) {
         const params = new URLSearchParams(location.search);
@@ -382,10 +403,10 @@ const RouteOptimization = () => {
             : undefined,
       };
 
-      console.log(
-        "Choose Route request body:",
-        JSON.stringify(requestBody, null, 2)
-      );
+      // console.log(
+      //   "Choose Route request body:",
+      //   JSON.stringify(requestBody, null, 2)
+      // );
 
       const response = await axios.post(
         `${BACKEND_URL}/api/choose-route`,
@@ -398,10 +419,10 @@ const RouteOptimization = () => {
         }
       );
 
-      console.log(
-        "Choose Route response:",
-        JSON.stringify(response.data, null, 2)
-      );
+      // console.log(
+      //   "Choose Route response:",
+      //   JSON.stringify(response.data, null, 2)
+      // );
       setToastProps({ type: "success", message: response.data.message });
       setTimeout(() => navigate("/inventory-management"), 2000);
     } catch (error) {
@@ -423,6 +444,22 @@ const RouteOptimization = () => {
     } finally {
       setChooseRouteLoading(null);
     }
+  };
+
+  const handleCarbonWarningConfirm = () => {
+    // Proceed with the route selection
+    setOpenCarbonWarning(false);
+    if (selectedRoute) {
+      proceedWithChooseRoute(selectedRoute.route, selectedRoute.index);
+    }
+    setSelectedRoute(null);
+  };
+
+  const handleCarbonWarningCancel = () => {
+    // Cancel the route selection
+    setOpenCarbonWarning(false);
+    setChooseRouteLoading(null);
+    setSelectedRoute(null);
   };
 
   const handleSaveClick = async (route, index) => {
@@ -490,70 +527,221 @@ const RouteOptimization = () => {
         <div className="w-full max-w-4xl mt-6 flex flex-col gap-4 mb-6 sm:mb-8 items-center justify-center">
           <form
             onSubmit={handleSubmit}
-            className="w-full max-w-4xl mt-6 flex flex-col gap-4 mb-6 sm:mb-8 items-center justify-center"
+            className="w-full backdrop-blur-xl bg-white/10 border border-white/20 rounded-3xl p-8 sm:p-8 shadow-2xl shadow-black/10"
           >
-            <div className="flex flex-row gap-4 w-full justify-center">
-              <TextField
-                label="From"
-                value={from}
-                onChange={(e) => setFrom(e.target.value)}
-                required
-                variant="outlined"
-                sx={{
-                  backgroundColor: "white",
-                  width: "100%",
-                  maxWidth: "300px",
-                }}
-              />
-              <TextField
-                label="To"
-                value={to}
-                onChange={(e) => setTo(e.target.value)}
-                required
-                variant="outlined"
-                sx={{
-                  backgroundColor: "white",
-                  width: "100%",
-                  maxWidth: "300px",
-                }}
-              />
-              <TextField
-                label="Weight (kg)"
-                type="number"
-                value={weight}
-                onChange={(e) => setWeight(e.target.value)}
-                required
-                inputProps={{ min: 0, step: 0.1 }}
-                variant="outlined"
-                sx={{
-                  backgroundColor: "white",
-                  width: "100%",
-                  maxWidth: "300px",
-                }}
-              />
+            <div className="flex flex-col sm:flex-row gap-6 w-full justify-center items-center">
+              {/* From Input */}
+              <div className="relative w-full max-w-xs">
+                <input
+                  type="text"
+                  id="from"
+                  value={from}
+                  onChange={(e) => setFrom(e.target.value)}
+                  required
+                  placeholder=" "
+                  className="peer w-full px-4 py-4 bg-white/40 backdrop-blur-sm border-2 border-gray-300/40 rounded-2xl text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/60 transition-all duration-300 hover:bg-white/50 hover:scale-[1.02] hover:shadow-lg hover:border-gray-400/60 active:scale-[0.98]"
+                />
+                <label
+                  htmlFor="from"
+                  className="absolute left-4 -top-2.5 bg-white/80 backdrop-blur-sm px-2 py-0.5 rounded-lg text-sm font-medium text-gray-600 transition-all duration-300 peer-placeholder-shown:top-4 peer-placeholder-shown:left-4 peer-placeholder-shown:bg-transparent peer-placeholder-shown:text-gray-500 peer-focus:-top-2.5 peer-focus:left-4 peer-focus:bg-white/80 peer-focus:text-blue-600"
+                >
+                  From
+                </label>
+              </div>
+
+              {/* To Input */}
+              <div className="relative w-full max-w-xs">
+                <input
+                  type="text"
+                  id="to"
+                  value={to}
+                  onChange={(e) => setTo(e.target.value)}
+                  required
+                  placeholder=" "
+                  className="peer w-full px-4 py-4 bg-white/40 backdrop-blur-sm border-2 border-gray-300/40 rounded-2xl text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/60 transition-all duration-300 hover:bg-white/50 hover:scale-[1.02] hover:shadow-lg hover:border-gray-400/60 active:scale-[0.98]"
+                />
+                <label
+                  htmlFor="to"
+                  className="absolute left-4 -top-2.5 bg-white/80 backdrop-blur-sm px-2 py-0.5 rounded-lg text-sm font-medium text-gray-600 transition-all duration-300 peer-placeholder-shown:top-4 peer-placeholder-shown:left-4 peer-placeholder-shown:bg-transparent peer-placeholder-shown:text-gray-500 peer-focus:-top-2.5 peer-focus:left-4 peer-focus:bg-white/80 peer-focus:text-blue-600"
+                >
+                  To
+                </label>
+              </div>
+
+              {/* Weight Input */}
+              <div className="relative w-full max-w-xs">
+                <input
+                  type="number"
+                  id="weight"
+                  value={weight}
+                  onChange={(e) => setWeight(e.target.value)}
+                  required
+                  min="0"
+                  step="0.1"
+                  placeholder=" "
+                  className="peer w-full px-4 py-4 bg-white/40 backdrop-blur-sm border-2 border-gray-300/40 rounded-2xl text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/60 transition-all duration-300 hover:bg-white/50 hover:scale-[1.02] hover:shadow-lg hover:border-gray-400/60 active:scale-[0.98]"
+                />
+                <label
+                  htmlFor="weight"
+                  className="absolute left-4 -top-2.5 bg-white/80 backdrop-blur-sm px-2 py-0.5 rounded-lg text-sm font-medium text-gray-600 transition-all duration-300 peer-placeholder-shown:top-4 peer-placeholder-shown:left-4 peer-placeholder-shown:bg-transparent peer-placeholder-shown:text-gray-500 peer-focus:-top-2.5 peer-focus:left-4 peer-focus:bg-white/80 peer-focus:text-blue-600"
+                >
+                  Weight (kg)
+                </label>
+              </div>
             </div>
-            <Button
-              type="submit"
-              variant="contained"
-              disabled={loading}
-              sx={{
-                backgroundColor: "var(--color-primary-500)",
-                "&:hover": { backgroundColor: "var(--color-primary-600)" },
-                padding: "10px 24px",
-                width: "100%",
-                maxWidth: "200px",
-                margin: "0 auto",
-              }}
-            >
-              <span className="flex items-center justify-center gap-2">
-                Optimize Routes
-                {loading && (
-                  <CircularProgress size={20} sx={{ color: "white" }} />
-                )}
-              </span>
-            </Button>
+
+            {/* Submit Button */}
+            <div className="mt-8 flex justify-center">
+              <button
+                type="submit"
+                disabled={loading}
+                className="group relative px-8 py-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold rounded-2xl border-2 border-blue-400/30 hover:border-blue-300/50 shadow-lg shadow-blue-500/25 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-blue-500/40 active:scale-95 disabled:hover:scale-100 disabled:hover:shadow-lg min-w-[200px] backdrop-blur-sm"
+              >
+                <span className="flex items-center justify-center gap-3">
+                  Optimize Routes
+                  {loading && (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                  )}
+                </span>
+              </button>
+            </div>
           </form>
         </div>
+        {Description && (
+          <div className="w-full max-w-4xl mt-8 mb-6 sm:mb-8">
+            <div className="backdrop-blur-xl bg-gradient-to-br from-green-50/80 to-blue-50/80 border border-green-200/30 rounded-3xl p-8 sm:p-10 shadow-2xl shadow-green-500/10 hover:shadow-green-500/20 transition-all duration-500">
+              {/* Header */}
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-gradient-to-r from-green-500 to-blue-500 rounded-2xl shadow-lg">
+                  <svg
+                    className="w-6 h-6 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0M15 17a2 2 0 104 0"
+                    />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold ">Route Optimization Info</h3>
+              </div>
+
+              {/* Main Description */}
+              <div className="mb-8">
+                <p className="text-gray-700 text-lg leading-relaxed">
+                  Enter{" "}
+                  <span className="font-semibold text-green-700">Origin</span>,{" "}
+                  <span className="font-semibold text-blue-700">
+                    Destination
+                  </span>
+                  , and{" "}
+                  <span className="font-semibold text-green-700">
+                    Cargo Weight
+                  </span>{" "}
+                  to calculate the most efficient shipping route.
+                </p>
+                <p className="text-gray-600 mt-3 text-base">
+                  Our system prioritizes{" "}
+                  <span className="font-semibold text-green-600">
+                    carbon-efficient routes
+                  </span>{" "}
+                  to support sustainable logistics.
+                </p>
+              </div>
+
+              {/* Optimization Options */}
+              <div className="mb-8">
+                <h4 className="text-lg font-semibold text-gray-800 mb-4">
+                  Optimization Options:
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Cost-Optimized */}
+                  <div className="bg-white/60 backdrop-blur-sm border border-green-200/40 rounded-2xl p-5 hover:bg-white/80 hover:scale-[1.02] transition-all duration-300 hover:shadow-lg hover:border-green-300/60">
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-green-600 text-xl">✅</span>
+                      <h5 className="font-semibold text-green-700">
+                        Cost-Optimized
+                      </h5>
+                    </div>
+                    <p className="text-gray-600 text-sm">
+                      Lowest estimated shipping cost
+                    </p>
+                  </div>
+
+                  {/* Time-Optimized */}
+                  <div className="bg-white/60 backdrop-blur-sm border border-blue-200/40 rounded-2xl p-5 hover:bg-white/80 hover:scale-[1.02] transition-all duration-300 hover:shadow-lg hover:border-blue-300/60">
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-blue-600 text-xl">⏱️</span>
+                      <h5 className="font-semibold text-blue-700">
+                        Time-Optimized
+                      </h5>
+                    </div>
+                    <p className="text-gray-600 text-sm">
+                      Fastest delivery route
+                    </p>
+                  </div>
+
+                  {/* Carbon-Efficient */}
+                  <div className="bg-white/60 backdrop-blur-sm border border-green-200/40 rounded-2xl p-5 hover:bg-white/80 hover:scale-[1.02] transition-all duration-300 hover:shadow-lg hover:border-green-300/60">
+                    <div className="flex items-center gap-3 mb-2">
+                      <span className="text-green-600 text-xl">🌱</span>
+                      <h5 className="font-semibold text-green-700">
+                        Carbon-Efficient
+                      </h5>
+                    </div>
+                    <p className="text-gray-600 text-sm">
+                      Route with the lowest CO₂ emissions
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* AI Features */}
+              <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-300/30 rounded-2xl p-6">
+                <div className="flex items-start gap-4">
+                  <div className="p-2 bg-gradient-to-r from-green-400 to-blue-400 rounded-xl shadow-md flex-shrink-0 mt-1">
+                    <svg
+                      className="w-5 h-5 text-white"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                      />
+                    </svg>
+                  </div>
+                  <div>
+                    <h5 className="font-semibold text-gray-800 mb-2">
+                      AI-Driven Calculations
+                    </h5>
+                    <p className="text-gray-600 leading-relaxed">
+                      Our system uses real-time data from{" "}
+                      <span className="font-semibold text-blue-600">
+                        Google Maps API
+                      </span>
+                      , transport networks, and historical trends to provide the
+                      most accurate route optimization.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {loading && <RouteResultsSkeleton />}
         {showResults && (
@@ -817,145 +1005,67 @@ const RouteOptimization = () => {
       </div>
 
       <Dialog
-        open={openInfoDialog}
-        onClose={handleClose}
-        maxWidth="md"
+        open={openCarbonWarning}
+        onClose={handleCarbonWarningCancel}
+        maxWidth="sm"
         fullWidth
-        sx={{ "& .MuiDialog-paper": { borderRadius: "16px", padding: "16px" } }}
       >
         <DialogTitle
           sx={{
-            fontWeight: "bold",
-            fontSize: "1.5rem",
-            color: "#00695c",
-            textAlign: "center",
+            backgroundColor:
+              carbonWarningSeverity === "red" ? "#f44336" : "#ffeb3b",
+            color: carbonWarningSeverity === "red" ? "white" : "black",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
           }}
         >
-          {showResults && "HOW IT WORKS"}
+          <Typography variant="h6">Carbon Footprint Warning</Typography>
+          <IconButton onClick={handleCarbonWarningCancel}>
+            <FaTimes
+              color={carbonWarningSeverity === "red" ? "white" : "black"}
+            />
+          </IconButton>
         </DialogTitle>
-        <DialogContent>
-          {showResults && (
-            <div className="space-y-6">
-              <div className="absolute top-4 right-4 z-10">
-                <button
-                  onClick={handleClose}
-                  className="bg-gray-200 hover:bg-gray-300 text-gray-800 p-2 rounded-full transition-colors"
-                  aria-label="Close"
-                >
-                  <FaTimes className="w-5 h-5" />
-                </button>
-              </div>
-              <Box className="flex items-start gap-3 p-4 bg-gray-50 rounded-lg shadow-sm">
-                <svg
-                  className="w-6 h-6 text-gray-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M9 20l sounded-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13 l6-3m-6 3V7m6 10l5.447-2.724A1 1 0 0021 13.382V2.618a1 1 0 00-1.447-.894L15 4m0 13V4"
-                  />
-                </svg>
-                <div>
-                  <Typography
-                    variant="h6"
-                    className="text-gray-800 font-semibold"
-                  >
-                    Distance
-                  </Typography>
-                  <Typography className="text-gray-600">
-                    We calculate the shortest possible path between waypoints
-                    using great-circle distances, representing real-world
-                    geography between your origin and destination.
-                  </Typography>
-                </div>
-              </Box>
-              <Box className="flex items-start gap-3 p-4 bg-green-50 rounded-lg shadow-sm">
-                <svg
-                  className="w-6 h-6 text-green-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeWidth="2"
-                    d="M13 10V3L4 14h7v7l9-11h-7z"
-                  />
-                </svg>
-                <div>
-                  <Typography
-                    variant="h6"
-                    className="text-green-800 font-semibold"
-                  >
-                    Carbon Score
-                  </Typography>
-                  <Typography className="text-green-600">
-                    Our 0-100 score shows your route's environmental impact.
-                    Lower scores are greener! We compare your route's emissions
-                    to the most carbon-intensive option across all possible
-                    routes.
-                  </Typography>
-                </div>
-              </Box>
-              <Box className="flex items-start gap-3 p-4 bg-yellow-50 rounded-lg shadow-sm">
-                <svg
-                  className="w-6 h-6 text-yellow-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeWidth="2"
-                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c-1.11 0-2.08.402-2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                <div>
-                  <Typography
-                    variant="h6"
-                    className="text-yellow-800 font-semibold"
-                  >
-                    Cost
-                  </Typography>
-                  <Typography className="text-yellow-600">
-                    We calculate costs based on distance, weight, and transport
-                    mode, including transfer fees at each waypoint.
-                  </Typography>
-                </div>
-              </Box>
-              <Box className="flex items-start gap-3 p-4 bg-blue-50 rounded-lg shadow-sm">
-                <svg
-                  className="w-6 h-6 text-blue-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeWidth="2"
-                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                <div>
-                  <Typography
-                    variant="h6"
-                    className="text-blue-800 font-semibold"
-                  >
-                    Time
-                  </Typography>
-                  <Typography className="text-blue-600">
-                    Delivery time combines transit speed and handling time at
-                    each waypoint.
-                  </Typography>
-                </div>
-              </Box>
-            </div>
-          )}
+        <DialogContent
+          sx={{
+            backgroundColor:
+              carbonWarningSeverity === "red" ? "#ffebee" : "#fffde7",
+            padding: 3,
+          }}
+        >
+          <Typography variant="body1" sx={{ mb: 2 }}>
+            This route may not be the most carbon-efficient option. Consider
+            exploring alternative routes to reduce environmental impact and
+            support sustainable shipping practices.
+          </Typography>
+          <Typography variant="body2" color="textSecondary">
+            Carbon Score: {selectedRoute?.route.totalCarbonScore || 0}
+          </Typography>
         </DialogContent>
+        <DialogActions
+          sx={{
+            backgroundColor:
+              carbonWarningSeverity === "red" ? "#ffebee" : "#fffde7",
+            padding: 2,
+          }}
+        >
+          <Button
+            onClick={handleCarbonWarningCancel}
+            variant="outlined"
+            color={carbonWarningSeverity === "red" ? "error" : "warning"}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleCarbonWarningConfirm}
+            variant="contained"
+            color={carbonWarningSeverity === "red" ? "error" : "warning"}
+            startIcon={<CheckCircleIcon />}
+          >
+            Proceed Anyway
+          </Button>
+        </DialogActions>
       </Dialog>
       <Toast type={toastProps.type} message={toastProps.message} />
     </>

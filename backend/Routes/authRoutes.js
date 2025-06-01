@@ -30,7 +30,7 @@ router.post("/createAccount", async (req, res) => {
       emailAddress,
       password: hashedPassword,
     });
-    console.log(newUser);
+    // console.log(newUser);
 
     const token = jwt.sign(
       { id: newUser._id, email: newUser.emailAddress },
@@ -118,6 +118,10 @@ router.get("/protectedRoute", verifyToken, async (req, res) => {
         lastName: user.lastName,
         emailAddress: user.emailAddress,
         profilePhoto: user.profilePhoto,
+        phoneNumber: user.phoneNumber,
+        companyName: user.companyName,
+        companyAddress: user.companyAddress || {}, // Ensure companyAddress is an object, even if null
+        taxId: user.taxId,
       },
     });
   } catch (error) {

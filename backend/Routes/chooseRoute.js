@@ -140,7 +140,7 @@ router.post("/api/choose-route", verifyToken, async (req, res) => {
       draft.statuses.routeOptimization = "done";
       draft.markModified("statuses");
       await draft.save();
-      console.log("Updated draft:", draft);
+      // console.log("Updated draft:", draft);
       res.status(200).json({
         message: "Draft updated successfully",
         recordId: draft._id,
@@ -201,7 +201,7 @@ router.post("/api/choose-route", verifyToken, async (req, res) => {
         },
         timestamp: new Date(),
       });
-      console.log("Created draft:", draft);
+      // console.log("Created draft:", draft);
 
       // Return response with JSON outputs
       res.status(200).json({

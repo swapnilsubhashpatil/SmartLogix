@@ -56,7 +56,7 @@ const Login = () => {
         type: "error",
         message: `${error.response?.data?.message || "Login failed"}`,
       });
-      console.log(error.response?.data?.message);
+      // console.log(error.response?.data?.message);
       setLoading(false);
     }
   };

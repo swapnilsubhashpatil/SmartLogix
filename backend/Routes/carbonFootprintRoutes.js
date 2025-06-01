@@ -89,8 +89,8 @@ router.post("/api/carbon-footprint", verifyToken, async (req, res) => {
           .json({ error: "Draft not found or not authorized" });
       }
 
-      console.log("Updated draft with carbonAnalysis:", draft);
-    } else {
+      //   console.log("Updated draft with carbonAnalysis:", draft);
+      // } else {
       // Create temporary draft
       draft = new Draft({
         userId: req.user.id,
@@ -110,7 +110,7 @@ router.post("/api/carbon-footprint", verifyToken, async (req, res) => {
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
       });
       await draft.save();
-      console.log("Created temporary draft:", draft);
+      // console.log("Created temporary draft:", draft);
     }
 
     res.status(200).json({

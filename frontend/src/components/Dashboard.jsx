@@ -18,7 +18,6 @@ import { IoMdClose } from "react-icons/io";
 import { useInView } from "react-intersection-observer";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 import FeatureCarousel from "./FeatureCarousel";
 import AppleStyleSideBackground from "./EnhancedBackground";
 import AboutSection from "./AboutSection";
@@ -344,7 +343,7 @@ function MovexDashboard() {
         )}
 
         {/* Header Section with Lottie Animation */}
-        <section className="relative min-h-screen flex items-center z-10 pt-28 pb-16 px-4 sm:px-8">
+        <section className="relative min-h-screen flex items-center z-10 pt-28 pb-16 px-4 sm:px-8 md:px-12">
           <div className="container mx-auto max-w-7xl relative z-10 flex flex-col lg:flex-row items-center justify-between gap-12">
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
@@ -376,7 +375,7 @@ function MovexDashboard() {
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1.2, duration: 0.8 }}
-                className="mt-12 flex flex-col sm:flex-row justify-center lg:justify-start gap-6"
+                className="mt-6 flex flex-col sm:flex-row justify-center lg:justify-start gap-6"
               >
                 <GradientButton
                   whileHover={{ scale: 1.05, rotate: 1 }}
@@ -397,9 +396,11 @@ function MovexDashboard() {
               </motion.div>
             </motion.div>
 
-            <ResponsiveHide breakpoint={1280}>
+            {/* <ResponsiveHide breakpoint={1280}> */}
+            <div className="hidden lg:flex w-full lg:w-1/2">
               <FeatureCarousel features={features} />
-            </ResponsiveHide>
+            </div>
+            {/* </ResponsiveHide> */}
           </div>
         </section>
 

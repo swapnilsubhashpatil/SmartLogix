@@ -73,10 +73,21 @@ const ManageAccount = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
         const userData = response.data.user;
+
+        // Ensure userData is valid
+        if (!userData) {
+          throw new Error("User data not found in response");
+        }
+
+        // Set user state
         setUser(userData);
+
+        // Set username (firstName and lastName)
         setNewUsername(
-          `${userData.firstName} ${userData.lastName || ""}`.trim()
+          `${userData.firstName || ""} ${userData.lastName || ""}`.trim()
         );
+
+        // Set profile form with all required fields, providing defaults if missing
         setProfileForm({
           phoneNumber: userData.phoneNumber || "",
           companyName: userData.companyName || "",
@@ -89,15 +100,34 @@ const ManageAccount = () => {
           },
           taxId: userData.taxId || "",
         });
+
+        // Calculate profile completion with the updated user data
         calculateProfileCompletion(userData);
       } catch (error) {
         console.error("Error fetching user data:", error);
         setToastProps({ type: "error", message: "Failed to load user data." });
+
+        // Set default profile form values in case of error to prevent UI issues
+        setProfileForm({
+          phoneNumber: "",
+          companyName: "",
+          companyAddress: {
+            street: "",
+            city: "",
+            state: "",
+            postalCode: "",
+            country: "",
+          },
+          taxId: "",
+        });
       } finally {
         setLoading(false);
       }
     };
-    fetchUserData();
+
+    if (token) {
+      fetchUserData();
+    }
   }, [token]);
 
   const calculateProfileCompletion = (userData) => {

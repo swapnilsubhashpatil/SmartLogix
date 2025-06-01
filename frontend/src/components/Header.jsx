@@ -4,42 +4,6 @@ import { useNavigate } from "react-router-dom";
 
 const Header = ({ title = "SmartLogix", page = "dashboard" }) => {
   const navigate = useNavigate();
-  const exportToPDF = () => {
-    // Add print-specific styles dynamically
-    const style = document.createElement("style");
-    style.innerHTML = `
-      @media print {
-        /* Hide navbar and UI footer */
-        header {
-          display: none !important;
-        }
-        @page {
-          size: A4;
-          margin: 0;
-        }
-        body {
-          margin: 0;
-        } 
-      }
-    `;
-    document.head.appendChild(style);
-
-    // Temporarily hide the navbar and UI footer
-    const navbar = document.querySelector("header");
-    const uiFooter = document.querySelector("footer");
-    if (navbar) navbar.style.display = "none";
-    if (uiFooter) uiFooter.style.display = "none";
-
-    // Trigger the print dialog
-    window.print();
-
-    // Restore the navbar and UI footer visibility after printing
-    if (navbar) navbar.style.display = "block";
-    if (uiFooter) uiFooter.style.display = "block";
-
-    // Remove the print styles after printing
-    document.head.removeChild(style);
-  };
 
   return (
     <motion.header
@@ -49,7 +13,7 @@ const Header = ({ title = "SmartLogix", page = "dashboard" }) => {
         duration: 0.8,
         ease: [0.16, 1, 0.3, 1],
       }}
-      className="relative bg-gradient-to-r from-[var(--color-primary-500)] via-[var(--color-secondary-500)] to-[var(--color-tertiary-500)] text-[var(--color-neutral-50)] py-6 sm:py-10 rounded-b-3xl overflow-hidden w-full shadow-[var(--shadow-custom-medium)]"
+      className="relative max-w-7xl mx-auto bg-gradient-to-r from-[var(--color-primary-500)] via-[var(--color-secondary-500)] to-[var(--color-tertiary-500)] text-[var(--color-neutral-50)] py-6 sm:py-10 rounded-b-3xl overflow-hidden w-full shadow-[var(--shadow-custom-medium)]"
     >
       {/* Animated SVG Background - Circuit Pattern */}
       <div className="absolute inset-0">
@@ -188,7 +152,7 @@ const Header = ({ title = "SmartLogix", page = "dashboard" }) => {
       </div>
 
       {/* Main Content */}
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div className="relative px-4 sm:px-6 flex items-center justify-between gap-3">
         <motion.div
           initial={{ opacity: 0, x: -30 }}
           animate={{ opacity: 1, x: 0 }}
@@ -197,7 +161,7 @@ const Header = ({ title = "SmartLogix", page = "dashboard" }) => {
             delay: 0.3,
             ease: [0.16, 1, 0.3, 1],
           }}
-          className="flex items-center space-x-4"
+          className="flex items-center space-x-1 sm:space-x-2"
         >
           {/* Logo Container */}
           <motion.div
@@ -209,14 +173,14 @@ const Header = ({ title = "SmartLogix", page = "dashboard" }) => {
               ease: [0.16, 1, 0.3, 1],
             }}
             onClick={() => navigate("/dashboard")}
-            className="cursor-pointer relative w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-[var(--color-primary-400)] to-[var(--color-secondary-500)] rounded-2xl flex items-center justify-center shadow-[var(--shadow-custom-light)]"
+            className="cursor-pointer relative w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-br from-[var(--color-primary-400)] to-[var(--color-secondary-500)] rounded-2xl flex items-center justify-center shadow-[var(--shadow-custom-light)]"
           >
             {/* Logo Icon - Abstract S */}
             <div className="relative">
               <div className="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center">
                 <svg
                   viewBox="0 0 24 24"
-                  className="w-4 h-4 sm:w-5 sm:h-5 text-[var(--color-neutral-50)]"
+                  className="w-3 h-3 sm:w-4 sm:h-4 text-[var(--color-neutral-50)]"
                   fill="currentColor"
                 >
                   <path d="M12 2L2 7v10c0 5.55 3.84 9.74 9 11 5.16-1.26 9-5.45 9-11V7l-10-5z" />
@@ -243,7 +207,7 @@ const Header = ({ title = "SmartLogix", page = "dashboard" }) => {
               delay: 0.6,
               ease: [0.16, 1, 0.3, 1],
             }}
-            className="text-2xl sm:text-4xl font-bold text-[var(--color-neutral-50)] tracking-tight"
+            className="text-xl sm:text-3xl font-bold text-[var(--color-neutral-50)] tracking-tight"
             style={{ fontFamily: "var(--font-sans)" }}
           >
             {title}
@@ -271,7 +235,7 @@ const Header = ({ title = "SmartLogix", page = "dashboard" }) => {
             delay: 0.9,
             ease: [0.16, 1, 0.3, 1],
           }}
-          className="flex items-center space-x-2 sm:space-x-3 flex-wrap gap-2"
+          className="flex items-center space-x-2"
         >
           {/* Conditional Buttons Based on Page */}
           {page === "route-optimization" && (
@@ -279,7 +243,7 @@ const Header = ({ title = "SmartLogix", page = "dashboard" }) => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => alert("How It Works clicked!")}
-              className="border-none outline-none bg-[var(--color-secondary-500)] px-3 py-2 sm:px-4 sm:py-2 text-[var(--color-neutral-50)] text-xs sm:text-sm font-bold rounded-[var(--radius-custom)] transition-all ease-in-out duration-200 shadow-[0_4px_0_0_var(--color-secondary-700)]"
+              className="border-none outline-none bg-[var(--color-secondary-500)] px-3 py-1.5 text-[var(--color-neutral-50)] text-xs font-bold rounded-[var(--radius-custom)] transition-all ease-in-out duration-200 shadow-[0_4px_0_0_var(--color-secondary-700)]"
             >
               How It Works
             </motion.button>
@@ -289,7 +253,7 @@ const Header = ({ title = "SmartLogix", page = "dashboard" }) => {
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => navigate("/inventory-management")}
-              className="border-none outline-none bg-[var(--color-secondary-500)] px-3 py-2 sm:px-4 sm:py-2 text-[var(--color-neutral-50)] text-xs sm:text-sm font-bold rounded-[var(--radius-custom)] transition-all ease-in-out duration-200 shadow-[0_4px_0_0_var(--color-secondary-700)]"
+              className="border-none outline-none bg-[var(--color-secondary-500)] px-3 py-1.5 text-[var(--color-neutral-50)] text-xs font-bold rounded-[var(--radius-custom)] transition-all ease-in-out duration-200 shadow-[0_4px_0_0_var(--color-secondary-700)]"
             >
               Inventory
             </motion.button>
@@ -300,17 +264,9 @@ const Header = ({ title = "SmartLogix", page = "dashboard" }) => {
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={() => navigate("/inventory-management")}
-                className="border-none outline-none bg-[var(--color-secondary-500)] px-3 py-2 sm:px-4 sm:py-2 text-[var(--color-neutral-50)] text-xs sm:text-sm font-bold rounded-[var(--radius-custom)] transition-all ease-in-out duration-200 shadow-[0_4px_0_0_var(--color-secondary-700)]"
+                className="border-none outline-none bg-[var(--color-secondary-500)] px-3 py-1.5 text-[var(--color-neutral-50)] text-xs font-bold rounded-[var(--radius-custom)] transition-all ease-in-out duration-200 shadow-[0_4px_0_0_var(--color-secondary-700)]"
               >
                 Inventory
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={exportToPDF}
-                className="border-none outline-none bg-[var(--color-primary-500)] px-3 py-2 sm:px-4 sm:py-2 text-[var(--color-neutral-50)] text-xs sm:text-sm font-bold rounded-[var(--radius-custom)] transition-all ease-in-out duration-200 shadow-[0_4px_0_0_var(--color-primary-700)]"
-              >
-                Download Report
               </motion.button>
             </>
           )}

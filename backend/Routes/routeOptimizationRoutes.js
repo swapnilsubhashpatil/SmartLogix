@@ -286,7 +286,7 @@ router.post("/api/route-optimization", async (req, res) => {
 router.post("/api/routes", verifyToken, async (req, res) => {
   try {
     // Log request body for debugging
-    console.log("Request body:", req.body);
+    // console.log("Request body:", req.body);
 
     // Expect routesData as an array
     const routesData = req.body;
@@ -389,7 +389,7 @@ router.post("/api/routes", verifyToken, async (req, res) => {
         }
       }
 
-      console.log("Cleaned routes data:", cleanedRoutesData);
+      // console.log("Cleaned routes data:", cleanedRoutesData);
     } catch (geminiError) {
       console.error("Error cleaning routes with Gemini:", geminiError);
       console.warn("Using original routesData due to Gemini failure");
@@ -449,7 +449,7 @@ router.post("/api/routes", verifyToken, async (req, res) => {
           .json({ error: "Draft not found or not authorized" });
       }
 
-      console.log("Updated draft with mapData:", draft);
+      // console.log("Updated draft with mapData:", draft);
     } else {
       // Create temporary draft
       draft = new Draft({
@@ -464,7 +464,7 @@ router.post("/api/routes", verifyToken, async (req, res) => {
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
       });
       await draft.save();
-      console.log("Created temporary draft:", draft);
+      // console.log("Created temporary draft:", draft);
     }
 
     res.status(200).json({

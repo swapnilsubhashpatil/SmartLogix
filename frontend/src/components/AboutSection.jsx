@@ -7,6 +7,7 @@ import {
   FaBox,
   FaLeaf,
 } from "react-icons/fa";
+import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 
 const AboutSection = () => {
   return (
@@ -113,9 +114,11 @@ const AboutSection = () => {
                   className="w-40 h-40 bg-white/90 backdrop-blur-md rounded-3xl shadow-2xl flex items-center justify-center border-2 border-gray-100/50"
                 >
                   <div className="text-center">
-                    <div className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-emerald-600 bg-clip-text text-transparent mb-2">
-                      SL
-                    </div>
+                    <DotLottieReact
+                      src="https://lottie.host/cfa73982-a1bd-4fe8-ade0-923d2e7c46e7/pqRnKF0b7e.lottie"
+                      loop
+                      autoplay
+                    />
                     <div className="text-xs text-gray-500 font-medium tracking-wider">
                       SMARTLOGIX
                     </div>
