@@ -7,6 +7,7 @@ const Draft = require("../Database/draftSchema");
 const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 
 // Carbon Footprint Analysis (POST)
+// Carbon Footprint Analysis (POST)
 router.post("/api/carbon-footprint", verifyToken, async (req, res) => {
   try {
     const { origin, destination, distance, weight, routeDirections, draftId } =
@@ -60,11 +61,27 @@ router.post("/api/carbon-footprint", verifyToken, async (req, res) => {
     const result = await model.generateContent(prompt);
     const rawResponse = result.response.text();
 
+    // Extract JSON from response with stricter parsing
     const jsonMatch = rawResponse.match(/{[\s\S]*}/);
     if (!jsonMatch) {
       throw new Error("No valid JSON found in AI response");
     }
-    const responseData = JSON.parse(jsonMatch[0]);
+
+    let responseData;
+    try {
+      responseData = JSON.parse(jsonMatch[0]);
+    } catch (parseError) {
+      console.error("JSON parsing error:", parseError.message);
+      // Fallback: Attempt to clean the response (e.g., fix unquoted keys)
+      const cleanedResponse = rawResponse
+        .replace(/([{,]\s*)(\w+)(:)/g, '$1"$2"$3') // Add quotes around unquoted keys
+        .replace(/'/g, '"'); // Replace single quotes with double quotes
+      try {
+        responseData = JSON.parse(cleanedResponse);
+      } catch (cleanedParseError) {
+        throw new Error("Failed to parse AI response as valid JSON");
+      }
+    }
 
     let draft;
     if (draftId) {
@@ -76,7 +93,7 @@ router.post("/api/carbon-footprint", verifyToken, async (req, res) => {
         return res.status(400).json({ error: "Invalid userId format" });
       }
 
-      // Update existing draft with carbon analysis using findOneAndUpdate
+      // Update existing draft with carbon analysis
       draft = await Draft.findOneAndUpdate(
         { _id: draftId, userId }, // Ensure the draft belongs to the authenticated user
         { $set: { carbonAnalysis: responseData } }, // Update carbonAnalysis field
@@ -88,9 +105,7 @@ router.post("/api/carbon-footprint", verifyToken, async (req, res) => {
           .status(404)
           .json({ error: "Draft not found or not authorized" });
       }
-
-      //   console.log("Updated draft with carbonAnalysis:", draft);
-      // } else {
+    } else {
       // Create temporary draft
       draft = new Draft({
         userId: req.user.id,
@@ -110,7 +125,11 @@ router.post("/api/carbon-footprint", verifyToken, async (req, res) => {
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
       });
       await draft.save();
-      // console.log("Created temporary draft:", draft);
+    }
+
+    // Ensure draft is defined before accessing _id
+    if (!draft) {
+      throw new Error("Failed to create or update draft");
     }
 
     res.status(200).json({

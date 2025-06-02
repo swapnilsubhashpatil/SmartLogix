@@ -57,9 +57,9 @@ function MapView({ draftId }) {
           );
           mapData = response.data;
         } catch (getError) {
-          if (getError.response?.status !== 404) {
-            throw getError;
-          }
+          // if (getError.response?.status !== 404) {
+          //   throw getError;
+          // }
           // If map data doesn't exist (404), fetch draft and generate it
           const draftResponse = await axios.get(
             `${BACKEND_URL}/api/drafts/${draftId}`,

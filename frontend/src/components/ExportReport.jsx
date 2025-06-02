@@ -709,9 +709,9 @@ function ExportReport() {
           setCarbonData(carbonResponse.data);
           return;
         } catch (getError) {
-          if (getError.response?.status !== 404) {
-            throw getError;
-          }
+          // if (getError.response?.status !== 404) {
+          //   throw getError;
+          // }
         }
 
         const carbonResponse = await axios.post(

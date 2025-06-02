@@ -27,6 +27,9 @@ const ComplianceForm = () => {
   const [loading, setLoading] = useState(false);
   const [response, setResponse] = useState(null);
   const [toastProps, setToastProps] = useState(null);
+  const [responseReceived, setResponseReceived] = useState(false);
+
+  const isButtonDisabled = loading || responseReceived;
 
   const fetchDraft = async (draftId) => {
     setLoading(true);
@@ -338,6 +341,7 @@ const ComplianceForm = () => {
         }
       );
       setResponse(res.data);
+      setResponseReceived(true);
     } catch (error) {
       console.error("Error submitting compliance check:", error);
       setResponse({
@@ -620,14 +624,18 @@ const ComplianceForm = () => {
           ) : (
             <button
               onClick={handleSubmit}
-              disabled={loading}
+              disabled={isButtonDisabled} // Use combined disabled state
               className={`py-2 sm:py-3 px-4 sm:px-6 text-base sm:text-lg font-medium rounded-lg transition-colors duration-200 w-full sm:w-auto ${
-                loading
+                isButtonDisabled
                   ? "bg-neutral-400 cursor-not-allowed"
                   : "bg-primary-500 text-white hover:bg-primary-600"
               }`}
             >
-              {loading ? "Checking Compliance..." : "Compliance Check"}
+              {loading
+                ? "Checking Compliance..."
+                : responseReceived
+                ? "Compliance Checked"
+                : "Compliance Check"}
             </button>
           )}
         </div>

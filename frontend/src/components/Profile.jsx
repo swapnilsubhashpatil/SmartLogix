@@ -50,6 +50,8 @@ const Profile = () => {
   const [loading, setLoading] = useState(true);
   const [status, showBadge] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [startDate, setStartDate] = useState("2025-06-01");
+  const [endDate, setEndDate] = useState("2025-06-30");
   const [toastProps, setToastProps] = useState({ type: "", message: "" });
   const token = localStorage.getItem("token");
 
@@ -127,6 +129,10 @@ const Profile = () => {
         }
       });
 
+      uniqueDrafts.sort(
+        (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+      );
+
       setDrafts(uniqueDrafts);
       setFilteredDrafts(uniqueDrafts);
       setTabCounts(counts);
@@ -148,57 +154,12 @@ const Profile = () => {
     const fetchUserData = async () => {
       setLoading(true);
       try {
-        // Fetch user data
         const userResponse = await axios.get(`${BACKEND_URL}/protectedRoute`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         setUser(userResponse.data.user);
-        // console.log(userResponse.data.user);
 
-        // Fetch drafts using the provided logic
         await fetchDrafts();
-
-        // Filter drafts that are both compliant and done for badge calculation
-        const compliantAndDoneDrafts = drafts.filter(
-          (draft) =>
-            draft.statuses?.compliance === "compliant" &&
-            draft.statuses?.routeOptimization === "done"
-        );
-        // console.log(
-        //   "Compliant and done drafts:",
-        //   compliantAndDoneDrafts.length
-        // );
-
-        // Calculate badge metrics based on carbon efficiency from filtered drafts
-        if (compliantAndDoneDrafts.length === 0) {
-          showBadge(false); // No compliant and done drafts found, hide badge
-          return;
-        }
-
-        // Calculate mean totalCarbonScore from filtered drafts (assuming 0-100 range)
-        const totalCarbonScore = compliantAndDoneDrafts.reduce(
-          (sum, draft) =>
-            sum + (parseFloat(draft.routeData?.totalCarbonScore) || 0),
-          0
-        );
-        const meanCarbonScore =
-          totalCarbonScore / compliantAndDoneDrafts.length;
-        const carbonEfficiency = 100 - meanCarbonScore; // Lower score = higher efficiency
-
-        // Determine badge tier based on carbon efficiency
-        let tier = "Eco Learner";
-        if (carbonEfficiency >= 90) tier = "Eco Champion";
-        else if (carbonEfficiency >= 75) tier = "Green Advocate";
-        else if (carbonEfficiency >= 50) tier = "Sustainable Starter";
-
-        setBadge({
-          tier,
-          score: carbonEfficiency.toFixed(1),
-          details: {
-            carbonEfficiency: carbonEfficiency.toFixed(1),
-          },
-        });
-        showBadge(true); // Show badge since we have valid data
       } catch (error) {
         console.error("Error fetching profile data:", error);
         setToastProps({
@@ -212,9 +173,45 @@ const Profile = () => {
     fetchUserData();
   }, [token]);
 
-  // Handle search functionality
   useEffect(() => {
-    const filtered = drafts.filter((draft) => {
+    const compliantAndDoneDrafts = drafts.filter(
+      (draft) =>
+        draft.statuses?.compliance === "compliant" &&
+        draft.statuses?.routeOptimization === "done"
+    );
+
+    if (compliantAndDoneDrafts.length === 0) {
+      showBadge(false);
+      return;
+    }
+
+    const totalCarbonScore = compliantAndDoneDrafts.reduce(
+      (sum, draft) =>
+        sum + (parseFloat(draft.routeData?.totalCarbonScore) || 0),
+      0
+    );
+    const meanCarbonScore = totalCarbonScore / compliantAndDoneDrafts.length;
+    const carbonEfficiency = 100 - meanCarbonScore;
+
+    let tier = "Eco Learner";
+    if (carbonEfficiency >= 90) tier = "Eco Champion";
+    else if (carbonEfficiency >= 75) tier = "Green Advocate";
+    else if (carbonEfficiency >= 50) tier = "Sustainable Starter";
+
+    setBadge({
+      tier,
+      score: carbonEfficiency.toFixed(1),
+      details: {
+        carbonEfficiency: carbonEfficiency.toFixed(1),
+      },
+    });
+    showBadge(true);
+  }, [drafts]);
+
+  useEffect(() => {
+    let filtered = drafts;
+
+    filtered = filtered.filter((draft) => {
       const productDescription =
         draft.formData?.ShipmentDetails?.[
           "Product Description"
@@ -224,8 +221,20 @@ const Profile = () => {
       const query = searchQuery.toLowerCase();
       return productDescription.includes(query) || hsCode.includes(query);
     });
+
+    if (startDate && endDate) {
+      const start = new Date(startDate);
+      const end = new Date(endDate);
+      end.setHours(23, 59, 59, 999);
+
+      filtered = filtered.filter((draft) => {
+        const draftDate = new Date(draft.timestamp);
+        return draftDate >= start && draftDate <= end;
+      });
+    }
+
     setFilteredDrafts(filtered);
-  }, [searchQuery, drafts]);
+  }, [searchQuery, startDate, endDate, drafts]);
 
   const handleLogout = () => {
     setToastProps({
@@ -247,11 +256,9 @@ const Profile = () => {
     visible: { opacity: 1, y: 0, transition: { duration: 0.6 } },
   };
 
-  // Collapsible Row Component
   const Row = ({ draft }) => {
     const [open, setOpen] = useState(false);
 
-    // Categorize compliance status
     const complianceStatus = !draft.statuses?.compliance
       ? "notDone"
       : draft.statuses.compliance === "compliant"
@@ -260,7 +267,6 @@ const Profile = () => {
       ? "notDone"
       : "nonCompliant";
 
-    // Categorize route optimization status
     const routeStatus = !draft.statuses?.routeOptimization
       ? "notDone"
       : draft.statuses.routeOptimization === "done"
@@ -283,8 +289,7 @@ const Profile = () => {
             </IconButton>
           </TableCell>
           <TableCell component="th" scope="row">
-            {draft.formData?.ShipmentDetails?.["Origin Country"]} to{" "}
-            {draft.formData?.ShipmentDetails?.["Destination Country"]}
+            {draft.formData?.ShipmentDetails?.["Product Description"] || "N/A"}
           </TableCell>
           <TableCell>
             <span
@@ -331,9 +336,9 @@ const Profile = () => {
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-gray-600">
                   <p>
-                    <span className="font-medium">Product:</span>{" "}
-                    {draft.formData?.ShipmentDetails?.["Product Description"] ||
-                      "N/A"}
+                    <span className="font-medium">Route:</span>{" "}
+                    {draft.formData?.ShipmentDetails?.["Origin Country"]} to{" "}
+                    {draft.formData?.ShipmentDetails?.["Destination Country"]}
                   </p>
                   <p>
                     <span className="font-medium">HS Code:</span>{" "}
@@ -359,6 +364,10 @@ const Profile = () => {
                     {draft.formData?.PartiesAndIdentifiers?.[
                       "Consignee/Importer"
                     ] || "N/A"}
+                  </p>
+                  <p>
+                    <span className="font-medium">Timestamp:</span>{" "}
+                    {new Date(draft.timestamp).toLocaleDateString()}
                   </p>
                 </div>
               </Box>
@@ -411,7 +420,6 @@ const Profile = () => {
                   <p className="text-gray-600 text-lg mb-1">
                     {user.emailAddress}
                   </p>
-                  {/* Badge */}
                   {status && (
                     <div className="group relative inline-flex items-center gap-2">
                       <span
@@ -427,8 +435,14 @@ const Profile = () => {
                       >
                         <FaLeaf className="mr-1" /> {badge.tier}
                       </span>
-                      {/* Hover Tooltip */}
-                      <div className="absolute hidden group-hover:block top-full mt-2 w-64 bg-green-800 text-white text-sm rounded-lg p-4 shadow-lg z-10">
+                      <div
+                        className="
+                          absolute hidden group-hover:block
+                          left-full ml-2
+                          top-0
+                          w-64 bg-green-800 text-white text-sm rounded-lg p-4 shadow-lg z-10
+                        "
+                      >
                         <p className="font-semibold mb-2">
                           Your Carbon Efficiency:
                         </p>
@@ -476,12 +490,10 @@ const Profile = () => {
             >
               History
             </motion.button>
-            {/* Disabled */}
             <motion.button
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               onClick={() => handleNavigation("analysis")}
-              disabled
               className="bg-purple-500 hover:bg-purple-600 text-white font-medium py-4 rounded-xl shadow-lg transition-all duration-200"
             >
               Analysis
@@ -527,16 +539,52 @@ const Profile = () => {
               </div>
             </div>
 
-            {/* Search Bar */}
-            <div className="relative max-w-md mb-4">
-              <FaSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search by Product Description or HS Code..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
-              />
+            {/* Filters */}
+            <div className="flex flex-col sm:flex-row gap-4 mb-6">
+              {/* Creative Search Bar */}
+              <div className="relative w-full max-w-md flex-1">
+                <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 z-10" />
+                <input
+                  type="text"
+                  id="search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder=" "
+                  className="peer w-full pl-12 pr-4 py-4 bg-white/40 backdrop-blur-sm border-2 border-gray-300/40 rounded-2xl text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/60 transition-all duration-300 hover:bg-white/50 hover:scale-[1.02] hover:shadow-lg hover:border-gray-400/60 active:scale-[0.98]"
+                />
+                <label
+                  htmlFor="search"
+                  className="absolute left-12 -top-2.5 bg-white/80 backdrop-blur-sm px-2 py-0.5 rounded-lg text-sm font-medium text-gray-600 transition-all duration-300 peer-placeholder-shown:top-4 peer-placeholder-shown:left-12 peer-placeholder-shown:bg-transparent peer-placeholder-shown:text-gray-500 peer-focus:-top-2.5 peer-focus:left-12 peer-focus:bg-white/80 peer-focus:text-blue-600 z-10"
+                >
+                  Search by Product or HS Code
+                </label>
+              </div>
+
+              {/* Date Filters */}
+              <div className="flex gap-2 flex-1">
+                <div className="flex-1">
+                  <label className="block text-sm text-gray-600 mb-1">
+                    Start Date
+                  </label>
+                  <input
+                    type="date"
+                    value={startDate}
+                    onChange={(e) => setStartDate(e.target.value)}
+                    className="w-full px-4 py-2 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  />
+                </div>
+                <div className="flex-1">
+                  <label className="block text-sm text-gray-600 mb-1">
+                    End Date
+                  </label>
+                  <input
+                    type="date"
+                    value={endDate}
+                    onChange={(e) => setEndDate(e.target.value)}
+                    className="w-full px-4 py-2 rounded-xl border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Collapsible Table */}
@@ -549,7 +597,7 @@ const Profile = () => {
                   <TableRow sx={{ backgroundColor: "#f1f5f9" }}>
                     <TableCell />
                     <TableCell sx={{ fontWeight: "bold", color: "#1f2937" }}>
-                      Route
+                      Description
                     </TableCell>
                     <TableCell sx={{ fontWeight: "bold", color: "#1f2937" }}>
                       Compliance
@@ -566,7 +614,7 @@ const Profile = () => {
                         colSpan={4}
                         className="text-center text-gray-500"
                       >
-                        No drafts found matching your search.
+                        No drafts found matching your filters.
                       </TableCell>
                     </TableRow>
                   ) : (

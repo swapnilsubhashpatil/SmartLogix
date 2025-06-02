@@ -23,7 +23,7 @@ const ComplianceResponseSkeleton = () => {
   };
 
   return (
-    <div className="</div>">
+    <div className="max-w-7xl mx-auto">
       <motion.div
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}

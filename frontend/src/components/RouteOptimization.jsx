@@ -1009,21 +1009,31 @@ const RouteOptimization = () => {
         onClose={handleCarbonWarningCancel}
         maxWidth="sm"
         fullWidth
+        aria-labelledby="carbon-warning-dialog-title"
+        // Ensure the dialog is accessible and not hidden
+        disableEnforceFocus={false} // Allow focus to be managed naturally
+        disableAutoFocus={false} // Allow auto-focus on open
+        disablePortal={true} // Render dialog content within the current DOM hierarchy
       >
         <DialogTitle
+          id="carbon-warning-dialog-title"
+          component="div"
           sx={{
             backgroundColor:
-              carbonWarningSeverity === "red" ? "#f44336" : "#ffeb3b",
-            color: carbonWarningSeverity === "red" ? "white" : "black",
+              carbonWarningSeverity === "warning" ? "#f44336" : "#ffeb3b",
+            color: carbonWarningSeverity === "warning" ? "white" : "black",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
           }}
         >
-          <Typography variant="h6">Carbon Footprint Warning</Typography>
-          <IconButton onClick={handleCarbonWarningCancel}>
+          <Typography variant="h5">Carbon Footprint Warning</Typography>
+          <IconButton
+            onClick={handleCarbonWarningCancel}
+            aria-label="Close dialog"
+          >
             <FaTimes
-              color={carbonWarningSeverity === "red" ? "white" : "black"}
+              color={carbonWarningSeverity === "Carbon" ? "white" : "black"}
             />
           </IconButton>
         </DialogTitle>
@@ -1040,7 +1050,7 @@ const RouteOptimization = () => {
             support sustainable shipping practices.
           </Typography>
           <Typography variant="body2" color="textSecondary">
-            Carbon Score: {selectedRoute?.route.totalCarbonScore || 0}
+            Carbon Score: {selectedRoute?.route?.totalCarbonScore || 0}
           </Typography>
         </DialogContent>
         <DialogActions
@@ -1054,6 +1064,7 @@ const RouteOptimization = () => {
             onClick={handleCarbonWarningCancel}
             variant="outlined"
             color={carbonWarningSeverity === "red" ? "error" : "warning"}
+            aria-label="Cancel route selection"
           >
             Cancel
           </Button>
@@ -1062,6 +1073,7 @@ const RouteOptimization = () => {
             variant="contained"
             color={carbonWarningSeverity === "red" ? "error" : "warning"}
             startIcon={<CheckCircleIcon />}
+            aria-label="Proceed with route selection"
           >
             Proceed Anyway
           </Button>

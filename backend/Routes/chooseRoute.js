@@ -191,7 +191,7 @@ router.post("/api/choose-route", verifyToken, async (req, res) => {
           ShipmentDetails: {
             "Origin Country": originResult.countryCode, // e.g., "US"
             "Destination Country": destinationResult.countryCode, // e.g., "CA"
-            Weight: validatedWeight,
+            "Gross Weight": validatedWeight,
           },
         },
         routeData,

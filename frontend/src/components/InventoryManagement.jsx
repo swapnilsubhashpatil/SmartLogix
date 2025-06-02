@@ -796,32 +796,29 @@ const InventoryManagement = () => {
         </div>
 
         {activeTab === "yet-to-be-checked" && (
-          <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}>
-            <Button
-              variant="contained"
-              onClick={handleDialogOpen}
-              sx={{
-                position: "fixed",
-                bottom: { xs: 16, sm: 24 },
-                right: { xs: 16, sm: 24 },
-                borderRadius: "50%",
-                width: { xs: 48, sm: 64 },
-                height: { xs: 48, sm: 64 },
-                minWidth: 0,
-                background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
-                boxShadow: "0 8px 32px rgba(245, 158, 11, 0.4)",
-                "&:hover": {
-                  background:
-                    "linear-gradient(135deg, #d97706 0%, #b45309 100%)",
-                  transform: "scale(1.1)",
-                  boxShadow: "0 12px 40px rgba(245, 158, 11, 0.6)",
-                },
-                transition: "all 0.3s ease",
-              }}
-            >
-              <Add sx={{ fontSize: { xs: 24, sm: 28 } }} />
-            </Button>
-          </motion.div>
+          <Button
+            variant="contained"
+            onClick={handleDialogOpen}
+            sx={{
+              position: "fixed",
+              bottom: { xs: 16, sm: 24 },
+              right: { xs: 16, sm: 24 },
+              borderRadius: "50%",
+              width: { xs: 48, sm: 64 },
+              height: { xs: 48, sm: 64 },
+              minWidth: 0,
+              background: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
+              boxShadow: "0 8px 32px rgba(245, 158, 11, 0.4)",
+              "&:hover": {
+                background: "linear-gradient(135deg, #d97706 0%, #b45309 100%)",
+                transform: "scale(1.1)",
+                boxShadow: "0 12px 40px rgba(245, 158, 11, 0.6)",
+              },
+              transition: "all 0.3s ease",
+            }}
+          >
+            <Add sx={{ fontSize: { xs: 24, sm: 28 } }} />
+          </Button>
         )}
 
         <Dialog
@@ -1078,6 +1075,7 @@ const InventoryManagement = () => {
                         checked={newDraft.perishable}
                         onChange={handleInputChange}
                         sx={{
+                          // <-- The sx prop is often where Emotion's css prop comes into play internally
                           color: "#3b82f6",
                           "&.Mui-checked": { color: "#3b82f6" },
                         }}
@@ -1092,6 +1090,7 @@ const InventoryManagement = () => {
                         checked={newDraft.hazardous}
                         onChange={handleInputChange}
                         sx={{
+                          // <-- The sx prop
                           color: "#3b82f6",
                           "&.Mui-checked": { color: "#3b82f6" },
                         }}

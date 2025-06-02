@@ -1,6 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { Global, css } from "@emotion/react";
 
 const Header = ({ title = "SmartLogix", page = "dashboard" }) => {
   const navigate = useNavigate();
@@ -277,12 +278,14 @@ const Header = ({ title = "SmartLogix", page = "dashboard" }) => {
       <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[var(--color-neutral-50)]/20 to-transparent" />
 
       {/* Global Button Active Style */}
-      <style jsx global>{`
-        button:active {
-          transform: translateY(4px);
-          box-shadow: 0px 0px 0px 0px transparent;
-        }
-      `}</style>
+      <Global
+        styles={css`
+          button:active {
+            transform: translateY(4px);
+            box-shadow: 0px 0px 0px 0px transparent;
+          }
+        `}
+      />
     </motion.header>
   );
 };
