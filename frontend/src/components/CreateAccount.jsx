@@ -28,10 +28,7 @@ const CreateAccount = () => {
         type: "success",
         message: "Account Created with Google!",
       });
-      setTimeout(() => {
-        navigate("/dashboard");
-        setLoading(false);
-      }, 1000);
+      navigate("/dashboard");
     }
   }, [searchParams, navigate]);
 
@@ -68,109 +65,395 @@ const CreateAccount = () => {
       setLoading(false);
     }
   };
+  const GlobeAnimation = () => {
+    // Generate random positions for floating bubbles
+    const bubbles = Array.from({ length: 12 }, (_, i) => ({
+      id: i,
+      x: 50 + Math.random() * 200,
+      y: 50 + Math.random() * 100,
+      size: 3 + Math.random() * 4,
+      delay: Math.random() * 3,
+    }));
+
+    // Route paths connecting major logistics hubs
+    const routes = [
+      "M80 100 Q150 60 220 100",
+      "M100 80 Q170 120 240 90",
+      "M90 120 Q160 80 230 110",
+      "M70 90 Q140 140 210 95",
+    ];
+
+    return (
+      <motion.div
+        className="absolute inset-0 flex items-center justify-center"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5 }}
+      >
+        <svg
+          width="300"
+          height="200"
+          viewBox="0 0 300 200"
+          className="text-white/30"
+        >
+          {/* Globe outline */}
+          <motion.circle
+            cx="150"
+            cy="100"
+            r="80"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.5"
+            strokeDasharray="3,2"
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 0.6 }}
+            transition={{ duration: 1.5, ease: "easeOut" }}
+          />
+
+          {/* Globe grid lines */}
+          <motion.g
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 0.4 }}
+            transition={{ delay: 1, duration: 1 }}
+          >
+            {/* Horizontal grid lines */}
+            <ellipse
+              cx="150"
+              cy="100"
+              rx="80"
+              ry="20"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="0.8"
+            />
+            <ellipse
+              cx="150"
+              cy="100"
+              rx="80"
+              ry="40"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="0.8"
+            />
+            <ellipse
+              cx="150"
+              cy="100"
+              rx="80"
+              ry="60"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="0.8"
+            />
+
+            {/* Vertical grid lines */}
+            <ellipse
+              cx="150"
+              cy="100"
+              rx="20"
+              ry="80"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="0.8"
+            />
+            <ellipse
+              cx="150"
+              cy="100"
+              rx="40"
+              ry="80"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="0.8"
+            />
+            <ellipse
+              cx="150"
+              cy="100"
+              rx="60"
+              ry="80"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="0.8"
+            />
+          </motion.g>
+
+          {/* Animated route connections */}
+          {routes.map((route, index) => (
+            <motion.path
+              key={index}
+              d={route}
+              stroke="currentColor"
+              strokeWidth="1.5"
+              fill="none"
+              strokeDasharray="4,3"
+              initial={{ pathLength: 0, opacity: 0 }}
+              animate={{
+                pathLength: [0, 1, 0],
+                opacity: [0, 0.8, 0],
+              }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                delay: index * 0.5,
+                ease: "easeInOut",
+              }}
+            />
+          ))}
+
+          {/* Floating logistics bubbles */}
+          {bubbles.map((bubble) => (
+            <motion.g key={bubble.id}>
+              <motion.circle
+                cx={bubble.x}
+                cy={bubble.y}
+                r={bubble.size}
+                fill="currentColor"
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{
+                  opacity: [0, 0.8, 0.4, 0.8],
+                  scale: [0, 1, 1.2, 1],
+                  y: [bubble.y, bubble.y - 10, bubble.y + 5, bubble.y],
+                }}
+                transition={{
+                  duration: 4,
+                  repeat: Infinity,
+                  delay: bubble.delay,
+                  ease: "easeInOut",
+                }}
+              />
+
+              {/* Ripple effect around bubbles */}
+              <motion.circle
+                cx={bubble.x}
+                cy={bubble.y}
+                r={bubble.size * 2}
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="0.5"
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{
+                  opacity: [0, 0.6, 0],
+                  scale: [0, 2, 3],
+                }}
+                transition={{
+                  duration: 2,
+                  repeat: Infinity,
+                  delay: bubble.delay + 1,
+                  ease: "easeOut",
+                }}
+              />
+            </motion.g>
+          ))}
+
+          {/* Central logistics hub */}
+          <motion.g
+            initial={{ scale: 0, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 1, delay: 1.5 }}
+          >
+            <circle
+              cx="150"
+              cy="100"
+              r="12"
+              fill="currentColor"
+              opacity="0.8"
+            />
+            <motion.circle
+              cx="150"
+              cy="100"
+              r="18"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              animate={{
+                scale: [1, 1.3, 1],
+                opacity: [0.6, 0.2, 0.6],
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: "easeInOut",
+              }}
+            />
+
+            {/* Hub connections */}
+            {[0, 60, 120, 180, 240, 300].map((angle, i) => (
+              <motion.line
+                key={i}
+                x1="150"
+                y1="100"
+                x2={150 + Math.cos((angle * Math.PI) / 180) * 25}
+                y2={100 + Math.sin((angle * Math.PI) / 180) * 25}
+                stroke="currentColor"
+                strokeWidth="1"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: [0, 0.8, 0] }}
+                transition={{
+                  duration: 1.5,
+                  repeat: Infinity,
+                  delay: i * 0.2,
+                  ease: "easeInOut",
+                }}
+              />
+            ))}
+          </motion.g>
+
+          {/* Data flow particles */}
+          {Array.from({ length: 8 }).map((_, i) => (
+            <motion.circle
+              key={`particle-${i}`}
+              r="1.5"
+              fill="currentColor"
+              initial={{ opacity: 0 }}
+              animate={{
+                opacity: [0, 1, 0],
+                cx: [80, 220],
+                cy: [100 + Math.sin(i) * 20, 100 + Math.cos(i) * 20],
+              }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                delay: i * 0.4,
+                ease: "linear",
+              }}
+            />
+          ))}
+
+          {/* Floating info boxes */}
+          <motion.g
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 0.7, y: 0 }}
+            transition={{ delay: 2, duration: 1 }}
+          >
+            <rect
+              x="20"
+              y="30"
+              width="40"
+              height="20"
+              rx="3"
+              fill="currentColor"
+              opacity="0.3"
+            />
+            <text
+              x="40"
+              y="42"
+              textAnchor="middle"
+              className="text-xs fill-current opacity-80"
+            >
+              24/7
+            </text>
+          </motion.g>
+
+          <motion.g
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 0.7, y: 0 }}
+            transition={{ delay: 2.5, duration: 1 }}
+          >
+            <rect
+              x="240"
+              y="150"
+              width="45"
+              height="20"
+              rx="3"
+              fill="currentColor"
+              opacity="0.3"
+            />
+            <text
+              x="262"
+              y="162"
+              textAnchor="middle"
+              className="text-xs fill-current opacity-80"
+            >
+              LIVE
+            </text>
+          </motion.g>
+        </svg>
+      </motion.div>
+    );
+  };
 
   return (
     <div className="min-h-screen bg-neutral-100 flex flex-col lg:flex-row">
       {/* Left Side - Creative Design */}
       <motion.div
-        initial={{ opacity: 0, x: -50 }}
+        initial={{ opacity: 0, x: -100 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.8 }}
-        className="hidden lg:flex lg:w-1/2 relative bg-gradient-to-br from-primary-500 to-secondary-500 items-center justify-center p-12 overflow-hidden"
+        className="hidden lg:flex lg:w-2/3 lg:h-[calc(100vh-40px)] lg:m-5 bg-gradient-to-br from-[#45474b] via-[#379777] to-[#c7a711] relative overflow-hidden rounded-3xl border border-white/20 shadow-2xl backdrop-blur-sm"
       >
-        <div className="absolute inset-0 pointer-events-none">
-          {[...Array(3)].map((_, i) => (
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-10  ">
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage: `radial-gradient(circle at 25% 25%, rgba(255,255,255,0.1) 1px, transparent 1px)`,
+              backgroundSize: "30px 30px",
+            }}
+          ></div>
+        </div>
+
+        {/* Animated Background Elements */}
+        <div className="absolute inset-0">
+          {[...Array(2)].map((_, i) => (
             <motion.div
               key={i}
-              className="absolute w-4 h-4 bg-primary-200 rounded-full opacity-50"
-              initial={{ x: "50%", y: "50%" }}
+              className="absolute rounded-full bg-white/5"
+              style={{
+                width: `${200 + i * 50}px`,
+                height: `${200 + i * 50}px`,
+                left: `${-100 + i * 30}px`,
+                top: `${-100 + i * 40}px`,
+              }}
               animate={{
-                x: [
-                  `${50 + Math.cos(i * 2) * 100}%`,
-                  `${50 + Math.cos(i * 2 + 1) * 100}%`,
-                ],
-                y: [
-                  `${50 + Math.sin(i * 2) * 100}%`,
-                  `${50 + Math.sin(i * 2 + 1) * 100}%`,
-                ],
+                rotate: [0, 360],
+                scale: [1, 1.1, 1],
               }}
               transition={{
-                duration: 5 + i * 2,
+                duration: 20 + i * 5,
                 repeat: Infinity,
                 ease: "linear",
               }}
             />
           ))}
-          <motion.div
-            className="absolute w-64 h-64 border-2 border-primary-400/30 rounded-full"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-            style={{
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-            }}
-          />
         </div>
-        <div className="relative z-10 text-white text-center">
-          <h2 className="text-5xl font-bold mb-6 tracking-tight">SmartLogix</h2>
-          <motion.p
-            initial={{ opacity: 0, y: 20 }}
+
+        <div className="relative z-10 flex flex-col justify-center items-center text-center p-12 w-full">
+          {/* Brand Title */}
+          <motion.div
+            initial={{ opacity: 0, y: -50 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
-            className="text-xl mb-10 font-light text-shadow-glow"
-            style={{
-              textShadow:
-                "0 0 8px rgba(55, 151, 119, 0.8), 0 0 16px rgba(55, 151, 119, 0.5)",
-            }}
+            transition={{ duration: 1, delay: 0.2 }}
+            className="mb-8"
           >
-            Logistics, Evolved
-          </motion.p>
-          <div className="flex flex-col gap-6">
-            <motion.div
-              whileTap={{ scale: 0.95 }}
-              className="flex items-center justify-center gap-4 bg-secondary-600/40 backdrop-blur-md p-4 rounded-custom shadow-custom-light glass-reflection relative overflow-hidden transition-all"
-            >
-              <motion.svg
-                className="w-8 h-8 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-                animate={{ y: [0, -5, 0] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
+            <h1 className="text-6xl font-bold text-white mb-4 tracking-tight">
+              Smart
+              <motion.span
+                className="bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent"
+                animate={{
+                  textShadow: [
+                    "0 0 10px rgba(59,130,246,0.5)",
+                    "0 0 20px rgba(16,185,129,0.8)",
+                    "0 0 10px rgba(59,130,246,0.5)",
+                  ],
+                }}
+                transition={{ duration: 2, repeat: Infinity }}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </motion.svg>
-              <span className="text-lg font-medium">Compliance Check</span>
-            </motion.div>
-            <motion.div
-              whileTap={{ scale: 0.95 }}
-              className="flex items-center justify-center gap-4 bg-secondary-600/40 backdrop-blur-md p-4 rounded-custom shadow-custom-light glass-reflection relative overflow-hidden transition-all"
+                Logix
+              </motion.span>
+            </h1>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8 }}
+              className="text-xl text-white/80 font-semibold tracking-wide"
             >
-              <motion.svg
-                className="w-8 h-8 text-white"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-                animate={{ y: [0, -5, 0] }}
-                transition={{ duration: 1.5, repeat: Infinity, delay: 0.3 }}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </motion.svg>
-              <span className="text-lg font-medium">Route Optimization</span>
-            </motion.div>
+              AI-Powered Logistics Revolution
+            </motion.p>
+          </motion.div>
+
+          {/* Feature Cards */}
+
+          {/* Logistics Animation */}
+          <div className="relative w-full h-48 mt-8">
+            <GlobeAnimation />
           </div>
         </div>
       </motion.div>
