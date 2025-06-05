@@ -7,7 +7,12 @@ const userModel = require("../Database/userSchema");
 const { verifyToken } = require("../Middleware/auth");
 
 const JWT_SECRET = process.env.JWT_SECRET || "mySuperSecretKey12345!@";
-const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
+
+const isProduction = process.env.NODE_ENV === "production";
+
+const FRONTEND_URL = isProduction
+  ? "https://www.smartlogix.page"
+  : "http://localhost:5173";
 
 // Create Account
 router.post("/createAccount", async (req, res) => {
