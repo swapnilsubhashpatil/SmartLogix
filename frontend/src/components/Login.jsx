@@ -50,7 +50,10 @@ const Login = () => {
       setLoading(true);
       localStorage.setItem("token", token);
       setToastProps({ type: "success", message: "Google Login Successful!" });
-      navigate("/dashboard");
+      setTimeout(() => {
+        navigate("/dashboard");
+        setLoading(false);
+      }, 1500); // 1.5 seconds
       setLoading(false);
     }
   }, [searchParams, navigate]);
@@ -264,7 +267,7 @@ const Login = () => {
         globeEl.current.controls().enableZoom = false;
 
         // Set initial camera position
-        globeEl.current.pointOfView({ altitude: 1.5 });
+        globeEl.current.pointOfView({ altitude: 1.8 });
 
         setGlobeReady(true);
       }

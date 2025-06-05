@@ -56,7 +56,10 @@ const CreateAccount = () => {
         type: "success",
         message: "Account Created with Google!",
       });
-      navigate("/dashboard");
+      setTimeout(() => {
+        navigate("/dashboard");
+        setLoading(false);
+      }, 1500); // 1.5 seconds
       setLoading(false);
     }
   }, [searchParams, navigate]);
@@ -256,7 +259,7 @@ const CreateAccount = () => {
         globeEl.current.controls().enableZoom = false;
 
         // Set initial camera position
-        globeEl.current.pointOfView({ altitude: 1.5 });
+        globeEl.current.pointOfView({ altitude: 1.8 });
 
         setGlobeReady(true);
       }
