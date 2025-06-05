@@ -9,7 +9,7 @@ import {
 import { useParams } from "react-router-dom";
 import axios from "axios";
 
-const MAPS = "AIzaSyADQ_BDioK6c7t5VPAfkVPNvuAc7lzX9qw";
+const MAPS = import.meta.env.VITE_GOOGLE_API_KEY;
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 function decodePolyline(encoded) {

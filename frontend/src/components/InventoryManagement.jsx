@@ -520,20 +520,13 @@ const InventoryManagement = () => {
         {/* Rest of the component remains unchanged */}
         <div className="space-y-4 sm:space-y-6">
           {loading ? (
-            <div className="flex justify-center py-8 sm:py-12">
-              <Box
-                sx={{
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: 2,
-                }}
-              >
-                <CircularProgress size={50} sx={{ color: "white" }} />
-                <Typography sx={{ color: "white", fontWeight: 500 }}>
-                  Loading drafts...
-                </Typography>
-              </Box>
+            <div className="flex h-screen w-screen items-center justify-center bg-gray-50">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600 mx-auto"></div>
+                <p className="mt-4 text-lg text-gray-700 font-semibold tracking-wide animate-pulse">
+                  Fetching records...
+                </p>
+              </div>
             </div>
           ) : getFilteredDrafts().length === 0 ? (
             <Card

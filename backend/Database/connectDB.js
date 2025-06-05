@@ -3,7 +3,7 @@ const mongoose = require("mongoose");
 async function connectMongoDB() {
   await mongoose
     .connect(
-      "mongodb+srv://swapnil:1234@smartlogix.ci5ut23.mongodb.net/?retryWrites=true&w=majority&appName=SmartLogix"
+      "mongodb+srv://workforswapnilpatil:1d30VrxinvZFoHvy@smartlogix.tmv2e33.mongodb.net/"
     )
     .then(() => {
       console.log("MongoDB Database is Connected");

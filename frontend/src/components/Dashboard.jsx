@@ -21,6 +21,7 @@ import axios from "axios";
 import FeatureCarousel from "./FeatureCarousel";
 import AppleStyleSideBackground from "./EnhancedBackground";
 import AboutSection from "./AboutSection";
+import Button from "./Button";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -101,6 +102,9 @@ function MovexDashboard() {
 
   const handleInventoryClick = () => {
     navigate("/inventory-management");
+  };
+  const handleNewsClick = () => {
+    navigate("/news");
   };
 
   const complianceCheck = () => {
@@ -215,23 +219,30 @@ function MovexDashboard() {
           </motion.h2>
 
           <div className="flex items-center">
-            <div className="hidden md:flex space-x-2 items-center">
+            <div className="hidden md:flex items-center space-x-4">
+              <motion.a
+                onClick={handleNewsClick}
+                whileHover={{ scale: 1.02, y: -1 }}
+                whileTap={{ scale: 0.98 }}
+                className="cursor-pointer text-gray-700 hover:text-blue-600 text-base font-medium px-4 py-2.5 rounded-2xl hover:bg-white/60 transition-all duration-200 relative backdrop-blur-sm"
+              >
+                News
+              </motion.a>
               <motion.a
                 href="#about"
                 whileHover={{ scale: 1.02, y: -1 }}
                 whileTap={{ scale: 0.98 }}
-                className="text-gray-700 hover:text-blue-600 text-sm font-medium px-4 py-2.5 rounded-2xl hover:bg-white/60 transition-all duration-200 relative backdrop-blur-sm"
+                className="text-gray-700 hover:text-blue-600 text-base font-medium px-4 py-2.5 rounded-2xl hover:bg-white/60 transition-all duration-200 relative backdrop-blur-sm"
               >
                 About
               </motion.a>
-              <motion.a
-                onClick={handleInventoryClick}
-                whileHover={{ scale: 1.1, color: "#6B7280" }}
-                className="text-gray-600 text-base font-medium cursor-pointer"
+              <motion.div
+                whileHover={{ scale: 1.02, y: -1 }}
+                whileTap={{ scale: 0.98 }}
+                className="flex items-center"
               >
-                Inventory
-              </motion.a>
-
+                <Button onClick={handleInventoryClick} />
+              </motion.div>
               <motion.button
                 onClick={handleProfileClick}
                 whileHover={{ scale: 1.02, y: -1 }}

@@ -3,7 +3,7 @@ import axios from "axios";
 import { Loader } from "@googlemaps/js-api-loader";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
-const GOOGLE_MAPS_API_KEY = "AIzaSyADQ_BDioK6c7t5VPAfkVPNvuAc7lzX9qw";
+const MAPS = import.meta.env.VITE_GOOGLE_API_KEY;
 
 function MapView({ draftId }) {
   const mapRef = useRef(null);
@@ -29,7 +29,7 @@ function MapView({ draftId }) {
 
       try {
         const loader = new Loader({
-          apiKey: GOOGLE_MAPS_API_KEY,
+          apiKey: MAPS,
           version: "weekly",
           libraries: ["geometry"],
         });
@@ -243,7 +243,7 @@ function MapView({ draftId }) {
       }
     };
 
-    if (draftId && GOOGLE_MAPS_API_KEY) {
+    if (draftId && MAPS) {
       fetchAndRenderMap();
     } else {
       setError("No draft ID or Google Maps API key provided");

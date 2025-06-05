@@ -8,6 +8,12 @@ dotenv.config();
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
 const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 
+const isProduction = process.env.NODE_ENV === "production";
+
+const callbackURL = isProduction
+  ? "https://smartlogix.onrender.com/auth/google/callback" // Production URL
+  : "http://localhost:5000/auth/google/callback";
+
 // Add validation
 if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
   throw new Error(
@@ -20,7 +26,7 @@ passport.use(
     {
       clientID: GOOGLE_CLIENT_ID,
       clientSecret: GOOGLE_CLIENT_SECRET,
-      callbackURL: `https://smartlogix.onrender.com/auth/google/callback`,
+      callbackURL: callbackURL,
     },
     async (accessToken, refreshToken, profile, done) => {
       try {

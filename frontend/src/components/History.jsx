@@ -15,6 +15,9 @@ import {
 import Toast from "./Toast";
 import Header from "./Header";
 
+// MUI Imports for Dropdown
+import { Select, MenuItem, FormControl, InputLabel } from "@mui/material";
+
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 const History = () => {
@@ -150,7 +153,7 @@ const History = () => {
 
   return (
     <div className="min-h-screen bg-neutral-100 p-4 sm:p-6">
-      <Header title="History"></Header>
+      <Header title="History" />
 
       {loading ? (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -166,7 +169,44 @@ const History = () => {
           {/* Tab Navigation */}
           <motion.div variants={itemVariants} className="mb-8">
             <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200/50 p-2">
-              <div className="flex">
+              {/* Dropdown for small screens */}
+              <div className="sm:hidden">
+                <FormControl fullWidth>
+                  <InputLabel id="tab-select-label">Select Tab</InputLabel>
+                  <Select
+                    labelId="tab-select-label"
+                    value={activeTab}
+                    label="Select Tab"
+                    onChange={(e) => setActiveTab(e.target.value)}
+                    sx={{
+                      borderRadius: "12px",
+                      backgroundColor: "rgba(255, 255, 255, 0.4)",
+                      "& .MuiSelect-select": { paddingY: "12px" },
+                    }}
+                  >
+                    <MenuItem value="compliance">
+                      <div className="flex items-center gap-2">
+                        <FaShieldAlt className="text-blue-500" />
+                        Compliance
+                      </div>
+                    </MenuItem>
+                    <MenuItem value="route">
+                      <div className="flex items-center gap-2">
+                        <FaRoute className="text-emerald-500" />
+                        Routes
+                      </div>
+                    </MenuItem>
+                    <MenuItem value="product">
+                      <div className="flex items-center gap-2">
+                        <FaBox className="text-purple-500" />
+                        Product Analysis
+                      </div>
+                    </MenuItem>
+                  </Select>
+                </FormControl>
+              </div>
+              {/* Horizontal tabs for larger screens */}
+              <div className="hidden sm:flex">
                 <button
                   onClick={() => setActiveTab("compliance")}
                   className={`flex-1 flex items-center justify-center gap-3 py-4 px-6 rounded-xl font-medium transition-all duration-200 ${
@@ -453,7 +493,7 @@ const History = () => {
                             <motion.button
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
-                              onClick={() => handleDeleteRoute(entry._id)}
+                              onClick={() => handleDeleteRoute("")}
                               className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors duration-200"
                             >
                               <FaTrash />
@@ -469,25 +509,25 @@ const History = () => {
                               <div className="grid grid-cols-2 gap-2">
                                 <span className="text-gray-600">From:</span>
                                 <span className="font-medium">
-                                  {entry.formData.from}
+                                  {entry.formData?.from || "N/A"}
                                 </span>
                               </div>
                               <div className="grid grid-cols-2 gap-2">
                                 <span className="text-gray-600">To:</span>
                                 <span className="font-medium">
-                                  {entry.formData.to}
+                                  {entry.formData?.to || "N/A"}
                                 </span>
                               </div>
                               <div className="grid grid-cols-2 gap-2">
                                 <span className="text-gray-600">Weight:</span>
                                 <span className="font-medium">
-                                  {entry.formData.weight} kg
+                                  {entry.formData?.weight || "N/A"} kg
                                 </span>
                               </div>
                               <div className="grid grid-cols-2 gap-2">
                                 <span className="text-gray-600">Distance:</span>
                                 <span className="font-medium">
-                                  {entry.routeData.totalDistance} km
+                                  {entry.routeData?.totalDistance || "N/A"} km
                                 </span>
                               </div>
                               <div className="grid grid-cols-2 gap-2">
@@ -495,16 +535,16 @@ const History = () => {
                                   Carbon Score:
                                 </span>
                                 <span className="font-medium text-emerald-600">
-                                  {entry.routeData.totalCarbonScore}
+                                  {entry.routeData?.totalCarbonScore || "N/A"}
                                 </span>
                               </div>
                             </div>
                           </div>
                           <div className="bg-gray-50 rounded-xl p-4">
-                            <h4 className="font-semibold text-gray-900 mb-3">
+                            <h3 className="font-semibold text-gray-900 mb-3">
                               Route Directions
-                            </h4>
-                            {entry.routeData.routeDirections?.length > 0 ? (
+                            </h3>
+                            {entry.routeData?.routeDirections?.length > 0 ? (
                               <div className="space-y-3">
                                 {entry.routeData.routeDirections.map(
                                   (direction, i) => (
@@ -730,7 +770,7 @@ const History = () => {
                           animate={{ scale: 1, opacity: 1 }}
                           exit={{ scale: 0.8, opacity: 0 }}
                           className="relative bg-white rounded-2xl p-6 max-w-3xl w-full mx-4 shadow-2xl"
-                          onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside the modal
+                          onClick={(e) => e.stopPropagation()} // Prevent closing when clicking inside modal
                         >
                           <motion.button
                             whileHover={{ scale: 1.05 }}

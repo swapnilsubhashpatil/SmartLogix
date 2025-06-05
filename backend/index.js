@@ -13,6 +13,7 @@ const draftRoutes = require("./Routes/draftRoutes");
 const chooseRoute = require("./Routes/chooseRoute");
 const draftsRouter = require("./Routes/csv"); // Adjust path to drafts.js
 const userRoutes = require("./Routes/userRoutes");
+const newsRoutes = require("./Routes/news");
 
 // Load environment variables
 dotenv.config();
@@ -50,6 +51,7 @@ app.use(draftRoutes);
 app.use(chooseRoute);
 app.use(draftsRouter);
 app.use(userRoutes);
+app.use("/api", newsRoutes);
 // Start the server
 app.listen(PORT, () => {
   console.log(`Server is running on Port ${PORT}`);

@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import Toast from "./Toast";
 import axios from "axios";
 import GoogleLogin from "./GoogleLogin";
+import Globe from "react-globe.gl";
+import TypewriterText from "./TypewriterText";
+import FeatureCard from "./FeatureCard";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
@@ -13,10 +16,35 @@ const CreateAccount = () => {
   const [emailAddress, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false); // New loading state
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [toastProps, setToastProps] = useState({ type: "", message: "" });
+  const globeEl = useRef();
+
+  const features = [
+    {
+      icon: "✅",
+      title: "Compliance Monitoring",
+      desc: "Automated checks for global trade rules",
+      gradient: "from-emerald-500/20 to-teal-500/20",
+      iconBg: "bg-emerald-500/10",
+    },
+    {
+      icon: "🚛",
+      title: "Smart Route Optimization",
+      desc: "Best routes by cost, time, and emissions",
+      gradient: "from-blue-500/20 to-cyan-500/20",
+      iconBg: "bg-blue-500/10",
+    },
+    {
+      icon: "📦",
+      title: "Inventory Management",
+      desc: "Track all shipments and records in one place",
+      gradient: "from-yellow-500/20 to-orange-500/20",
+      iconBg: "bg-yellow-500/10",
+    },
+  ];
 
   // Handle Google redirect (if applicable)
   useEffect(() => {
@@ -29,6 +57,7 @@ const CreateAccount = () => {
         message: "Account Created with Google!",
       });
       navigate("/dashboard");
+      setLoading(false);
     }
   }, [searchParams, navigate]);
 
@@ -47,367 +76,282 @@ const CreateAccount = () => {
         password,
       });
 
-      // Assuming the response includes a token; adjust if your API differs
       if (response.data.token) {
         localStorage.setItem("token", response.data.token);
       }
+
       setToastProps({
         type: "success",
         message: "Account Created Successfully!",
       });
 
+      // Delay navigation to show toast for a moment
       setTimeout(() => {
         navigate("/dashboard");
         setLoading(false);
-      }, 1000);
+      }, 1500); // 1.5 seconds
     } catch (error) {
       setToastProps({ type: "error", message: "Account creation failed" });
       setLoading(false);
     }
   };
-  const GlobeAnimation = () => {
-    // Generate random positions for floating bubbles
-    const bubbles = Array.from({ length: 12 }, (_, i) => ({
-      id: i,
-      x: 50 + Math.random() * 200,
-      y: 50 + Math.random() * 100,
-      size: 3 + Math.random() * 4,
-      delay: Math.random() * 3,
-    }));
 
-    // Route paths connecting major logistics hubs
-    const routes = [
-      "M80 100 Q150 60 220 100",
-      "M100 80 Q170 120 240 90",
-      "M90 120 Q160 80 230 110",
-      "M70 90 Q140 140 210 95",
-    ];
+  // Logistics data for globe visualization
+  const logisticsData = {
+    // Major logistics hubs worldwide
+    hubs: [
+      {
+        lat: 40.7128,
+        lng: -74.006,
+        city: "New York",
+        size: 1.2,
+        color: "#60a5fa",
+      },
+      {
+        lat: 51.5074,
+        lng: -0.1278,
+        city: "London",
+        size: 1.1,
+        color: "#34d399",
+      },
+      {
+        lat: 35.6762,
+        lng: 139.6503,
+        city: "Tokyo",
+        size: 1.3,
+        color: "#fbbf24",
+      },
+      {
+        lat: 31.2304,
+        lng: 121.4737,
+        city: "Shanghai",
+        size: 1.4,
+        color: "#f87171",
+      },
+      {
+        lat: 1.3521,
+        lng: 103.8198,
+        city: "Singapore",
+        size: 1.0,
+        color: "#a78bfa",
+      },
+      {
+        lat: 25.2048,
+        lng: 55.2708,
+        city: "Dubai",
+        size: 1.1,
+        color: "#fb7185",
+      },
+      {
+        lat: -33.8688,
+        lng: 151.2093,
+        city: "Sydney",
+        size: 0.9,
+        color: "#22d3ee",
+      },
+      {
+        lat: 19.076,
+        lng: 72.8777,
+        city: "Mumbai",
+        size: 1.0,
+        color: "#4ade80",
+      },
+      { lat: 52.52, lng: 13.405, city: "Berlin", size: 0.8, color: "#818cf8" },
+      {
+        lat: -23.5505,
+        lng: -46.6333,
+        city: "São Paulo",
+        size: 0.9,
+        color: "#f97316",
+      },
+    ],
+
+    // Shipping routes connecting major trade paths
+    routes: [
+      // Trans-Pacific routes
+      {
+        startLat: 40.7128,
+        startLng: -74.006,
+        endLat: 35.6762,
+        endLng: 139.6503,
+      },
+      {
+        startLat: 37.7749,
+        startLng: -122.4194,
+        endLat: 31.2304,
+        endLng: 121.4737,
+      },
+
+      // Trans-Atlantic routes
+      {
+        startLat: 40.7128,
+        startLng: -74.006,
+        endLat: 51.5074,
+        endLng: -0.1278,
+      },
+      { startLat: 40.7128, startLng: -74.006, endLat: 52.52, endLng: 13.405 },
+
+      // Asia-Europe routes
+      {
+        startLat: 31.2304,
+        startLng: 121.4737,
+        endLat: 51.5074,
+        endLng: -0.1278,
+      },
+      {
+        startLat: 1.3521,
+        startLng: 103.8198,
+        endLat: 25.2048,
+        endLng: 55.2708,
+      },
+
+      // Intra-Asia routes
+      {
+        startLat: 35.6762,
+        startLng: 139.6503,
+        endLat: 1.3521,
+        endLng: 103.8198,
+      },
+      {
+        startLat: 31.2304,
+        startLng: 121.4737,
+        endLat: 19.076,
+        endLng: 72.8777,
+      },
+
+      // Middle East connections
+      {
+        startLat: 25.2048,
+        startLng: 55.2708,
+        endLat: 51.5074,
+        endLng: -0.1278,
+      },
+      { startLat: 25.2048, startLng: 55.2708, endLat: 19.076, endLng: 72.8777 },
+
+      // Southern Hemisphere routes
+      {
+        startLat: -33.8688,
+        startLng: 151.2093,
+        endLat: 1.3521,
+        endLng: 103.8198,
+      },
+      {
+        startLat: -23.5505,
+        startLng: -46.6333,
+        endLat: 40.7128,
+        endLng: -74.006,
+      },
+    ],
+  };
+
+  const LogisticsGlobe = () => {
+    const [globeReady, setGlobeReady] = useState(false);
+
+    useEffect(() => {
+      if (globeEl.current) {
+        // Auto-rotate the globe
+        globeEl.current.controls().autoRotate = true;
+        globeEl.current.controls().autoRotateSpeed = 1;
+
+        globeEl.current.controls().enableZoom = false;
+
+        // Set initial camera position
+        globeEl.current.pointOfView({ altitude: 1.5 });
+
+        setGlobeReady(true);
+      }
+    }, []);
 
     return (
-      <motion.div
-        className="absolute inset-0 flex items-center justify-center"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.5 }}
-      >
-        <svg
-          width="300"
-          height="200"
-          viewBox="0 0 300 200"
-          className="text-white/30"
-        >
-          {/* Globe outline */}
-          <motion.circle
-            cx="150"
-            cy="100"
-            r="80"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeDasharray="3,2"
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 0.6 }}
-            transition={{ duration: 1.5, ease: "easeOut" }}
-          />
-
-          {/* Globe grid lines */}
-          <motion.g
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 0.4 }}
-            transition={{ delay: 1, duration: 1 }}
-          >
-            {/* Horizontal grid lines */}
-            <ellipse
-              cx="150"
-              cy="100"
-              rx="80"
-              ry="20"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="0.8"
-            />
-            <ellipse
-              cx="150"
-              cy="100"
-              rx="80"
-              ry="40"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="0.8"
-            />
-            <ellipse
-              cx="150"
-              cy="100"
-              rx="80"
-              ry="60"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="0.8"
-            />
-
-            {/* Vertical grid lines */}
-            <ellipse
-              cx="150"
-              cy="100"
-              rx="20"
-              ry="80"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="0.8"
-            />
-            <ellipse
-              cx="150"
-              cy="100"
-              rx="40"
-              ry="80"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="0.8"
-            />
-            <ellipse
-              cx="150"
-              cy="100"
-              rx="60"
-              ry="80"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="0.8"
-            />
-          </motion.g>
-
-          {/* Animated route connections */}
-          {routes.map((route, index) => (
-            <motion.path
-              key={index}
-              d={route}
-              stroke="currentColor"
-              strokeWidth="1.5"
-              fill="none"
-              strokeDasharray="4,3"
-              initial={{ pathLength: 0, opacity: 0 }}
-              animate={{
-                pathLength: [0, 1, 0],
-                opacity: [0, 0.8, 0],
-              }}
-              transition={{
-                duration: 3,
-                repeat: Infinity,
-                delay: index * 0.5,
-                ease: "easeInOut",
-              }}
-            />
-          ))}
-
-          {/* Floating logistics bubbles */}
-          {bubbles.map((bubble) => (
-            <motion.g key={bubble.id}>
-              <motion.circle
-                cx={bubble.x}
-                cy={bubble.y}
-                r={bubble.size}
-                fill="currentColor"
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{
-                  opacity: [0, 0.8, 0.4, 0.8],
-                  scale: [0, 1, 1.2, 1],
-                  y: [bubble.y, bubble.y - 10, bubble.y + 5, bubble.y],
-                }}
-                transition={{
-                  duration: 4,
-                  repeat: Infinity,
-                  delay: bubble.delay,
-                  ease: "easeInOut",
-                }}
-              />
-
-              {/* Ripple effect around bubbles */}
-              <motion.circle
-                cx={bubble.x}
-                cy={bubble.y}
-                r={bubble.size * 2}
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="0.5"
-                initial={{ opacity: 0, scale: 0 }}
-                animate={{
-                  opacity: [0, 0.6, 0],
-                  scale: [0, 2, 3],
-                }}
-                transition={{
-                  duration: 2,
-                  repeat: Infinity,
-                  delay: bubble.delay + 1,
-                  ease: "easeOut",
-                }}
-              />
-            </motion.g>
-          ))}
-
-          {/* Central logistics hub */}
-          <motion.g
-            initial={{ scale: 0, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 1, delay: 1.5 }}
-          >
-            <circle
-              cx="150"
-              cy="100"
-              r="12"
-              fill="currentColor"
-              opacity="0.8"
-            />
-            <motion.circle
-              cx="150"
-              cy="100"
-              r="18"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              animate={{
-                scale: [1, 1.3, 1],
-                opacity: [0.6, 0.2, 0.6],
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                ease: "easeInOut",
-              }}
-            />
-
-            {/* Hub connections */}
-            {[0, 60, 120, 180, 240, 300].map((angle, i) => (
-              <motion.line
-                key={i}
-                x1="150"
-                y1="100"
-                x2={150 + Math.cos((angle * Math.PI) / 180) * 25}
-                y2={100 + Math.sin((angle * Math.PI) / 180) * 25}
-                stroke="currentColor"
-                strokeWidth="1"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: [0, 0.8, 0] }}
-                transition={{
-                  duration: 1.5,
-                  repeat: Infinity,
-                  delay: i * 0.2,
-                  ease: "easeInOut",
-                }}
-              />
-            ))}
-          </motion.g>
-
-          {/* Data flow particles */}
-          {Array.from({ length: 8 }).map((_, i) => (
-            <motion.circle
-              key={`particle-${i}`}
-              r="1.5"
-              fill="currentColor"
-              initial={{ opacity: 0 }}
-              animate={{
-                opacity: [0, 1, 0],
-                cx: [80, 220],
-                cy: [100 + Math.sin(i) * 20, 100 + Math.cos(i) * 20],
-              }}
-              transition={{
-                duration: 3,
-                repeat: Infinity,
-                delay: i * 0.4,
-                ease: "linear",
-              }}
-            />
-          ))}
-
-          {/* Floating info boxes */}
-          <motion.g
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 0.7, y: 0 }}
-            transition={{ delay: 2, duration: 1 }}
-          >
-            <rect
-              x="20"
-              y="30"
-              width="40"
-              height="20"
-              rx="3"
-              fill="currentColor"
-              opacity="0.3"
-            />
-            <text
-              x="40"
-              y="42"
-              textAnchor="middle"
-              className="text-xs fill-current opacity-80"
-            >
-              24/7
-            </text>
-          </motion.g>
-
-          <motion.g
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 0.7, y: 0 }}
-            transition={{ delay: 2.5, duration: 1 }}
-          >
-            <rect
-              x="240"
-              y="150"
-              width="45"
-              height="20"
-              rx="3"
-              fill="currentColor"
-              opacity="0.3"
-            />
-            <text
-              x="262"
-              y="162"
-              textAnchor="middle"
-              className="text-xs fill-current opacity-80"
-            >
-              LIVE
-            </text>
-          </motion.g>
-        </svg>
-      </motion.div>
+      <div className="w-full h-full relative">
+        <Globe
+          ref={globeEl}
+          globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
+          bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
+          backgroundColor="rgba(0,0,0,0)"
+          // Logistics hubs as custom points
+          pointsData={logisticsData.hubs}
+          pointLat="lat"
+          pointLng="lng"
+          pointAltitude={(d) => d.size * 0.02}
+          pointRadius={(d) => d.size * 0.8}
+          pointColor={(d) => d.color}
+          pointsMerge={true}
+          // Animated arcs for shipping routes
+          arcsData={logisticsData.routes}
+          arcStartLat="startLat"
+          arcStartLng="startLng"
+          arcEndLat="endLat"
+          arcEndLng="endLng"
+          arcColor={() => ["#60a5fa", "#34d399", "#fbbf24"]}
+          arcAltitude={0.3}
+          arcStroke={0.8}
+          arcDashLength={0.4}
+          arcDashGap={0.2}
+          arcDashInitialGap={() => Math.random()}
+          arcDashAnimateTime={() => Math.random() * 2000 + 1000}
+          arcsTransitionDuration={0}
+          // Animated rings around hubs
+          ringsData={logisticsData.hubs}
+          ringLat="lat"
+          ringLng="lng"
+          ringMaxRadius={(d) => d.size * 3}
+          ringPropagationSpeed={2}
+          ringRepeatPeriod={800}
+          ringColor={(d) => d.color}
+          // Custom labels for major hubs
+          labelsData={logisticsData.hubs.filter((d) => d.size > 1.0)}
+          labelLat="lat"
+          labelLng="lng"
+          labelText="city"
+          labelSize={1.2}
+          labelDotRadius={0.5}
+          labelColor={() => "#ffffff"}
+          labelResolution={2}
+        />
+      </div>
     );
   };
 
+  //TypeWriter
+
   return (
     <div className="min-h-screen bg-neutral-100 flex flex-col lg:flex-row">
-      {/* Left Side - Creative Design */}
+      {/* Left Side - Enhanced Globe Visualization */}
       <motion.div
         initial={{ opacity: 0, x: -100 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.8 }}
-        className="hidden lg:flex lg:w-2/3 lg:h-[calc(100vh-40px)] lg:m-5 bg-gradient-to-br from-[#45474b] via-[#379777] to-[#c7a711] relative overflow-hidden rounded-3xl border border-white/20 shadow-2xl backdrop-blur-sm"
+        className="hidden lg:flex lg:w-2/3 lg:h-[calc(100vh-40px)] lg:m-5 bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 relative overflow-hidden rounded-3xl border border-white/20 shadow-2xl"
       >
-        {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-10  ">
+        <div className="absolute inset-0 opacity-20">
           <div
             className="absolute inset-0"
             style={{
-              backgroundImage: `radial-gradient(circle at 25% 25%, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-              backgroundSize: "30px 30px",
+              backgroundImage: `radial-gradient(circle at 25% 25%, rgba(96,165,250,0.3) 1px, transparent 1px)`,
+              backgroundSize: "40px 40px",
             }}
           ></div>
         </div>
 
-        {/* Animated Background Elements */}
+        {/* Floating geometric shapes */}
         <div className="absolute inset-0">
           {[...Array(2)].map((_, i) => (
             <motion.div
               key={i}
-              className="absolute rounded-full bg-white/5"
+              className="absolute rounded-full border border-white/12"
               style={{
-                width: `${200 + i * 50}px`,
-                height: `${200 + i * 50}px`,
-                left: `${-100 + i * 30}px`,
-                top: `${-100 + i * 40}px`,
+                width: `${150 + i * 100}px`,
+                height: `${150 + i * 100}px`,
+                right: `${-75 + i * 20}px`, // Changed from left to right
+                top: `${-75 + i * 30}px`,
               }}
               animate={{
                 rotate: [0, 360],
-                scale: [1, 1.1, 1],
+                scale: [1, 1.05, 1],
               }}
               transition={{
-                duration: 20 + i * 5,
+                duration: 25 + i * 5,
                 repeat: Infinity,
                 ease: "linear",
               }}
@@ -415,26 +359,56 @@ const CreateAccount = () => {
           ))}
         </div>
 
-        <div className="relative z-10 flex flex-col justify-center items-center text-center p-12 w-full">
-          {/* Brand Title */}
+        {/* Globe Container - Now on the left half */}
+        <div className="absolute inset-0 overflow-hidden">
           <motion.div
-            initial={{ opacity: 0, y: -50 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1, delay: 0.2 }}
-            className="mb-8"
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1.2, delay: 0.5 }}
+            className="absolute  "
+            style={{
+              left: "-750px",
+              transform: "translateY(-50%)",
+              width: "600px",
+              height: "600px",
+            }}
           >
-            <h1 className="text-6xl font-bold text-white mb-4 tracking-tight">
+            <LogisticsGlobe />
+          </motion.div>
+
+          {/* Bottom tagline */}
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, delay: 1.5 }}
+            className="absolute bottom-8 left-70 text-center z-20"
+          >
+            <p className="text-white/80 text-sm">
+              Experience logistics visualization powered by AI
+            </p>
+          </motion.div>
+        </div>
+
+        {/* Content Container - Now on the right half */}
+        <div className="absolute right-0 top-20 w-1/2 h-full flex flex-col justify-between p-8">
+          {/* Header content */}
+          <motion.div
+            initial={{ opacity: 0, y: -30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, delay: 0.3 }}
+            className="z-20 "
+          >
+            <h1 className="text-5xl font-bold text-white mb-2 tracking-tight">
               Smart
               <motion.span
-                className="bg-gradient-to-r from-blue-400 to-emerald-400 bg-clip-text text-transparent"
+                className="bg-gradient-to-r from-blue-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent"
                 animate={{
-                  textShadow: [
-                    "0 0 10px rgba(59,130,246,0.5)",
-                    "0 0 20px rgba(16,185,129,0.8)",
-                    "0 0 10px rgba(59,130,246,0.5)",
-                  ],
+                  backgroundPosition: ["0% 50%", "100% 50%", "0% 50%"],
                 }}
-                transition={{ duration: 2, repeat: Infinity }}
+                style={{
+                  backgroundSize: "200% 200%",
+                }}
+                transition={{ duration: 3, repeat: Infinity }}
               >
                 Logix
               </motion.span>
@@ -443,18 +417,28 @@ const CreateAccount = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.8 }}
-              className="text-xl text-white/80 font-semibold tracking-wide"
+              className="text-lg text-white/90 font-medium"
             >
-              AI-Powered Logistics Revolution
+              <TypewriterText
+                text={"Connect the World, Deliver the Future"}
+                delay={1000}
+                speed={40}
+              />
             </motion.p>
+            {/* Feature Cards */}
+            <div className="flex flex-col gap-4  mt-16 w-full max-w-lg">
+              {features.map((feature, index) => (
+                <FeatureCard
+                  key={index}
+                  {...feature}
+                  index={index}
+                  animationDelay={0.2}
+                  titleDelay={500 + index * 200}
+                  descDelay={1000 + index * 200}
+                />
+              ))}
+            </div>
           </motion.div>
-
-          {/* Feature Cards */}
-
-          {/* Logistics Animation */}
-          <div className="relative w-full h-48 mt-8">
-            <GlobeAnimation />
-          </div>
         </div>
       </motion.div>
 
