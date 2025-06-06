@@ -1,4 +1,10 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import { motion } from "framer-motion";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
@@ -10,6 +16,253 @@ import FeatureCard from "./FeatureCard";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
+// Move LogisticsGlobe outside and memoize it
+const LogisticsGlobe = React.memo(() => {
+  const globeEl = useRef();
+  const [globeReady, setGlobeReady] = useState(false);
+
+  // Memoize logistics data to prevent recreation
+  const logisticsData = useMemo(
+    () => ({
+      hubs: [
+        {
+          lat: 40.7128,
+          lng: -74.006,
+          city: "New York",
+          size: 1.2,
+          color: "#60a5fa",
+        },
+        {
+          lat: 51.5074,
+          lng: -0.1278,
+          city: "London",
+          size: 1.1,
+          color: "#34d399",
+        },
+        {
+          lat: 35.6762,
+          lng: 139.6503,
+          city: "Tokyo",
+          size: 1.3,
+          color: "#fbbf24",
+        },
+        {
+          lat: 31.2304,
+          lng: 121.4737,
+          city: "Shanghai",
+          size: 1.4,
+          color: "#f87171",
+        },
+        {
+          lat: 1.3521,
+          lng: 103.8198,
+          city: "Singapore",
+          size: 1.0,
+          color: "#a78bfa",
+        },
+        {
+          lat: 25.2048,
+          lng: 55.2708,
+          city: "Dubai",
+          size: 1.1,
+          color: "#fb7185",
+        },
+        {
+          lat: -33.8688,
+          lng: 151.2093,
+          city: "Sydney",
+          size: 0.9,
+          color: "#22d3ee",
+        },
+        {
+          lat: 19.076,
+          lng: 72.8777,
+          city: "Mumbai",
+          size: 1.0,
+          color: "#4ade80",
+        },
+        {
+          lat: 52.52,
+          lng: 13.405,
+          city: "Berlin",
+          size: 0.8,
+          color: "#818cf8",
+        },
+        {
+          lat: -23.5505,
+          lng: -46.6333,
+          city: "Sao Paulo",
+          size: 0.9,
+          color: "#f97316",
+        },
+        {
+          lat: 13.0827,
+          lng: 80.2707,
+          city: "Chennai",
+          size: 0.9,
+          color: "#10b981",
+        },
+        {
+          lat: 28.7041,
+          lng: 77.1025,
+          city: "Delhi",
+          size: 0.9,
+          color: "#3b82f6",
+        },
+        {
+          lat: 22.5726,
+          lng: 88.3639,
+          city: "Kolkata",
+          size: 0.9,
+          color: "#ef4444",
+        },
+      ],
+      routes: [
+        {
+          startLat: 40.7128,
+          startLng: -74.006,
+          endLat: 35.6762,
+          endLng: 139.6503,
+        },
+        {
+          startLat: 37.7749,
+          startLng: -122.4194,
+          endLat: 31.2304,
+          endLng: 121.4737,
+        },
+        { startLat: 40.7128, startLng: -74.006, endLat: 52.52, endLng: 13.405 },
+        {
+          startLat: 31.2304,
+          startLng: 121.4737,
+          endLat: 51.5074,
+          endLng: -0.1278,
+        },
+        {
+          startLat: 1.3521,
+          startLng: 103.8198,
+          endLat: 25.2048,
+          endLng: 55.2708,
+        },
+        {
+          startLat: 35.6762,
+          startLng: 139.6503,
+          endLat: 1.3521,
+          endLng: 103.8198,
+        },
+        {
+          startLat: 31.2304,
+          startLng: 121.4737,
+          endLat: 19.076,
+          endLng: 72.8777,
+        },
+        {
+          startLat: 25.2048,
+          startLng: 55.2708,
+          endLat: 51.5074,
+          endLng: -0.1278,
+        },
+        {
+          startLat: 25.2048,
+          startLng: 55.2708,
+          endLat: 19.076,
+          endLng: 72.8777,
+        },
+        {
+          startLat: -33.8688,
+          startLng: 151.2093,
+          endLat: 1.3521,
+          endLng: 103.8198,
+        },
+        {
+          startLat: -23.5505,
+          lng: -46.6333,
+          endLat: 40.7128,
+          endLng: -74.006,
+        },
+        {
+          startLat: 19.076,
+          startLng: 72.8777,
+          endLat: 13.0827,
+          endLng: 80.2707,
+        },
+        {
+          startLat: 28.7041,
+          startLng: 77.1025,
+          endLat: 22.5726,
+          endLng: 88.3639,
+        },
+      ],
+    }),
+    []
+  );
+
+  // Add proper dependency array to useEffect
+  useEffect(() => {
+    if (globeEl.current && !globeReady) {
+      const controls = globeEl.current.controls();
+      controls.autoRotate = true;
+      controls.autoRotateSpeed = 1;
+      controls.enableZoom = false;
+
+      // Set initial camera position
+      globeEl.current.pointOfView({ altitude: 1.8 }, 0);
+
+      // Lock vertical rotation
+      const currentPolar = controls.getPolarAngle();
+      controls.minPolarAngle = currentPolar;
+      controls.maxPolarAngle = currentPolar;
+
+      setGlobeReady(true);
+    }
+  }, [globeReady]); // Only run when globeReady changes
+
+  return (
+    <div className="w-full h-full relative">
+      <Globe
+        ref={globeEl}
+        globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
+        bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
+        backgroundColor="rgba(0,0,0,0)"
+        pointsData={logisticsData.hubs}
+        pointLat="lat"
+        pointLng="lng"
+        pointAltitude={(d) => d.size * 0.03}
+        pointRadius={(d) => d.size * 1.2}
+        pointColor={(d) => d.color}
+        pointsMerge={true}
+        arcsData={logisticsData.routes}
+        arcStartLat="startLat"
+        arcStartLng="startLng"
+        arcEndLat="endLat"
+        arcEndLng="endLng"
+        arcColor={() => ["#60a5fa", "#34d399", "#fbbf24"]}
+        arcAltitude={0.3}
+        arcStroke={0.8}
+        arcDashLength={0.4}
+        arcDashGap={0.2}
+        arcDashInitialGap={() => Math.random()}
+        arcDashAnimateTime={() => Math.random() * 2000 + 1000}
+        arcsTransitionDuration={0}
+        ringsData={logisticsData.hubs}
+        ringLat="lat"
+        ringLng="lng"
+        ringMaxRadius={(d) => d.size * 3}
+        ringPropagationSpeed={2}
+        ringRepeatPeriod={800}
+        ringColor={(d) => d.color}
+        labelsData={logisticsData.hubs}
+        labelLat="lat"
+        labelLng="lng"
+        labelText="city"
+        labelSize={2}
+        labelDotRadius={0.5}
+        labelColor={() => "#ffffff"}
+        labelResolution={2}
+      />
+    </div>
+  );
+});
+
 const Login = () => {
   const [emailAddress, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -18,31 +271,34 @@ const Login = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [toastProps, setToastProps] = useState({ type: "", message: "" });
-  const globeEl = useRef();
 
-  const features = [
-    {
-      icon: "✅",
-      title: "Compliance Monitoring",
-      desc: "Automated checks for global trade rules",
-      gradient: "from-emerald-500/20 to-teal-500/20",
-      iconBg: "bg-emerald-500/10",
-    },
-    {
-      icon: "🚛",
-      title: "Smart Route Optimization",
-      desc: "Best routes by cost, time, and emissions",
-      gradient: "from-blue-500/20 to-cyan-500/20",
-      iconBg: "bg-blue-500/10",
-    },
-    {
-      icon: "📦",
-      title: "Inventory Management",
-      desc: "Track all shipments & records in one place",
-      gradient: "from-yellow-500/20 to-orange-500/20",
-      iconBg: "bg-yellow-500/10",
-    },
-  ];
+  // Memoize features array to prevent recreation
+  const features = useMemo(
+    () => [
+      {
+        icon: "✅",
+        title: "Compliance Monitoring",
+        desc: "Automated checks for global trade rules",
+        gradient: "from-emerald-500/20 to-teal-500/20",
+        iconBg: "bg-emerald-500/10",
+      },
+      {
+        icon: "🚛",
+        title: "Smart Route Optimization",
+        desc: "Best routes by cost, time, and emissions",
+        gradient: "from-blue-500/20 to-cyan-500/20",
+        iconBg: "bg-blue-500/10",
+      },
+      {
+        icon: "📦",
+        title: "Inventory Management",
+        desc: "Track all shipments & records in one place",
+        gradient: "from-yellow-500/20 to-orange-500/20",
+        iconBg: "bg-yellow-500/10",
+      },
+    ],
+    []
+  );
 
   useEffect(() => {
     const token = searchParams.get("token");
@@ -53,12 +309,13 @@ const Login = () => {
       setTimeout(() => {
         navigate("/dashboard");
         setLoading(false);
-      }, 1500); // 1.5 seconds
+      }, 1500);
       setLoading(false);
     }
   }, [searchParams, navigate]);
 
-  const handleLogin = async () => {
+  // Memoize handleLogin to prevent recreation
+  const handleLogin = useCallback(async () => {
     if (!emailAddress || !password) {
       setToastProps({ type: "warn", message: "Please fill in all fields" });
       return;
@@ -72,7 +329,6 @@ const Login = () => {
       });
 
       localStorage.setItem("token", response.data.token);
-      // localStorage.setItem("userProfile", JSON.stringify(response.data.user));
 
       setToastProps({ type: "success", message: "Login Successful!" });
 
@@ -88,7 +344,7 @@ const Login = () => {
       console.log(error.response?.data?.message);
       setLoading(false);
     }
-  };
+  }, [emailAddress, password, navigate]);
 
   const FloatingLabel = ({ label, value, focused, children }) => (
     <div className="relative">
@@ -106,223 +362,6 @@ const Login = () => {
       {children}
     </div>
   );
-
-  // Logistics data for globe visualization
-  const logisticsData = {
-    // Major logistics hubs worldwide
-    hubs: [
-      {
-        lat: 40.7128,
-        lng: -74.006,
-        city: "New York",
-        size: 1.2,
-        color: "#60a5fa",
-      },
-      {
-        lat: 51.5074,
-        lng: -0.1278,
-        city: "London",
-        size: 1.1,
-        color: "#34d399",
-      },
-      {
-        lat: 35.6762,
-        lng: 139.6503,
-        city: "Tokyo",
-        size: 1.3,
-        color: "#fbbf24",
-      },
-      {
-        lat: 31.2304,
-        lng: 121.4737,
-        city: "Shanghai",
-        size: 1.4,
-        color: "#f87171",
-      },
-      {
-        lat: 1.3521,
-        lng: 103.8198,
-        city: "Singapore",
-        size: 1.0,
-        color: "#a78bfa",
-      },
-      {
-        lat: 25.2048,
-        lng: 55.2708,
-        city: "Dubai",
-        size: 1.1,
-        color: "#fb7185",
-      },
-      {
-        lat: -33.8688,
-        lng: 151.2093,
-        city: "Sydney",
-        size: 0.9,
-        color: "#22d3ee",
-      },
-      {
-        lat: 19.076,
-        lng: 72.8777,
-        city: "Mumbai",
-        size: 1.0,
-        color: "#4ade80",
-      },
-      { lat: 52.52, lng: 13.405, city: "Berlin", size: 0.8, color: "#818cf8" },
-      {
-        lat: -23.5505,
-        lng: -46.6333,
-        city: "São Paulo",
-        size: 0.9,
-        color: "#f97316",
-      },
-    ],
-
-    // Shipping routes connecting major trade paths
-    routes: [
-      // Trans-Pacific routes
-      {
-        startLat: 40.7128,
-        startLng: -74.006,
-        endLat: 35.6762,
-        endLng: 139.6503,
-      },
-      {
-        startLat: 37.7749,
-        startLng: -122.4194,
-        endLat: 31.2304,
-        endLng: 121.4737,
-      },
-
-      // Trans-Atlantic routes
-      {
-        startLat: 40.7128,
-        startLng: -74.006,
-        endLat: 51.5074,
-        endLng: -0.1278,
-      },
-      { startLat: 40.7128, startLng: -74.006, endLat: 52.52, endLng: 13.405 },
-
-      // Asia-Europe routes
-      {
-        startLat: 31.2304,
-        startLng: 121.4737,
-        endLat: 51.5074,
-        endLng: -0.1278,
-      },
-      {
-        startLat: 1.3521,
-        startLng: 103.8198,
-        endLat: 25.2048,
-        endLng: 55.2708,
-      },
-
-      // Intra-Asia routes
-      {
-        startLat: 35.6762,
-        startLng: 139.6503,
-        endLat: 1.3521,
-        endLng: 103.8198,
-      },
-      {
-        startLat: 31.2304,
-        startLng: 121.4737,
-        endLat: 19.076,
-        endLng: 72.8777,
-      },
-
-      // Middle East connections
-      {
-        startLat: 25.2048,
-        startLng: 55.2708,
-        endLat: 51.5074,
-        endLng: -0.1278,
-      },
-      { startLat: 25.2048, startLng: 55.2708, endLat: 19.076, endLng: 72.8777 },
-
-      // Southern Hemisphere routes
-      {
-        startLat: -33.8688,
-        startLng: 151.2093,
-        endLat: 1.3521,
-        endLng: 103.8198,
-      },
-      {
-        startLat: -23.5505,
-        startLng: -46.6333,
-        endLat: 40.7128,
-        endLng: -74.006,
-      },
-    ],
-  };
-
-  const LogisticsGlobe = () => {
-    const [globeReady, setGlobeReady] = useState(false);
-
-    useEffect(() => {
-      if (globeEl.current) {
-        // Auto-rotate the globe
-        globeEl.current.controls().autoRotate = true;
-        globeEl.current.controls().autoRotateSpeed = 1;
-
-        globeEl.current.controls().enableZoom = false;
-
-        // Set initial camera position
-        globeEl.current.pointOfView({ altitude: 1.8 });
-
-        setGlobeReady(true);
-      }
-    }, []);
-
-    return (
-      <div className="w-full h-full relative">
-        <Globe
-          ref={globeEl}
-          globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
-          bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
-          backgroundColor="rgba(0,0,0,0)"
-          // Logistics hubs as custom points
-          pointsData={logisticsData.hubs}
-          pointLat="lat"
-          pointLng="lng"
-          pointAltitude={(d) => d.size * 0.02}
-          pointRadius={(d) => d.size * 0.8}
-          pointColor={(d) => d.color}
-          pointsMerge={true}
-          // Animated arcs for shipping routes
-          arcsData={logisticsData.routes}
-          arcStartLat="startLat"
-          arcStartLng="startLng"
-          arcEndLat="endLat"
-          arcEndLng="endLng"
-          arcColor={() => ["#60a5fa", "#34d399", "#fbbf24"]}
-          arcAltitude={0.3}
-          arcStroke={0.8}
-          arcDashLength={0.4}
-          arcDashGap={0.2}
-          arcDashInitialGap={() => Math.random()}
-          arcDashAnimateTime={() => Math.random() * 2000 + 1000}
-          arcsTransitionDuration={0}
-          // Animated rings around hubs
-          ringsData={logisticsData.hubs}
-          ringLat="lat"
-          ringLng="lng"
-          ringMaxRadius={(d) => d.size * 3}
-          ringPropagationSpeed={2}
-          ringRepeatPeriod={800}
-          ringColor={(d) => d.color}
-          // Custom labels for major hubs
-          labelsData={logisticsData.hubs.filter((d) => d.size > 1.0)}
-          labelLat="lat"
-          labelLng="lng"
-          labelText="city"
-          labelSize={1.2}
-          labelDotRadius={0.5}
-          labelColor={() => "#ffffff"}
-          labelResolution={2}
-        />
-      </div>
-    );
-  };
 
   return (
     <div className="min-h-screen flex items-center justify-center">
@@ -352,7 +391,7 @@ const Login = () => {
               style={{
                 width: `${150 + i * 100}px`,
                 height: `${150 + i * 100}px`,
-                right: `${-75 + i * 20}px`, // Changed from left to right
+                right: `${-75 + i * 20}px`,
                 top: `${-75 + i * 30}px`,
               }}
               animate={{
@@ -368,13 +407,13 @@ const Login = () => {
           ))}
         </div>
 
-        {/* Globe Container - Now on the left half */}
+        {/* Globe Container */}
         <div className="absolute inset-0 overflow-hidden">
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 1.2, delay: 0.5 }}
-            className="absolute  "
+            className="absolute"
             style={{
               left: "-750px",
               transform: "translateY(-50%)",
@@ -398,14 +437,13 @@ const Login = () => {
           </motion.div>
         </div>
 
-        {/* Content Container - Now on the right half */}
+        {/* Content Container */}
         <div className="absolute right-0 top-20 w-1/2 h-full flex flex-col justify-between p-8">
-          {/* Header content */}
           <motion.div
             initial={{ opacity: 0, y: -30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1, delay: 0.3 }}
-            className="z-20 "
+            className="z-20"
           >
             <h1 className="text-5xl font-bold text-white mb-2 tracking-tight">
               Smart
@@ -435,7 +473,7 @@ const Login = () => {
               />
             </motion.p>
             {/* Feature Cards */}
-            <div className="flex flex-col gap-4  mt-16 w-full max-w-lg">
+            <div className="flex flex-col gap-4 mt-16 w-full max-w-lg">
               {features.map((feature, index) => (
                 <FeatureCard
                   key={index}
@@ -491,7 +529,6 @@ const Login = () => {
                 transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
               />
             </div>
-            {/* Pulsing Text */}
             <motion.p
               animate={{ scale: [1, 1.05, 1] }}
               transition={{
@@ -644,7 +681,7 @@ const Login = () => {
                   to="/createAccount"
                   className="text-secondary-500 hover:text-secondary-600 hover:underline transition-colors"
                 >
-                  Don’t have an account? Sign up
+                  Don't have an account? Sign up
                 </Link>
               </div>
             </motion.div>
