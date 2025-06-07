@@ -29,7 +29,7 @@ import HomeIcon from "@mui/icons-material/Home";
 import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import InfoIcon from "@mui/icons-material/Info";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle"; // New icon for Choose Route
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { useNavigate, useLocation } from "react-router-dom";
 import RouteResultsSkeleton from "./Skeleton/RouteResultsSkeleton";
 import Toast from "./Toast";
@@ -39,7 +39,15 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 const RouteOptimization = () => {
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
-  const [weight, setWeight] = useState("");
+  const [description, setDescription] = useState("");
+  const [packageData, setPackageData] = useState({
+    quantity: "",
+    weight: "",
+    height: "",
+    length: "",
+    width: "",
+  });
+  const [openPackageDialog, setOpenPackageDialog] = useState(false);
   const [routes, setRoutes] = useState([]);
   const [displayedRoutes, setDisplayedRoutes] = useState([]);
   const [activeFilter, setActiveFilter] = useState("");
@@ -54,13 +62,13 @@ const RouteOptimization = () => {
   const [isManualEntry, setIsManualEntry] = useState(true);
   const [carbonAnalysisResults, setCarbonAnalysisResults] = useState({});
   const [chooseRouteLoading, setChooseRouteLoading] = useState(null);
-  const [openCarbonWarning, setOpenCarbonWarning] = useState(false); // New state for carbon warning dialog
-  const [selectedRoute, setSelectedRoute] = useState(null); // Store the selected route for confirmation
-  const [carbonWarningSeverity, setCarbonWarningSeverity] = useState(""); // "yellow" or "red"
+  const [openCarbonWarning, setOpenCarbonWarning] = useState(false);
+  const [selectedRoute, setSelectedRoute] = useState(null);
+  const [carbonWarningSeverity, setCarbonWarningSeverity] = useState("");
   const token = localStorage.getItem("token");
   const [toastProps, setToastProps] = useState({ type: "", message: "" });
   const [saveLoading, setSaveLoading] = useState(null);
-  const [Description, setDescription] = useState(true);
+  const [Description, setDescriptionFlag] = useState(true);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -68,6 +76,7 @@ const RouteOptimization = () => {
   const toHome = () => {
     navigate("/dashboard");
   };
+
   const fetchDraftFromServer = async (draftId) => {
     try {
       const token = localStorage.getItem("token");
@@ -81,25 +90,28 @@ const RouteOptimization = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // console.log(
-      //   "Draft API response:",
-      //   JSON.stringify(response.data, null, 2)
-      // );
-
       const draft = response.data.draft || response.data;
       if (!draft || !draft.formData?.ShipmentDetails) {
         throw new Error("Invalid draft data received");
       }
 
-      // Update state with draft data
       setFrom(draft.formData.ShipmentDetails?.["Origin Country"] || "");
       setTo(draft.formData.ShipmentDetails?.["Destination Country"] || "");
-      setWeight(draft.formData.ShipmentDetails["Gross Weight"]);
+      setDescription(
+        draft.formData.ShipmentDetails?.["Product Description"] || ""
+      );
+      setPackageData({
+        ...(draft.formData.ShipmentDetails?.Package || {
+          quantity: "",
+          height: "",
+          length: "",
+          width: "",
+        }),
+        weight: draft.formData.ShipmentDetails?.["Gross Weight"] || "",
+      });
 
       setIsManualEntry(false);
       setSelectedDraftId(draft._id);
-
-      // console.log("Updated state - from:", from, "to:", to, "weight:", weight);
     } catch (error) {
       console.error("Error fetching draft:", error);
       const errorMessage =
@@ -115,33 +127,39 @@ const RouteOptimization = () => {
 
   useEffect(() => {
     const fetchDraft = async () => {
-      // Check for draftId in localStorage
       let draftId = localStorage.getItem("routeDraftId");
       if (!draftId) {
-        // Check for draftId in URL query (e.g., ?draftId=...)
         const params = new URLSearchParams(location.search);
         draftId = params.get("draftId");
       }
 
       if (draftId) {
-        // console.log("Fetching draft with ID:", draftId);
         await fetchDraftFromServer(draftId);
-      } else {
       }
     };
 
     fetchDraft();
   }, [location, navigate]);
 
-  // [Existing getTopThreeRoutes, unchanged]
   const getTopThreeRoutes = (routes, metric) => {
     return [...routes].sort((a, b) => a[metric] - b[metric]).slice(0, 3);
   };
 
-  // [Existing handleSubmit, unchanged]
+  const handlePackageDialogOpen = () => {
+    setOpenPackageDialog(true);
+  };
+
+  const handlePackageDialogClose = () => {
+    setOpenPackageDialog(false);
+  };
+
+  const handlePackageChange = (field, value) => {
+    setPackageData((prev) => ({ ...prev, [field]: value }));
+  };
+
   const handleSubmit = async (e) => {
     if (e) e.preventDefault();
-    setDescription(false);
+    setDescriptionFlag(false);
     if (!token) {
       setToastProps({
         type: "error",
@@ -153,14 +171,27 @@ const RouteOptimization = () => {
     if (
       !from ||
       !to ||
-      !weight ||
-      isNaN(parseFloat(weight)) ||
-      parseFloat(weight) <= 0
+      !description ||
+      !packageData.quantity ||
+      !packageData.weight ||
+      !packageData.height ||
+      !packageData.length ||
+      !packageData.width ||
+      isNaN(parseFloat(packageData.quantity)) ||
+      isNaN(parseFloat(packageData.weight)) ||
+      isNaN(parseFloat(packageData.height)) ||
+      isNaN(parseFloat(packageData.length)) ||
+      isNaN(parseFloat(packageData.width)) ||
+      parseFloat(packageData.quantity) <= 0 ||
+      parseFloat(packageData.weight) <= 0 ||
+      parseFloat(packageData.height) <= 0 ||
+      parseFloat(packageData.length) <= 0 ||
+      parseFloat(packageData.width) <= 0
     ) {
       setToastProps({
         type: "error",
         message:
-          "Please fill in all fields: From, To, and Weight (must be a valid positive number).",
+          "Please fill in all fields: From, To, Description, and Package details (all values must be positive numbers).",
       });
       return;
     }
@@ -172,7 +203,14 @@ const RouteOptimization = () => {
         {
           from: from.trim(),
           to: to.trim(),
-          weight: parseFloat(weight),
+          package: {
+            quantity: parseFloat(packageData.quantity),
+            weight: parseFloat(packageData.weight),
+            height: parseFloat(packageData.height),
+            length: parseFloat(packageData.length),
+            width: parseFloat(packageData.width),
+          },
+          description: description.trim(),
           draftId: selectedDraftId || "",
         },
         {
@@ -183,8 +221,8 @@ const RouteOptimization = () => {
         }
       );
       const data = response.data;
-      if (!Array.isArray(data) || data.length !== 9)
-        throw new Error("Expected 9 routes from the backend.");
+      if (!Array.isArray(data))
+        throw new Error("Expected routes array from the backend.");
       setRoutes(data);
       const popularRoutes = data
         .filter((route) => route.tag === "popular")
@@ -197,7 +235,14 @@ const RouteOptimization = () => {
         timestamp: new Date().toISOString(),
         from: from.trim(),
         to: to.trim(),
-        weight: parseFloat(weight),
+        package: {
+          quantity: parseFloat(packageData.quantity),
+          weight: parseFloat(packageData.weight),
+          height: parseFloat(packageData.height),
+          length: parseFloat(packageData.length),
+          width: parseFloat(packageData.width),
+        },
+        description: description.trim(),
         routes: data,
       };
       const carbonAnalysisHistory = JSON.parse(
@@ -223,7 +268,6 @@ const RouteOptimization = () => {
     }
   };
 
-  // [Existing handleFilterClick, unchanged]
   const handleFilterClick = (filter) => {
     setActiveFilter(filter);
     switch (filter) {
@@ -249,7 +293,6 @@ const RouteOptimization = () => {
     }
   };
 
-  // [Existing getCarbonDisplay, unchanged]
   const getCarbonDisplay = (score) => {
     const color =
       score < 33
@@ -271,7 +314,6 @@ const RouteOptimization = () => {
     );
   };
 
-  // [Existing handleMapClick, unchanged]
   const handleMapClick = async (route, index) => {
     setMapLoading(index);
     try {
@@ -282,7 +324,7 @@ const RouteOptimization = () => {
       }));
       const response = await axios.post(
         `${BACKEND_URL}/api/routes`,
-        routeData, // Send array directly
+        routeData,
         {
           headers: {
             "Content-Type": "application/json",
@@ -291,7 +333,6 @@ const RouteOptimization = () => {
         }
       );
 
-      // Create a temporary link to open the new tab
       const link = document.createElement("a");
       link.href = `/map/${response.data.draftId}`;
       link.target = "_blank";
@@ -307,8 +348,6 @@ const RouteOptimization = () => {
     }
   };
 
-  // [Existing handleCarbonClick, unchanged]
-
   const handleCarbonClick = async (route, index) => {
     setCarbonLoading(index);
     try {
@@ -317,7 +356,7 @@ const RouteOptimization = () => {
         destination:
           route.routeDirections[route.routeDirections.length - 1].waypoints[1],
         distance: route.totalDistance,
-        weight: parseFloat(weight),
+        weight: parseFloat(packageData.weight),
         routeDirections: route.routeDirections,
       };
       const response = await axios.post(
@@ -332,11 +371,10 @@ const RouteOptimization = () => {
       );
       setCarbonAnalysisResults((prev) => ({ ...prev, [index]: response.data }));
 
-      // Create a temporary link to open the new tab
       const link = document.createElement("a");
       link.href = `/carbon-footprint/${response.data.draftId}`;
       link.target = "_blank";
-      link.rel = "noopener noreferrer"; // Security best practice
+      link.rel = "noopener noreferrer";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -351,19 +389,15 @@ const RouteOptimization = () => {
     }
   };
 
-  // New function for Choose Route button
   const handleChooseRouteClick = async (route, index) => {
-    // Check carbon score before proceeding
     const carbonScore = route.totalCarbonScore || 0;
     if (carbonScore > 30) {
-      // Show warning dialog
       setSelectedRoute({ route, index });
       setCarbonWarningSeverity(carbonScore > 60 ? "red" : "yellow");
       setOpenCarbonWarning(true);
-      return; // Wait for user confirmation
+      return;
     }
 
-    // If carbon score is <= 30, proceed directly
     await proceedWithChooseRoute(route, index);
   };
 
@@ -372,8 +406,24 @@ const RouteOptimization = () => {
     try {
       if (!from || !from.trim()) throw new Error("Origin (from) is required");
       if (!to || !to.trim()) throw new Error("Destination (to) is required");
-      if (!weight || isNaN(parseFloat(weight)) || parseFloat(weight) <= 0)
-        throw new Error("Weight must be a positive number");
+      if (
+        !packageData.quantity ||
+        !packageData.weight ||
+        !packageData.height ||
+        !packageData.length ||
+        !packageData.width ||
+        isNaN(parseFloat(packageData.quantity)) ||
+        isNaN(parseFloat(packageData.weight)) ||
+        isNaN(parseFloat(packageData.height)) ||
+        isNaN(parseFloat(packageData.length)) ||
+        isNaN(parseFloat(packageData.width)) ||
+        parseFloat(packageData.quantity) <= 0 ||
+        parseFloat(packageData.weight) <= 0 ||
+        parseFloat(packageData.height) <= 0 ||
+        parseFloat(packageData.length) <= 0 ||
+        parseFloat(packageData.width) <= 0
+      )
+        throw new Error("Package details must be valid positive numbers");
       if (
         !route ||
         !route.routeDirections ||
@@ -399,14 +449,20 @@ const RouteOptimization = () => {
         },
         formData:
           isManualEntry || !draftId
-            ? { from: from.trim(), to: to.trim(), weight: parseFloat(weight) }
+            ? {
+                from: from.trim(),
+                to: to.trim(),
+                package: {
+                  quantity: parseFloat(packageData.quantity),
+                  weight: parseFloat(packageData.weight),
+                  height: parseFloat(packageData.height),
+                  length: parseFloat(packageData.length),
+                  width: parseFloat(packageData.width),
+                },
+                description: description.trim(),
+              }
             : undefined,
       };
-
-      // console.log(
-      //   "Choose Route request body:",
-      //   JSON.stringify(requestBody, null, 2)
-      // );
 
       const response = await axios.post(
         `${BACKEND_URL}/api/choose-route`,
@@ -419,10 +475,6 @@ const RouteOptimization = () => {
         }
       );
 
-      // console.log(
-      //   "Choose Route response:",
-      //   JSON.stringify(response.data, null, 2)
-      // );
       setToastProps({ type: "success", message: response.data.message });
       setTimeout(() => navigate("/inventory-management"), 2000);
     } catch (error) {
@@ -447,7 +499,6 @@ const RouteOptimization = () => {
   };
 
   const handleCarbonWarningConfirm = () => {
-    // Proceed with the route selection
     setOpenCarbonWarning(false);
     if (selectedRoute) {
       proceedWithChooseRoute(selectedRoute.route, selectedRoute.index);
@@ -456,7 +507,6 @@ const RouteOptimization = () => {
   };
 
   const handleCarbonWarningCancel = () => {
-    // Cancel the route selection
     setOpenCarbonWarning(false);
     setChooseRouteLoading(null);
     setSelectedRoute(null);
@@ -468,14 +518,27 @@ const RouteOptimization = () => {
       navigate("/");
       return;
     }
-    if (!from || !to || !weight) {
-      alert("Please fill all fields (From, To, Weight) before saving a route.");
+    if (!from || !to || !packageData.quantity || !description) {
+      alert(
+        "Please fill all fields (From, To, Package, Description) before saving a route."
+      );
       return;
     }
 
     setSaveLoading(index);
     try {
-      const formData = { from, to, weight: parseFloat(weight) };
+      const formData = {
+        from,
+        to,
+        package: {
+          quantity: parseFloat(packageData.quantity),
+          weight: parseFloat(packageData.weight),
+          height: parseFloat(packageData.height),
+          length: parseFloat(packageData.length),
+          width: parseFloat(packageData.width),
+        },
+        description,
+      };
       const routeData = route;
 
       const response = await axios.post(
@@ -489,7 +552,7 @@ const RouteOptimization = () => {
         }
       );
       setToastProps({
-        type: "sucess",
+        type: "success",
         message: "Route saved successfully! Check your profile for history.",
       });
     } catch (error) {
@@ -515,7 +578,6 @@ const RouteOptimization = () => {
     }
   };
 
-  // [Existing handleInfoClick and handleClose, unchanged]
   const handleInfoClick = () => setOpenInfoDialog(true);
   const handleClose = () => setOpenInfoDialog(false);
 
@@ -568,24 +630,44 @@ const RouteOptimization = () => {
                 </label>
               </div>
 
-              {/* Weight Input */}
+              {/* Description Input */}
               <div className="relative w-full max-w-xs">
                 <input
-                  type="number"
-                  id="weight"
-                  value={weight}
-                  onChange={(e) => setWeight(e.target.value)}
-                  required
-                  min="0"
-                  step="0.1"
+                  type="text"
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
                   placeholder=" "
                   className="peer w-full px-4 py-4 bg-white/40 backdrop-blur-sm border-2 border-gray-300/40 rounded-2xl text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/60 transition-all duration-300 hover:bg-white/50 hover:scale-[1.02] hover:shadow-lg hover:border-gray-400/60 active:scale-[0.98]"
                 />
                 <label
-                  htmlFor="weight"
+                  htmlFor="description"
                   className="absolute left-4 -top-2.5 bg-white/80 backdrop-blur-sm px-2 py-0.5 rounded-lg text-sm font-medium text-gray-600 transition-all duration-300 peer-placeholder-shown:top-4 peer-placeholder-shown:left-4 peer-placeholder-shown:bg-transparent peer-placeholder-shown:text-gray-500 peer-focus:-top-2.5 peer-focus:left-4 peer-focus:bg-white/80 peer-focus:text-blue-600"
                 >
-                  Weight (kg)
+                  Description
+                </label>
+              </div>
+
+              {/* Package Input */}
+              <div className="relative w-full max-w-xs">
+                <input
+                  type="text"
+                  id="package"
+                  value={
+                    packageData.quantity
+                      ? `Package: ${packageData.quantity} unit(s)`
+                      : ""
+                  }
+                  onClick={handlePackageDialogOpen}
+                  readOnly
+                  placeholder=" "
+                  className="peer w-full px-4 py-4 bg-white/40 backdrop-blur-sm border-2 border-gray-300/40 rounded-2xl text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/60 transition-all duration-300 hover:bg-white/50 hover:scale-[1.02] hover:shadow-lg hover:border-gray-400/60 active:scale-[0.98] cursor-pointer"
+                />
+                <label
+                  htmlFor="package"
+                  className="absolute left-4 -top-2.5 bg-white/80 backdrop-blur-sm px-2 py-0.5 rounded-lg text-sm font-medium text-gray-600 transition-all duration-300 peer-placeholder-shown:top-4 peer-placeholder-shown:left-4 peer-placeholder-shown:bg-transparent peer-placeholder-shown:text-gray-500 peer-focus:-top-2.5 peer-focus:left-4 peer-focus:bg-white/80 peer-focus:text-blue-600"
+                >
+                  Package
                 </label>
               </div>
             </div>
@@ -606,11 +688,76 @@ const RouteOptimization = () => {
               </button>
             </div>
           </form>
+
+          {/* Package Dialog */}
+          <Dialog open={openPackageDialog} onClose={handlePackageDialogClose}>
+            <DialogTitle>Package Details</DialogTitle>
+            <DialogContent>
+              <TextField
+                label="Quantity (units)"
+                type="number"
+                value={packageData.quantity}
+                onChange={(e) =>
+                  handlePackageChange("quantity", e.target.value)
+                }
+                fullWidth
+                margin="normal"
+                required
+                inputProps={{ min: 1 }}
+              />
+              <TextField
+                label="Weight (kg)"
+                type="number"
+                value={packageData.weight}
+                onChange={(e) => handlePackageChange("weight", e.target.value)}
+                fullWidth
+                margin="normal"
+                required
+                inputProps={{ min: 0.1, step: 0.1 }}
+              />
+              <TextField
+                label="Height (cm)"
+                type="number"
+                value={packageData.height}
+                onChange={(e) => handlePackageChange("height", e.target.value)}
+                fullWidth
+                margin="normal"
+                required
+                inputProps={{ min: 0.1, step: 0.1 }}
+              />
+              <TextField
+                label="Length (cm)"
+                type="number"
+                value={packageData.length}
+                onChange={(e) => handlePackageChange("length", e.target.value)}
+                fullWidth
+                margin="normal"
+                required
+                inputProps={{ min: 0.1, step: 0.1 }}
+              />
+              <TextField
+                label="Width (cm)"
+                type="number"
+                value={packageData.width}
+                onChange={(e) => handlePackageChange("width", e.target.value)}
+                fullWidth
+                margin="normal"
+                required
+                inputProps={{ min: 0.1, step: 0.1 }}
+              />
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={handlePackageDialogClose}>Cancel</Button>
+              <Button onClick={handlePackageDialogClose} color="primary">
+                Save
+              </Button>
+            </DialogActions>
+          </Dialog>
         </div>
+
         {Description && (
           <div className="w-full max-w-4xl mt-8 mb-6 sm:mb-8">
             <div className="backdrop-blur-xl bg-gradient-to-br from-green-50/80 to-blue-50/80 border border-green-200/30 rounded-3xl p-8 sm:p-10 shadow-2xl shadow-green-500/10 hover:shadow-green-500/20 transition-all duration-500">
-              {/* Header */}
               <div className="flex items-center gap-3 mb-6">
                 <div className="p-3 bg-gradient-to-r from-green-500 to-blue-500 rounded-2xl shadow-lg">
                   <svg
@@ -636,7 +783,6 @@ const RouteOptimization = () => {
                 <h3 className="text-2xl font-bold ">Route Optimization Info</h3>
               </div>
 
-              {/* Main Description */}
               <div className="mb-8">
                 <p className="text-gray-700 text-lg leading-relaxed">
                   Enter{" "}
@@ -644,11 +790,13 @@ const RouteOptimization = () => {
                   <span className="font-semibold text-blue-700">
                     Destination
                   </span>
-                  , and{" "}
+                  ,{" "}
                   <span className="font-semibold text-green-700">
-                    Cargo Weight
-                  </span>{" "}
-                  to calculate the most efficient shipping route.
+                    Description
+                  </span>
+                  , and{" "}
+                  <span className="font-semibold text-blue-700">Package</span>{" "}
+                  details to calculate the most efficient shipping route.
                 </p>
                 <p className="text-gray-600 mt-3 text-base">
                   Our system prioritizes{" "}
@@ -659,13 +807,11 @@ const RouteOptimization = () => {
                 </p>
               </div>
 
-              {/* Optimization Options */}
               <div className="mb-8">
                 <h4 className="text-lg font-semibold text-gray-800 mb-4">
                   Optimization Options:
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Cost-Optimized */}
                   <div className="bg-white/60 backdrop-blur-sm border border-green-200/40 rounded-2xl p-5 hover:bg-white/80 hover:scale-[1.02] transition-all duration-300 hover:shadow-lg hover:border-green-300/60">
                     <div className="flex items-center gap-3 mb-2">
                       <span className="text-green-600 text-xl">✅</span>
@@ -678,7 +824,6 @@ const RouteOptimization = () => {
                     </p>
                   </div>
 
-                  {/* Time-Optimized */}
                   <div className="bg-white/60 backdrop-blur-sm border border-blue-200/40 rounded-2xl p-5 hover:bg-white/80 hover:scale-[1.02] transition-all duration-300 hover:shadow-lg hover:border-blue-300/60">
                     <div className="flex items-center gap-3 mb-2">
                       <span className="text-blue-600 text-xl">⏱️</span>
@@ -691,7 +836,6 @@ const RouteOptimization = () => {
                     </p>
                   </div>
 
-                  {/* Carbon-Efficient */}
                   <div className="bg-white/60 backdrop-blur-sm border border-green-200/40 rounded-2xl p-5 hover:bg-white/80 hover:scale-[1.02] transition-all duration-300 hover:shadow-lg hover:border-green-300/60">
                     <div className="flex items-center gap-3 mb-2">
                       <span className="text-green-600 text-xl">🌱</span>
@@ -706,7 +850,6 @@ const RouteOptimization = () => {
                 </div>
               </div>
 
-              {/* AI Features */}
               <div className="bg-gradient-to-r from-green-500/10 to-blue-500/10 border border-green-300/30 rounded-2xl p-6">
                 <div className="flex items-start gap-4">
                   <div className="p-2 bg-gradient-to-r from-green-400 to-blue-400 rounded-xl shadow-md flex-shrink-0 mt-1">
@@ -1010,10 +1153,9 @@ const RouteOptimization = () => {
         maxWidth="sm"
         fullWidth
         aria-labelledby="carbon-warning-dialog-title"
-        // Ensure the dialog is accessible and not hidden
-        disableEnforceFocus={false} // Allow focus to be managed naturally
-        disableAutoFocus={false} // Allow auto-focus on open
-        disablePortal={true} // Render dialog content within the current DOM hierarchy
+        disableEnforceFocus={false}
+        disableAutoFocus={false}
+        disablePortal={true}
       >
         <DialogTitle
           id="carbon-warning-dialog-title"

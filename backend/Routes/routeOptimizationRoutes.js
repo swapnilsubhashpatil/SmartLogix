@@ -12,269 +12,197 @@ const GOOGLE_API_KEY = process.env.GOOGLE_API_KEY;
 // Route Optimization
 router.post("/api/route-optimization", async (req, res) => {
   try {
-    const { from, to, weight } = req.body;
+    const { from, to, package, description, draftId } = req.body;
 
-    if (!from || !to || !weight) {
-      return res
-        .status(400)
-        .json({ error: "Missing required fields: from, to, and weight" });
+    if (!from || !to || !package || !description) {
+      return res.status(400).json({
+        error: "Missing required fields: from, to, package, and description",
+      });
     }
 
-    const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
+    const { quantity, weight, height, length, width } = package;
+    if (
+      !quantity ||
+      !weight ||
+      !height ||
+      !length ||
+      !width ||
+      isNaN(quantity) ||
+      isNaN(weight) ||
+      isNaN(height) ||
+      isNaN(length) ||
+      isNaN(width) ||
+      quantity <= 0 ||
+      weight <= 0 ||
+      height <= 0 ||
+      length <= 0 ||
+      width <= 0
+    ) {
+      return res.status(400).json({
+        error:
+          "Package details (quantity, weight, height, length, width) must be valid positive numbers",
+      });
+    }
+
+    const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    // Simplified prompt for the AI to focus on route generation and waypoints
-    const prompt = `You are a route optimization AI tasked with generating 9 unique shipping routes between two locations.
-        Focus on creating diverse and realistic routes with appropriate waypoints and transport modes.
-        Do not calculate costs, time, distance, or carbon scores; just provide the route directions.
+    const prompt = `You are a highly intelligent, logistics-aware route optimization AI. Your task is to generate diverse, realistic, and efficient shipping routes between two global locations, precisely estimating distance, cost, time, and environmental impact based on the provided inputs.
 
-        **Inputs**:
-        - Origin: ${from}
-        - Destination: ${to}
-        - Shipment Weight: ${weight} kg
+**Inputs Provided**:
+- **Origin**: ${from}
+- **Destination**: ${to}
+- **Package Details**:
+  - Quantity: ${quantity}
+  - Weight: ${weight} kg
+  - Dimensions: ${length}x${width}x${height} cm
+- **Description**: ${description}
 
-        **Route Requirements**:
-        - Provide 9 distinct routes.
-        - Each route must have 2 to 5 waypoints (inclusive).
-        - Use real, geographically relevant locations for waypoints.
-        - Use specific and functional waypoints:
-            - Sea: Functional seaports (e.g., "Mumbai Port", "Port of Rotterdam").
-            - Air: Operational airports (e.g., "Mumbai BOM", "London Heathrow LHR").
-            - Land: Major cities or logistics hubs (e.g., "Delhi", "Frankfurt").
-        - Define each segment as:
-            { "id": "unique-string", "waypoints": ["start", "end"], "state": "land" | "sea" | "air" }
-        - Categorize the 9 routes as follows (try to achieve this, but we'll enforce it post-processing):
-            - 3 routes must be primarily multimodal (use at least two different modes: land, sea, or air).
-            - 3 routes must primarily use air transport.
-            - 3 routes must primarily use sea transport.
-        - For multi-segment routes, list consecutive same-mode segments separately if they represent distinct legs.
-        - Ensure transport mode matches waypoint capabilities (e.g., sea only between ports, air only between airports).
+**Responsibilities**:
+- Determine if the shipment from ${from} to ${to} is domestic (same country) or international (different countries) to select appropriate routing rules.
+- Analyze package details (quantity: ${quantity}, weight: ${weight} kg, dimensions: ${length}x${width}x${height} cm) and description ("${description}") to guide route selection and calculations:
+  - Quantity (${quantity}) determines if multiple containers or trucks are needed, impacting cost and mode choice.
+  - Weight (${weight} kg) drives cost calculations, especially for air freight where weight-based pricing is critical.
+  - Dimensions (${length}x${width}x${height} cm) affect volumetric weight for air freight and container requirements for sea freight.
+  - Description ("${description}") keywords (e.g., "perishable," "hazardous," "fragile," "urgent") dictate special handling:
+    - Perishable/urgent: Prioritize air routes for speed, increasing costs.
+    - Hazardous: Select compliant routes, avoiding restricted modes, with surcharges.
+    - Fragile: Prefer stable modes (land or sea) to minimize handling risks.
 
-        **Output Format**:
-        - Return a JSON array of 9 routes, with no text outside the array.
-        - Each route object should only contain the "routeDirections" array.
-        [
-            {
-                "routeDirections": [
-                    { "id": "string", "waypoints": ["string", "string"], "state": "land" | "sea" | "air" }
-                ]
-            },
-            ...
-        ]
-        `;
+**Geographically Valid Waypoints**:
+- **Sea**: Use commercial seaports (e.g., "Port of Shanghai", "Port of Rotterdam").
+- **Air**: Use international airports (e.g., "JFK Airport", "Heathrow LHR").
+- **Land**: Use logistics hubs or cities (e.g., "Chicago", "Lyon").
+
+**Routing Logic**:
+- Generate practical routes from ${from} to ${to} with mode-appropriate waypoints:
+  - Sea: Only between seaports.
+  - Air: Only between airports.
+  - Land: Only between cities/hubs.
+- For multimodal routes, define each segment distinctly, considering package details (weight: ${weight} kg, dimensions: ${length}x${width}x${height} cm).
+
+**Routing Rules**:
+- **Domestic Shipments** (if ${from} and ${to} are in the same country):
+  - 2 direct land routes (1-3 waypoints each).
+  - 2 multimodal routes (land + air, 1-3 waypoints each).
+- **International Shipments** (if ${from} and ${to} are in different countries):
+  - 2 routes prioritizing air + land (3-6 waypoints each).
+  - 2 routes prioritizing sea + land (3-6 waypoints each).
+  - 3 multimodal routes (land + sea + air, 3-6 waypoints each).
+- Ensure all routes are unique, using established logistics corridors.
+
+**Estimation Requirements**:
+- Simulate current industry standards by referencing rates from DHL (https://www.dhl.com) and Freightos (https://www.freightos.com), adjusted for package details (quantity: ${quantity}, weight: ${weight} kg, dimensions: ${length}x${width}x${height} cm) and description ("${description}").
+- **Distance**: Calculate in km using real-world geography from ${from} to ${to} for each mode, ensuring accuracy for each segment.
+- **Cost (USD)**:
+  - Use package details (weight: ${weight} kg, dimensions: ${length}x${width}x${height} cm) and description ("${description}") to calculate costs based on DHL and Freightos rates:
+    - **Land**:
+      - Domestic: $0.5-$2/kg/km, adjusted for quantity (${quantity}) and route demand.
+      - International: $1.5-$3/kg/km, reflecting cross-border logistics.
+      - For quantity (${quantity}) exceeding truck capacity, apply full truckload (FTL) rates (e.g., $1.20-$2.50/km) or less than truckload (LTL) rates ($40-$100/ton for ≤500 km).
+      - Add 20% surcharge for hazardous or perishable cargo from "${description}".
+    - **Air**:
+      - Base on weight (${weight} kg) and volumetric weight (length × width × height / 5000 cm³), using DHL air freight rates ($5-$15/kg for standard, $8-$20/kg for express).
+      - Use the higher of actual (${weight} kg) or volumetric weight.
+      - Add 20% surcharge for special handling (e.g., perishable, hazardous) from "${description}".
+    - **Sea**:
+      - Use Freightos container rates: $1000-$5000 for 20-ft FCL, $1500-$8000 for 40-ft FCL, or $1-$5/kg for LCL, adjusted for distance and route popularity.
+      - For quantity (${quantity}), calculate if multiple containers are needed based on dimensions (${length}x${width}x${height} cm).
+      - Add 20% surcharge for special handling from "${description}".
+- **Time (hours)**:
+  - Land: Domestic: (distance/60) + 6; International: (distance/60) + 18.
+  - Air: Domestic: 12-24; International: 48-96.
+  - Sea: Short-haul: 168-288; Long-haul: 600-1080.
+  - Add 10% time for special cargo (e.g., hazardous) from "${description}".
+- **Carbon Score (0-100)**:
+  - Air: 70-100 (high emissions).
+  - Sea: 20-40 (low emissions).
+  - Land: 40-60 (medium emissions).
+  - Adjust based on distance, weight (${weight} kg), and mode mix, normalized across routes.
+
+**Validation**:
+- Recheck routes for realism:
+  - Ensure waypoints match modes (e.g., sea routes use ports like "Port of Shanghai").
+  - Verify distances align with geographical paths from ${from} to ${to}.
+  - Confirm costs reflect DHL and Freightos rates, adjusted for package details (weight: ${weight} kg, dimensions: ${length}x${width}x${height} cm) and special handling from "${description}".
+  - Ensure times and carbon scores align with industry norms and package requirements.
+- Adjust any outliers to maintain consistency with real-world logistics data.
+
+**Tagging Popular Routes**:
+- Tag three routes as "popular" based on package details (quantity: ${quantity}, weight: ${weight} kg, dimensions: ${length}x${width}x${height} cm) and description ("${description}"):
+  - One with the lowest totalCost, optimized for ${weight} kg and any special handling.
+  - One with the shortest totalTime, prioritizing speed if "${description}" indicates urgency.
+  - One with the lowest totalCarbonScore, favoring eco-friendly options.
+- If overlap occurs, select the next best distinct route to ensure diversity.
+
+**Constraints**:
+- No duplicate routes; ensure operational and geographical validity.
+- Do not alter origin (${from}) or destination (${to}).
+
+**Output Format**:
+- Return only a JSON array of route objects:
+  - "routeDirections": Array of { "id": "unique-string", "waypoints": ["start", "end"], "state": "land" | "sea" | "air" }
+  - "totalDistance": number (km)
+  - "totalCost": number (USD)
+  - "totalTime": number (hours)
+  - "totalCarbonScore": number (0-100)
+  - "tag": "popular" or null
+- Ensure clean, parseable JSON with no extra text.`;
 
     const result = await model.generateContent(prompt);
     const rawResponse = result.response.text();
 
-    // Robust JSON extraction
-    const jsonMatch = rawResponse.match(/\[.*\]/s);
+    // Clean and parse response
+    const cleanedResponse = rawResponse.replace(/```json\n|\n```/g, "").trim();
+    const jsonString = cleanedResponse.replace(
+      /"tag":\s*undefined/g,
+      '"tag": null'
+    );
+    const jsonMatch = jsonString.match(/\[.*\]/s);
+
     if (!jsonMatch) {
-      console.error("No valid JSON array found in AI response:", rawResponse);
-      throw new Error("No valid JSON array found in AI response");
+      console.error("No valid JSON array found:", rawResponse);
+      throw new Error("No valid JSON array found");
     }
-    const jsonString = jsonMatch[0];
 
     let aiGeneratedRoutes;
     try {
-      aiGeneratedRoutes = JSON.parse(jsonString);
+      aiGeneratedRoutes = JSON.parse(jsonMatch[0]);
     } catch (parseError) {
-      console.error(
-        "JSON Parse Error:",
-        parseError,
-        "Raw Response:",
-        rawResponse
-      );
-      throw new Error("Invalid JSON format in AI response");
+      console.error("JSON Parse Error:", parseError, "Raw:", rawResponse);
+      throw new Error("Invalid JSON format");
     }
 
-    // --- Post-processing and Calculation Logic ---
-    const getApproximateDistance = (start, end, state) => {
-      const distances = {
-        "Mumbai-London": { air: 7200, sea: 10000, land: 12000 },
-        "Mumbai-Singapore": { air: 3900, sea: 4500, land: 6000 },
-        "Singapore-Tokyo": { air: 5300, sea: 5800, land: 7000 },
-        "London-New York": { air: 5500, sea: 6000, land: 0 },
-        "New York-Los Angeles": { air: 3900, sea: 6000, land: 4500 },
-        "Chennai-Dubai": { air: 2900, sea: 3500, land: 0 },
-        "Rotterdam-Hamburg": { land: 450, sea: 300, air: 600 },
-        "Shanghai-Sydney": { air: 7900, sea: 9000, land: 0 },
-        "Mumbai-Delhi": { land: 1400, air: 1150 },
-        "Delhi-Kolkata": { land: 1500, air: 1300 },
-      };
+    if (!Array.isArray(aiGeneratedRoutes)) {
+      return res.status(500).json({ error: "AI response is not an array" });
+    }
 
-      const key1 = `${start}-${end}`;
-      const key2 = `${end}-${start}`;
-
-      if (distances[key1] && distances[key1][state]) {
-        return distances[key1][state];
-      }
-      if (distances[key2] && distances[key2][state]) {
-        return distances[key2][state];
-      }
-
-      switch (state) {
-        case "air":
-          return 1000 + Math.random() * 5000;
-        case "sea":
-          return 1500 + Math.random() * 7000;
-        case "land":
-          return 300 + Math.random() * 2000;
-        default:
-          return 0;
-      }
-    };
-
-    const calculateRouteMetrics = (routeDirections, weight) => {
-      let totalCost = 0;
-      let totalTime = 0;
-      let totalDistance = 0;
-      let rawCO2 = 0;
-
-      const rates = {
-        air: {
-          perKg: { min: 3, max: 6 },
-          stopFee: { min: 50, max: 100 },
-          kmh: 900,
-          co2PerKm: 0.6,
-          stopTime: 3,
-        },
-        sea: {
-          perKg: { min: 0.02, max: 0.05 },
-          stopFee: { min: 100, max: 200 },
-          kmh: 40,
-          co2PerKm: 0.01,
-          stopTime: 12,
-        },
-        land: {
-          perKg: { min: 0.1, max: 0.2 },
-          stopFee: { min: 20, max: 50 },
-          kmh: 60,
-          co2PerKm: 0.07,
-          stopTime: 2,
-        },
-      };
-
-      routeDirections.forEach((segment) => {
-        const mode = segment.state;
-        const dist = getApproximateDistance(
-          segment.waypoints[0],
-          segment.waypoints[1],
-          mode
-        );
-        totalDistance += dist;
-
-        let perKgRate =
-          rates[mode].perKg.min +
-          Math.random() * (rates[mode].perKg.max - rates[mode].perKg.min);
-        if (weight > 500) perKgRate *= 0.8;
-        else if (weight > 100) perKgRate *= 0.9;
-
-        totalCost +=
-          perKgRate * weight +
-          (rates[mode].stopFee.min +
-            Math.random() *
-              (rates[mode].stopFee.max - rates[mode].stopFee.min));
-
-        totalTime += dist / rates[mode].kmh + rates[mode].stopTime;
-        rawCO2 += rates[mode].co2PerKm * dist * weight;
-      });
-
-      if (totalDistance > 10000) {
-        totalCost *= 1.1;
-      }
-
-      return { totalCost, totalTime, totalDistance, rawCO2 };
-    };
-
-    let processedRoutes = [];
-    let allRawCO2s = [];
-
-    for (const route of aiGeneratedRoutes) {
+    const finalRoutes = aiGeneratedRoutes.map((route) => {
       if (
         !route.routeDirections ||
         !Array.isArray(route.routeDirections) ||
-        route.routeDirections.length === 0
+        route.routeDirections.length === 0 ||
+        typeof route.totalDistance !== "number" ||
+        typeof route.totalCost !== "number" ||
+        typeof route.totalTime !== "number" ||
+        typeof route.totalCarbonScore !== "number" ||
+        route.totalCarbonScore < 0 ||
+        route.totalCarbonScore > 100
       ) {
-        console.warn(
-          "Skipping invalid AI-generated route (missing routeDirections):",
-          route
-        );
-        continue;
+        console.warn("Invalid route:", route);
+        throw new Error("Invalid route data");
       }
-
-      const { totalCost, totalTime, totalDistance, rawCO2 } =
-        calculateRouteMetrics(route.routeDirections, weight);
-      allRawCO2s.push(rawCO2);
-
-      processedRoutes.push({
-        routeDirections: route.routeDirections,
-        totalCost: parseFloat(totalCost.toFixed(2)),
-        totalTime: parseFloat(totalTime.toFixed(2)),
-        totalDistance: parseFloat(totalDistance.toFixed(2)),
-        rawCO2: rawCO2,
-      });
-    }
-
-    if (allRawCO2s.length === 0) {
-      return res.status(500).json({
-        error: "No valid routes could be processed from AI response.",
-      });
-    }
-
-    const maxRawCO2 = Math.max(...allRawCO2s);
-
-    processedRoutes = processedRoutes.map((route) => {
-      const totalCarbonScore = (route.rawCO2 / maxRawCO2) * 100;
-      delete route.rawCO2;
       return {
-        ...route,
-        totalCarbonScore: parseFloat(totalCarbonScore.toFixed(2)),
+        routeDirections: route.routeDirections,
+        totalDistance: parseFloat(route.totalDistance.toFixed(2)),
+        totalCost: parseFloat(route.totalCost.toFixed(2)),
+        totalTime: parseFloat(route.totalTime.toFixed(2)),
+        totalCarbonScore: parseFloat(route.totalCarbonScore.toFixed(2)),
+        tag: route.tag,
       };
     });
 
-    let finalRoutes = [];
-    const uniqueRouteSignatures = new Set();
-
-    for (const route of processedRoutes) {
-      const signature = route.routeDirections
-        .map((seg) => `${seg.waypoints.join("-")}:${seg.state}`)
-        .join("|");
-      if (!uniqueRouteSignatures.has(signature) && finalRoutes.length < 9) {
-        finalRoutes.push(route);
-        uniqueRouteSignatures.add(signature);
-      }
-    }
-
-    while (finalRoutes.length < 9) {
-      const dummyRoute = {
-        routeDirections: [
-          {
-            id: `dummy-segment-${finalRoutes.length}-1`,
-            waypoints: [`${from}`, `${to}`],
-            state: "land",
-          },
-        ],
-        totalCost: parseFloat((500 + Math.random() * 500).toFixed(2)),
-        totalTime: parseFloat((24 + Math.random() * 48).toFixed(2)),
-        totalDistance: parseFloat((500 + Math.random() * 1500).toFixed(2)),
-        totalCarbonScore: parseFloat((50 + Math.random() * 30).toFixed(2)),
-      };
-      finalRoutes.push(dummyRoute);
-    }
-
-    const routesToTag = new Set();
-    while (routesToTag.size < 3 && finalRoutes.length >= 3) {
-      routesToTag.add(Math.floor(Math.random() * finalRoutes.length));
-    }
-    routesToTag.forEach((index) => {
-      finalRoutes[index].tag = "popular";
-    });
-
-    for (let i = finalRoutes.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [finalRoutes[i], finalRoutes[j]] = [finalRoutes[j], finalRoutes[i]];
-    }
-
+    console.log("Final Routes:", finalRoutes);
     res.json(finalRoutes);
   } catch (error) {
     console.error("Error in route optimization:", error);
@@ -285,26 +213,19 @@ router.post("/api/route-optimization", async (req, res) => {
 // POST /api/routes - Process routes and store in draft
 router.post("/api/routes", verifyToken, async (req, res) => {
   try {
-    // Log request body for debugging
-    // console.log("Request body:", req.body);
-
-    // Expect routesData as an array
     const routesData = req.body;
-    const userId = req.user.id; // Get userId from JWT token
+    const userId = req.user.id;
 
-    // Extract draftId from the request body
     const draftId = routesData.find((item) => item.draftId)?.draftId;
 
     if (!Array.isArray(routesData) || routesData.length === 0) {
       return res.status(400).json({ error: "Invalid or empty routes data" });
     }
 
-    // Filter out the draftId object from routesData for processing
     const cleanedRoutesDataForProcessing = routesData.filter(
       (item) => !item.draftId
     );
 
-    // Validate and clean waypoints using Gemini
     const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
@@ -343,12 +264,11 @@ router.post("/api/routes", verifyToken, async (req, res) => {
       - If a waypoint cannot be corrected, use a default major city in the same region.
     `;
 
-    let cleanedRoutesData = cleanedRoutesDataForProcessing; // Fallback to original data
+    let cleanedRoutesData = cleanedRoutesDataForProcessing;
     try {
       const result = await model.generateContent(prompt);
       const rawResponse = result.response.text();
 
-      // Robust JSON extraction
       const jsonMatch = rawResponse.match(/\[[\s\S]*\]/);
       if (!jsonMatch) {
         console.error(
@@ -361,7 +281,6 @@ router.post("/api/routes", verifyToken, async (req, res) => {
       const jsonString = jsonMatch[0];
       cleanedRoutesData = JSON.parse(jsonString);
 
-      // Validate cleaned data structure
       if (
         !Array.isArray(cleanedRoutesData) ||
         cleanedRoutesData.length !== cleanedRoutesDataForProcessing.length
@@ -388,14 +307,11 @@ router.post("/api/routes", verifyToken, async (req, res) => {
           );
         }
       }
-
-      // console.log("Cleaned routes data:", cleanedRoutesData);
     } catch (geminiError) {
       console.error("Error cleaning routes with Gemini:", geminiError);
       console.warn("Using original routesData due to Gemini failure");
     }
 
-    // Process routes with cleaned data
     const responseData = {};
     for (const route of cleanedRoutesData) {
       try {
@@ -420,7 +336,6 @@ router.post("/api/routes", verifyToken, async (req, res) => {
       }
     }
 
-    // Prepare mapData to save
     const mapData = {
       routes: responseData,
       originalRoute: cleanedRoutesData,
@@ -428,7 +343,6 @@ router.post("/api/routes", verifyToken, async (req, res) => {
 
     let draft;
     if (draftId) {
-      // Update existing draft using findOneAndUpdate
       if (!mongoose.Types.ObjectId.isValid(draftId)) {
         return res.status(400).json({ error: "Invalid draftId format" });
       }
@@ -438,8 +352,8 @@ router.post("/api/routes", verifyToken, async (req, res) => {
       }
 
       draft = await Draft.findOneAndUpdate(
-        { _id: draftId, userId }, // Ensure the draft belongs to the authenticated user
-        { $set: { mapData } }, // Update mapData
+        { _id: draftId, userId },
+        { $set: { mapData } },
         { new: true, runValidators: true }
       );
 
@@ -448,10 +362,7 @@ router.post("/api/routes", verifyToken, async (req, res) => {
           .status(404)
           .json({ error: "Draft not found or not authorized" });
       }
-
-      // console.log("Updated draft with mapData:", draft);
     } else {
-      // Create temporary draft
       draft = new Draft({
         userId: req.user.id,
         formData: {},
@@ -464,7 +375,6 @@ router.post("/api/routes", verifyToken, async (req, res) => {
         expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
       });
       await draft.save();
-      // console.log("Created temporary draft:", draft);
     }
 
     res.status(200).json({
@@ -503,6 +413,29 @@ router.get("/api/routes/:draftId", verifyToken, async (req, res) => {
   }
 });
 
+// GET /api/routes/:draftId - Retrieve map data
+router.get("/api/routes/:draftId", verifyToken, async (req, res) => {
+  try {
+    const { draftId } = req.params;
+    const draft = await Draft.findById(draftId);
+    if (!draft) {
+      return res.status(404).json({ error: "Draft not found" });
+    }
+    if (!draft.mapData) {
+      return res
+        .status(404)
+        .json({ error: "No map data found for this draft" });
+    }
+    res.json(draft.mapData);
+  } catch (error) {
+    console.error("Error retrieving map data:", error);
+    res.status(500).json({
+      error: "Failed to retrieve map data",
+      details: error.message,
+    });
+  }
+});
+
 // Save Route
 router.post("/api/save-route", verifyToken, async (req, res) => {
   try {
@@ -513,15 +446,24 @@ router.post("/api/save-route", verifyToken, async (req, res) => {
       return res.status(400).json({ error: "Missing formData or routeData" });
     }
 
-    if (!formData.from || !formData.to || !formData.weight) {
+    // Validate required fields: from, to, and weight (from package)
+    if (
+      !formData.from ||
+      !formData.to ||
+      !formData.package ||
+      !formData.package.weight
+    ) {
       return res.status(400).json({
-        error: "formData must include from, to, and weight as required fields",
+        error:
+          "formData must include from, to, and package with weight as required fields",
       });
     }
 
-    const weight = Number(formData.weight);
-    if (isNaN(weight)) {
-      return res.status(400).json({ error: "Weight must be a valid number" });
+    const weight = Number(formData.package.weight);
+    if (isNaN(weight) || weight <= 0) {
+      return res
+        .status(400)
+        .json({ error: "Weight must be a valid positive number" });
     }
 
     if (!mongoose.Types.ObjectId.isValid(userId)) {

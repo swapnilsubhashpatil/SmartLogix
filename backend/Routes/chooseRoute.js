@@ -140,33 +140,62 @@ router.post("/api/choose-route", verifyToken, async (req, res) => {
       draft.statuses.routeOptimization = "done";
       draft.markModified("statuses");
       await draft.save();
-      // console.log("Updated draft:", draft);
       res.status(200).json({
         message: "Draft updated successfully",
         recordId: draft._id,
       });
     } else {
       // Create new draft
-      if (!formData || !formData.from || !formData.to || !formData.weight) {
+      if (
+        !formData ||
+        !formData.from ||
+        !formData.to ||
+        !formData.package ||
+        !formData.package.weight
+      ) {
         return res.status(400).json({
-          error: "formData must include from, to, and weight for new draft",
+          error:
+            "formData must include from, to, and package with weight for new draft",
         });
       }
-      const validatedWeight = Number(formData.weight);
-      if (isNaN(validatedWeight)) {
-        return res.status(400).json({ error: "Weight must be a valid number" });
+
+      const validatedWeight = Number(formData.package.weight);
+      if (isNaN(validatedWeight) || validatedWeight <= 0) {
+        return res
+          .status(400)
+          .json({ error: "Weight must be a valid positive number" });
       }
 
       // Normalize from and to using Gemini AI
-      const originResult = await normalizeCountry(formData.from);
-      const destinationResult = await normalizeCountry(formData.to);
+      let originResult, destinationResult;
+      try {
+        originResult = await normalizeCountry(formData.from);
+        destinationResult = await normalizeCountry(formData.to);
+      } catch (normalizeError) {
+        console.error("Error normalizing countries:", normalizeError);
+        return res.status(500).json({
+          error: "Failed to normalize countries",
+          details: normalizeError.message,
+        });
+      }
 
       // Validate results
-      if (!originResult || !destinationResult) {
+      if (
+        !originResult ||
+        !originResult.countryCode ||
+        !originResult.countryName
+      ) {
         return res.status(400).json({
-          error: `Could not determine country for ${
-            !originResult ? formData.from : formData.to
-          }`,
+          error: `Could not determine country for ${formData.from}`,
+        });
+      }
+      if (
+        !destinationResult ||
+        !destinationResult.countryCode ||
+        !destinationResult.countryName
+      ) {
+        return res.status(400).json({
+          error: `Could not determine country for ${formData.to}`,
         });
       }
 
@@ -175,33 +204,41 @@ router.post("/api/choose-route", verifyToken, async (req, res) => {
         input: formData.from,
         countryName: originResult.countryName,
         countryCode: originResult.countryCode,
-        confidence: originResult.confidence,
+        confidence: originResult.confidence || "N/A",
       };
       const destinationJson = {
         input: formData.to,
         countryName: destinationResult.countryName,
         countryCode: destinationResult.countryCode,
-        confidence: destinationResult.confidence,
+        confidence: destinationResult.confidence || "N/A",
       };
 
       // Create draft with normalized country codes
-      draft = await Draft.create({
-        userId: validatedUserId,
-        formData: {
-          ShipmentDetails: {
-            "Origin Country": originResult.countryCode, // e.g., "US"
-            "Destination Country": destinationResult.countryCode, // e.g., "CA"
-            "Gross Weight": validatedWeight,
+      try {
+        draft = await Draft.create({
+          userId: validatedUserId,
+          formData: {
+            ShipmentDetails: {
+              "Origin Country": originResult.countryCode, // e.g., "US"
+              "Destination Country": destinationResult.countryCode, // e.g., "CA"
+              "Gross Weight": validatedWeight,
+            },
           },
-        },
-        routeData,
-        statuses: {
-          compliance: "notDone",
-          routeOptimization: "done",
-        },
-        timestamp: new Date(),
-      });
-      // console.log("Created draft:", draft);
+          routeData,
+          statuses: {
+            compliance: "notDone",
+            routeOptimization: "done",
+          },
+          timestamp: new Date(),
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // Add expiresAt if required by your schema
+        });
+      } catch (draftError) {
+        console.error("Error creating draft:", draftError);
+        return res.status(500).json({
+          error: "Failed to create draft",
+          details: draftError.message,
+        });
+      }
 
       // Return response with JSON outputs
       res.status(200).json({
