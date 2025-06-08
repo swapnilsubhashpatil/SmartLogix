@@ -1,30 +1,29 @@
+const fs = require("fs");
 const multer = require("multer");
 const { Storage } = require("@google-cloud/storage");
 const vision = require("@google-cloud/vision");
+const path = require("path");
 const dotenv = require("dotenv");
+
 dotenv.config();
 
-const serviceAccountCredentials = {
-  type: process.env.TYPE,
-  project_id: process.env.PROJECT_ID,
-  private_key_id: process.env.PRIVATE_KEY_ID,
-  private_key: process.env.PRIVATE_KEY,
-  client_email: process.env.CLIENT_EMAIL,
-  client_id: process.env.CLIENT_ID,
-  auth_uri: process.env.AUTH_URI,
-  token_uri: process.env.TOKEN_URI,
-  auth_provider_x509_cert_url: process.env.AUTH_PROVIDER_X509_CERT_URL,
-  client_x509_cert_url: process.env.CLIENT_X509_CERT_URL,
-  universe_domain: process.env.UNIVERSE_DOMAIN,
-};
+let credentials;
+
+if (process.env.NODE_ENV === "production") {
+  // Cloud Run: Load credentials from Secret Manager mount
+  const secretPath = "/secrets/smartlogix-upload";
+  credentials = JSON.parse(fs.readFileSync(secretPath, "utf8"));
+} else {
+  // Local: Load service account from local JSON file
+  const localKeyPath = path.resolve(__dirname, "./smartlogix-upload.json");
+  credentials = JSON.parse(fs.readFileSync(localKeyPath, "utf8"));
+}
 
 // Multer setup for file uploads
 const upload = multer({ storage: multer.memoryStorage() });
 
-// Initialize Google Cloud clients with credentials
-const storage = new Storage({ credentials: serviceAccountCredentials });
-const visionClient = new vision.ImageAnnotatorClient({
-  credentials: serviceAccountCredentials,
-});
+// Initialize Google Cloud clients
+const storage = new Storage({ credentials });
+const visionClient = new vision.ImageAnnotatorClient({ credentials });
 
 module.exports = { upload, storage, visionClient };
