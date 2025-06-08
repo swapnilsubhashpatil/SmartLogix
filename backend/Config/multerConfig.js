@@ -10,9 +10,15 @@ dotenv.config();
 let storage, visionClient;
 
 if (process.env.NODE_ENV === "production") {
-  // Load credentials from mounted secret in Cloud Run
-  const keyPath = "/secrets/smartlogix-upload";
-  const credentials = JSON.parse(fs.readFileSync(keyPath, "utf8"));
+  let credentials;
+  try {
+    credentials = JSON.parse(process.env.ENV); // Parse the JSON string from the ENV variable
+  } catch (error) {
+    console.error("Failed to parse credentials from ENV:", error);
+    throw new Error(
+      "Unable to load Google Cloud credentials from environment variable"
+    );
+  }
 
   storage = new Storage({ credentials });
   visionClient = new vision.ImageAnnotatorClient({ credentials });
