@@ -493,7 +493,7 @@ const History = () => {
                             <motion.button
                               whileHover={{ scale: 1.05 }}
                               whileTap={{ scale: 0.95 }}
-                              onClick={() => handleDeleteRoute("")}
+                              onClick={() => handleDeleteRoute(entry._id)} // Fix: Pass entry._id instead of ""
                               className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors duration-200"
                             >
                               <FaTrash />

@@ -714,17 +714,28 @@ function ExportReport() {
           // }
         }
 
+        const carbonParams = {
+          draftId: draftId,
+          origin: draft.routeData.routeDirections[0].waypoints[0], // Use first waypoint of the route
+          destination:
+            draft.routeData.routeDirections[
+              draft.routeData.routeDirections.length - 1
+            ].waypoints[1], // Use last waypoint of the route
+          distance: draft.routeData.totalDistance,
+          weight: parseFloat(draft.formData.ShipmentDetails["Gross Weight"]),
+          routeDirections: draft.routeData.routeDirections,
+          distanceByLeg: draft.routeData.distanceByLeg, // Include distanceByLeg
+        };
+
         const carbonResponse = await axios.post(
           `${BACKEND_URL}/api/carbon-footprint`,
+          carbonParams,
           {
-            draftId: draftId,
-            origin: draft.formData.ShipmentDetails["Origin Country"],
-            destination: draft.formData.ShipmentDetails["Destination Country"],
-            distance: draft.routeData.totalDistance,
-            weight: parseFloat(draft.formData.ShipmentDetails["Gross Weight"]),
-            routeDirections: draft.routeData.routeDirections,
-          },
-          { headers: { Authorization: `Bearer ${token}` } }
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          }
         );
         setCarbonData(carbonResponse.data);
       } catch (err) {

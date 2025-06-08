@@ -358,6 +358,7 @@ const RouteOptimization = () => {
         distance: route.totalDistance,
         weight: parseFloat(packageData.weight),
         routeDirections: route.routeDirections,
+        distanceByLeg: route.distanceByLeg, // Pass the distanceByLeg array
       };
       const response = await axios.post(
         `${BACKEND_URL}/api/carbon-footprint`,
@@ -445,6 +446,7 @@ const RouteOptimization = () => {
           totalTime: route.totalTime,
           totalDistance: route.totalDistance,
           totalCarbonScore: route.totalCarbonScore,
+          distanceByLeg: route.distanceByLeg, // Added distanceByLeg here
           tag: route.tag,
         },
         formData:
@@ -601,7 +603,8 @@ const RouteOptimization = () => {
                   onChange={(e) => setFrom(e.target.value)}
                   required
                   placeholder=" "
-                  className="peer w-full px-4 py-4 bg-white/40 backdrop-blur-sm border-2 border-gray-300/40 rounded-2xl text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/60 transition-all duration-300 hover:bg-white/50 hover:scale-[1.02] hover:shadow-lg hover:border-gray-400/60 active:scale-[0.98]"
+                  disabled={showResults} // Disable when results are shown
+                  className="peer w-full px-4 py-4 bg-white/40 backdrop-blur-sm border-2 border-gray-300/40 rounded-2xl text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/60 transition-all duration-300 hover:bg-white/50 hover:scale-[1.02] hover:shadow-lg hover:border-gray-400/60 active:scale-[0.98] disabled:bg-gray-200/50 disabled:cursor-not-allowed"
                 />
                 <label
                   htmlFor="from"
@@ -620,7 +623,8 @@ const RouteOptimization = () => {
                   onChange={(e) => setTo(e.target.value)}
                   required
                   placeholder=" "
-                  className="peer w-full px-4 py-4 bg-white/40 backdrop-blur-sm border-2 border-gray-300/40 rounded-2xl text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/60 transition-all duration-300 hover:bg-white/50 hover:scale-[1.02] hover:shadow-lg hover:border-gray-400/60 active:scale-[0.98]"
+                  disabled={showResults} // Disable when results are shown
+                  className="peer w-full px-4 py-4 bg-white/40 backdrop-blur-sm border-2 border-gray-300/40 rounded-2xl text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/60 transition-all duration-300 hover:bg-white/50 hover:scale-[1.02] hover:shadow-lg hover:border-gray-400/60 active:scale-[0.98] disabled:bg-gray-200/50 disabled:cursor-not-allowed"
                 />
                 <label
                   htmlFor="to"
@@ -638,7 +642,8 @@ const RouteOptimization = () => {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder=" "
-                  className="peer w-full px-4 py-4 bg-white/40 backdrop-blur-sm border-2 border-gray-300/40 rounded-2xl text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/60 transition-all duration-300 hover:bg-white/50 hover:scale-[1.02] hover:shadow-lg hover:border-gray-400/60 active:scale-[0.98]"
+                  disabled={showResults} // Disable when results are shown
+                  className="peer w-full px-4 py-4 bg-white/40 backdrop-blur-sm border-2 border-gray-300/40 rounded-2xl text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/60 transition-all duration-300 hover:bg-white/50 hover:scale-[1.02] hover:shadow-lg hover:border-gray-400/60 active:scale-[0.98] disabled:bg-gray-200/50 disabled:cursor-not-allowed"
                 />
                 <label
                   htmlFor="description"
@@ -661,7 +666,8 @@ const RouteOptimization = () => {
                   onClick={handlePackageDialogOpen}
                   readOnly
                   placeholder=" "
-                  className="peer w-full px-4 py-4 bg-white/40 backdrop-blur-sm border-2 border-gray-300/40 rounded-2xl text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/60 transition-all duration-300 hover:bg-white/50 hover:scale-[1.02] hover:shadow-lg hover:border-gray-400/60 active:scale-[0.98] cursor-pointer"
+                  disabled={showResults} // Disable when results are shown
+                  className="peer w-full px-4 py-4 bg-white/40 backdrop-blur-sm border-2 border-gray-300/40 rounded-2xl text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/60 transition-all duration-300 hover:bg-white/50 hover:scale-[1.02] hover:shadow-lg hover:border-gray-400/60 active:scale-[0.98] cursor-pointer disabled:bg-gray-200/50 disabled:cursor-not-allowed"
                 />
                 <label
                   htmlFor="package"
@@ -676,7 +682,7 @@ const RouteOptimization = () => {
             <div className="mt-8 flex justify-center">
               <button
                 type="submit"
-                disabled={loading}
+                disabled={loading || showResults} // Disable when loading or results are shown
                 className="group relative px-8 py-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold rounded-2xl border-2 border-blue-400/30 hover:border-blue-300/50 shadow-lg shadow-blue-500/25 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-blue-500/40 active:scale-95 disabled:hover:scale-100 disabled:hover:shadow-lg min-w-[200px] backdrop-blur-sm"
               >
                 <span className="flex items-center justify-center gap-3">
@@ -1033,7 +1039,7 @@ const RouteOptimization = () => {
                       </div>
                       <div className="flex flex-col items-center">
                         <Typography className="text-gray-700 text-sm sm:text-base">
-                          {route.totalTime} hrs
+                          {route.totalTimeDaysRange}
                         </Typography>
                         <span className="text-xs text-gray-500 flex items-center gap-1 bg-blue-100 px-2 py-1 rounded-full mt-1">
                           <svg

@@ -124,6 +124,36 @@ router.post("/api/choose-route", verifyToken, async (req, res) => {
     }
     const validatedUserId = new mongoose.Types.ObjectId(userId);
 
+    // Validate routeData
+    if (
+      !routeData ||
+      !routeData.routeDirections ||
+      !Array.isArray(routeData.routeDirections)
+    ) {
+      return res
+        .status(400)
+        .json({ error: "routeData must include routeDirections as an array" });
+    }
+    if (!routeData.distanceByLeg || !Array.isArray(routeData.distanceByLeg)) {
+      return res.status(400).json({ error: "distanceByLeg must be an array" });
+    }
+    if (routeData.distanceByLeg.length !== routeData.routeDirections.length) {
+      return res
+        .status(400)
+        .json({
+          error:
+            "distanceByLeg length must match the number of routeDirections",
+        });
+    }
+    for (let i = 0; i < routeData.distanceByLeg.length; i++) {
+      const distance = routeData.distanceByLeg[i];
+      if (isNaN(distance) || distance <= 0) {
+        return res
+          .status(400)
+          .json({ error: `distanceByLeg[${i}] must be a positive number` });
+      }
+    }
+
     let draft;
     if (draftId) {
       // Update existing draft
@@ -136,9 +166,13 @@ router.post("/api/choose-route", verifyToken, async (req, res) => {
           .status(404)
           .json({ message: "Draft not found or not authorized" });
       }
-      draft.routeData = routeData;
+      draft.routeData = {
+        ...routeData,
+        distanceByLeg: routeData.distanceByLeg, // Explicitly ensure distanceByLeg is saved
+      };
       draft.statuses.routeOptimization = "done";
       draft.markModified("statuses");
+      draft.markModified("routeData");
       await draft.save();
       res.status(200).json({
         message: "Draft updated successfully",
@@ -213,24 +247,27 @@ router.post("/api/choose-route", verifyToken, async (req, res) => {
         confidence: destinationResult.confidence || "N/A",
       };
 
-      // Create draft with normalized country codes
+      // Create draft with normalized country codes and routeData including distanceByLeg
       try {
         draft = await Draft.create({
           userId: validatedUserId,
           formData: {
             ShipmentDetails: {
-              "Origin Country": originResult.countryCode, // e.g., "US"
-              "Destination Country": destinationResult.countryCode, // e.g., "CA"
+              "Origin Country": originResult.countryCode,
+              "Destination Country": destinationResult.countryCode,
               "Gross Weight": validatedWeight,
             },
           },
-          routeData,
+          routeData: {
+            ...routeData,
+            distanceByLeg: routeData.distanceByLeg, // Explicitly ensure distanceByLeg is saved
+          },
           statuses: {
             compliance: "notDone",
             routeOptimization: "done",
           },
           timestamp: new Date(),
-          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000), // Add expiresAt if required by your schema
+          expiresAt: new Date(Date.now() + 24 * 60 * 60 * 1000),
         });
       } catch (draftError) {
         console.error("Error creating draft:", draftError);

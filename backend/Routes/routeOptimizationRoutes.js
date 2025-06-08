@@ -47,7 +47,7 @@ router.post("/api/route-optimization", async (req, res) => {
     const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
-    const prompt = `You are a highly intelligent, logistics-aware route optimization AI. Your task is to generate diverse, realistic, and efficient shipping routes between two global locations, precisely estimating distance, cost, time, and environmental impact based on the provided inputs.
+    const prompt = `You are a highly intelligent, logistics-aware route optimization AI. Your task is to generate diverse, realistic, and efficient shipping routes between two global locations, precisely estimating distance, cost, time, and environmental impact based on the provided inputs. Ensure all calculations align with real-world logistics data, using reliable sources for distance and cost estimation.
 
 **Inputs Provided**:
 - **Origin**: ${from}
@@ -58,28 +58,46 @@ router.post("/api/route-optimization", async (req, res) => {
   - Dimensions: ${length}x${width}x${height} cm
 - **Description**: ${description}
 
+- **Country codes or vague regions** (e.g., "EU", "FR", "IN"):
+        - Replace with a major city in that region/country (e.g., "EU" → "Brussels, Belgium", "FR" → "Paris, France", "IN" → "Mumbai, Maharashtra, India").
+
 **Responsibilities**:
 - Determine if the shipment from ${from} to ${to} is domestic (same country) or international (different countries) to select appropriate routing rules.
 - Analyze package details (quantity: ${quantity}, weight: ${weight} kg, dimensions: ${length}x${width}x${height} cm) and description ("${description}") to guide route selection and calculations:
-  - Quantity (${quantity}) determines if multiple containers or trucks are needed, impacting cost and mode choice.
+  - Quantity (${quantity}) determines if multiple containers or trucks are needed, impacting cost and mode choice. Adjust rates based on quantity: if quantity is 2, double the rate; if 3, triple the rate; and so on (e.g., for quantity ${quantity}, multiply the base rate by ${quantity}).
   - Weight (${weight} kg) drives cost calculations, especially for air freight where weight-based pricing is critical.
   - Dimensions (${length}x${width}x${height} cm) affect volumetric weight for air freight and container requirements for sea freight.
   - Description ("${description}") keywords (e.g., "perishable," "hazardous," "fragile," "urgent") dictate special handling:
     - Perishable/urgent: Prioritize air routes for speed, increasing costs.
     - Hazardous: Select compliant routes, avoiding restricted modes, with surcharges.
-    - Fragile: Prefer stable modes (land or sea) to minimize handling risks.
+    - Fragile: Prefer stable modes (land or sea) to minimize handling risks, and apply carrier guidelines for safe packaging.
 
 **Geographically Valid Waypoints**:
-- **Sea**: Use commercial seaports (e.g., "Port of Shanghai", "Port of Rotterdam").
-- **Air**: Use international airports (e.g., "JFK Airport", "Heathrow LHR").
+- **Sea**: Use short names for commercial seaports (e.g., "Mumbai Port", "Tokyo Port").
+- **Air**: Use short names for international airports (e.g., "DEL Airport", "NRT Airport").
 - **Land**: Use logistics hubs or cities (e.g., "Chicago", "Lyon").
 
 **Routing Logic**:
 - Generate practical routes from ${from} to ${to} with mode-appropriate waypoints:
-  - Sea: Only between seaports.
-  - Air: Only between airports.
-  - Land: Only between cities/hubs.
-- For multimodal routes, define each segment distinctly, considering package details (weight: ${weight} kg, dimensions: ${length}x${width}x${height} cm).
+  - **Sea legs**: Must be between two seaports (e.g., "Mumbai Port" to "Tokyo Port").
+  - **Air legs**: Must be between two airports (e.g., "DEL Airport" to "NRT Airport").
+  - **Land legs**: Must be between cities, or between a city and a port/airport (e.g., "Pune" to "DEL Airport", or "Pune" to "Mumbai Port").
+- **Transition Rules**:
+  - When transitioning from a city to air or sea transport, include a land leg to connect the city to the appropriate airport or seaport.
+  - For example, if the route starts in "Pune" and includes an air leg, the first leg must be a land leg from "Pune" to "DEL Airport", followed by an air leg from "DEL Airport" to another airport (e.g., "NRT Airport").
+  - Similarly, if the route includes a sea leg, include a land leg from the city to a seaport (e.g., "Pune" to "Mumbai Port"), then a sea leg between seaports.
+  - At the destination, include a land leg from the final airport/seaport to the destination city (e.g., "NRT Airport" to "Tokyo").
+- **Avoid Invalid Routes**:
+  - Do not generate routes where a city connects directly to an airport or seaport via an air or sea leg (e.g., do not create an air leg from "Pune" directly to "NRT Airport").
+  - Do not generate consecutive land legs that do not involve a transition to a port or airport (e.g., avoid "Pune" to "Mumbai" via land, then "Mumbai" to "Mumbai Port" via land; instead, go directly from "Pune" to "Mumbai Port" via land).
+- For each leg, calculate the distance in km using real-world geographical paths between the waypoints, ensuring the distance is always a positive number greater than 0.
+
+**Distance Calculation**:
+- Use reliable sources like the Google Distance Matrix API, OpenStreetMap, or standard geographical databases to calculate distances:
+  - For **land routes**, refer to road distances (e.g., the road distance between "Pune" and "DEL Airport" is approximately 1400-1500 km, not 500 km).
+  - For **air routes**, use the great-circle distance between airports (e.g., "DEL Airport" to "NRT Airport" is approximately 5830 km).
+  - For **sea routes**, use standard maritime distances between ports (e.g., "Mumbai Port" to "Tokyo Port" is approximately 6700 km).
+- Cross-verify distances with real-world data to ensure accuracy (e.g., avoid underestimating land distances like 500 km for Pune to Delhi, which should be 1400-1500 km).
 
 **Routing Rules**:
 - **Domestic Shipments** (if ${from} and ${to} are in the same country):
@@ -93,44 +111,71 @@ router.post("/api/route-optimization", async (req, res) => {
 
 **Estimation Requirements**:
 - Simulate current industry standards by referencing rates from DHL (https://www.dhl.com) and Freightos (https://www.freightos.com), adjusted for package details (quantity: ${quantity}, weight: ${weight} kg, dimensions: ${length}x${width}x${height} cm) and description ("${description}").
-- **Distance**: Calculate in km using real-world geography from ${from} to ${to} for each mode, ensuring accuracy for each segment.
+- **Volumetric Weight Calculation**:
+  - Calculate the volumetric weight using the formula: (Length x Width x Height) / 5000 (dimensions in cm, result in kg).
+  - Volumetric weight = (${length} x ${width} x ${height}) / 5000 = ${(
+      (length * width * height) /
+      5000
+    ).toFixed(2)} kg.
+  - Use the higher of actual weight (${weight} kg) or volumetric weight (${(
+      (length * width * height) /
+      5000
+    ).toFixed(2)} kg) for cost calculations.
+- **Distance**:
+  - For each leg in the routeDirections, calculate the specific distance between the waypoints in km using real-world geographical paths.
+  - Ensure each leg's distance is a positive number greater than 0 (e.g., the distance between "Pune" and "DEL Airport" should be 1400-1500 km by road).
 - **Cost (USD)**:
-  - Use package details (weight: ${weight} kg, dimensions: ${length}x${width}x${height} cm) and description ("${description}") to calculate costs based on DHL and Freightos rates:
+  - Use the higher of actual weight (${weight} kg) or volumetric weight (${(
+      (length * width * height) /
+      5000
+    ).toFixed(2)} kg) to calculate base costs based on DHL and Freightos rates.
+  - Adjust costs based on quantity (${quantity}): multiply the base cost by ${quantity} (e.g., if quantity is 2, double the cost; if 3, triple the cost).
+  - Note that air rates are higher than sea rates:
     - **Land**:
       - Domestic: $0.5-$2/kg/km, adjusted for quantity (${quantity}) and route demand.
       - International: $1.5-$3/kg/km, reflecting cross-border logistics.
       - For quantity (${quantity}) exceeding truck capacity, apply full truckload (FTL) rates (e.g., $1.20-$2.50/km) or less than truckload (LTL) rates ($40-$100/ton for ≤500 km).
-      - Add 20% surcharge for hazardous or perishable cargo from "${description}".
-    - **Air**:
-      - Base on weight (${weight} kg) and volumetric weight (length × width × height / 5000 cm³), using DHL air freight rates ($5-$15/kg for standard, $8-$20/kg for express).
-      - Use the higher of actual (${weight} kg) or volumetric weight.
-      - Add 20% surcharge for special handling (e.g., perishable, hazardous) from "${description}".
-    - **Sea**:
+      - Add 20% surcharge for hazardous, perishable, or fragile cargo from "${description}".
+    - **Air** (higher rates than sea):
+      - Base on the higher of actual weight (${weight} kg) or volumetric weight, using DHL air freight rates ($5-$15/kg for standard, $8-$20/kg for express).
+      - Add 20% surcharge for special handling (e.g., perishable, hazardous, fragile) from "${description}".
+    - **Sea** (lower rates than air):
       - Use Freightos container rates: $1000-$5000 for 20-ft FCL, $1500-$8000 for 40-ft FCL, or $1-$5/kg for LCL, adjusted for distance and route popularity.
       - For quantity (${quantity}), calculate if multiple containers are needed based on dimensions (${length}x${width}x${height} cm).
       - Add 20% surcharge for special handling from "${description}".
+  - **Cost-Saving Strategies**:
+    - Consider efficient packaging to minimize volumetric weight (e.g., use the smallest possible box for the item).
+    - Account for discounted shipping rates based on volume (e.g., apply a 10-20% discount on rates for high-volume shipments).
 - **Time (hours)**:
-  - Land: Domestic: (distance/60) + 6; International: (distance/60) + 18.
-  - Air: Domestic: 12-24; International: 48-96.
-  - Sea: Short-haul: 168-288; Long-haul: 600-1080.
-  - Add 10% time for special cargo (e.g., hazardous) from "${description}".
+  - Calculate totalTime in hours as the sum of the time for each leg:
+    - Land: Domestic: (distance/60) + 6; International: (distance/60) + 18.
+    - Air: Domestic: 12-24; International: 48-72 (2-3 days).
+    - Sea: Short to medium-haul (e.g., within Asia or Europe): 192-216 hours (8-9 days); Long-haul (e.g., Asia to North America): 600-1080 hours (25-45 days).
+    - Add 10% time for special cargo (e.g., hazardous, fragile) from "${description}".
+  - For totalTimeDaysRange, convert the totalTime (in hours) to a days range:
+    - Divide totalTime by 24 to get the number of days (e.g., 48 hours / 24 = 2 days).
+    - If totalTime falls within a predefined range (e.g., 48-72 hours), use the corresponding days range (e.g., "2-3 days").
+    - Examples:
+      - 48-72 hours → "2-3 days"
+      - 192-216 hours → "8-9 days"
+      - 600-1080 hours → "25-45 days"
 - **Carbon Score (0-100)**:
   - Air: 70-100 (high emissions).
   - Sea: 20-40 (low emissions).
   - Land: 40-60 (medium emissions).
-  - Adjust based on distance, weight (${weight} kg), and mode mix, normalized across routes.
+  - Adjust based on distance, the higher of weight (${weight} kg) or volumetric weight, and mode mix, normalized across routes.
 
 **Validation**:
 - Recheck routes for realism:
-  - Ensure waypoints match modes (e.g., sea routes use ports like "Port of Shanghai").
-  - Verify distances align with geographical paths from ${from} to ${to}.
-  - Confirm costs reflect DHL and Freightos rates, adjusted for package details (weight: ${weight} kg, dimensions: ${length}x${width}x${height} cm) and special handling from "${description}".
-  - Ensure times and carbon scores align with industry norms and package requirements.
-- Adjust any outliers to maintain consistency with real-world logistics data.
+  - Ensure waypoints match modes (e.g., sea legs use ports like "Mumbai Port", air legs use airports like "DEL Airport").
+  - Verify distances align with geographical paths from ${from} to ${to}, using sources like Google Distance Matrix API (e.g., Pune to DEL Airport should be 1400-1500 km by road), and each leg distance is greater than 0.
+  - Confirm costs reflect DHL and Freightos rates, adjusted for the higher of actual or volumetric weight, package dimensions (${length}x${width}x${height} cm), quantity (${quantity}), and special handling from "${description}".
+  - Ensure times align with updated ranges (e.g., air at 2-3 days, sea at 8-9 days for short to medium hauls), and carbon scores align with industry norms and package requirements.
+- Adjust any outliers to maintain consistency with real-world logistics data (e.g., correct underestimated distances like 500 km for Pune to Delhi).
 
 **Tagging Popular Routes**:
 - Tag three routes as "popular" based on package details (quantity: ${quantity}, weight: ${weight} kg, dimensions: ${length}x${width}x${height} cm) and description ("${description}"):
-  - One with the lowest totalCost, optimized for ${weight} kg and any special handling.
+  - One with the lowest totalCost, optimized for the higher of weight or volumetric weight and any special handling.
   - One with the shortest totalTime, prioritizing speed if "${description}" indicates urgency.
   - One with the lowest totalCarbonScore, favoring eco-friendly options.
 - If overlap occurs, select the next best distinct route to ensure diversity.
@@ -141,10 +186,10 @@ router.post("/api/route-optimization", async (req, res) => {
 
 **Output Format**:
 - Return only a JSON array of route objects:
-  - "routeDirections": Array of { "id": "unique-string", "waypoints": ["start", "end"], "state": "land" | "sea" | "air" }
-  - "totalDistance": number (km)
+  - "routeDirections": Array of { "id": "unique-string", "waypoints": ["start", "end"], "state": "land" | "sea" | "air", "distance": number (km) }
   - "totalCost": number (USD)
   - "totalTime": number (hours)
+  - "totalTimeDaysRange": string (e.g., "2-3 days")
   - "totalCarbonScore": number (0-100)
   - "tag": "popular" or null
 - Ensure clean, parseable JSON with no extra text.`;
@@ -182,23 +227,42 @@ router.post("/api/route-optimization", async (req, res) => {
         !route.routeDirections ||
         !Array.isArray(route.routeDirections) ||
         route.routeDirections.length === 0 ||
-        typeof route.totalDistance !== "number" ||
         typeof route.totalCost !== "number" ||
         typeof route.totalTime !== "number" ||
         typeof route.totalCarbonScore !== "number" ||
         route.totalCarbonScore < 0 ||
-        route.totalCarbonScore > 100
+        route.totalCarbonScore > 100 ||
+        typeof route.totalTimeDaysRange !== "string"
       ) {
         console.warn("Invalid route:", route);
         throw new Error("Invalid route data");
       }
+
+      // Calculate totalDistance as the sum of leg distances
+      const legDistances = route.routeDirections.map((leg) => {
+        if (typeof leg.distance !== "number" || leg.distance <= 0) {
+          console.warn("Invalid leg distance:", leg);
+          throw new Error("Each leg must have a valid positive distance");
+        }
+        return leg.distance;
+      });
+
+      const totalDistance = legDistances.reduce((sum, dist) => sum + dist, 0);
+
       return {
-        routeDirections: route.routeDirections,
-        totalDistance: parseFloat(route.totalDistance.toFixed(2)),
+        routeDirections: route.routeDirections.map((leg) => ({
+          id: leg.id,
+          waypoints: leg.waypoints,
+          state: leg.state,
+          distance: parseFloat(leg.distance.toFixed(2)),
+        })),
+        totalDistance: parseFloat(totalDistance.toFixed(2)),
         totalCost: parseFloat(route.totalCost.toFixed(2)),
         totalTime: parseFloat(route.totalTime.toFixed(2)),
+        totalTimeDaysRange: route.totalTimeDaysRange, // Include the days range
         totalCarbonScore: parseFloat(route.totalCarbonScore.toFixed(2)),
         tag: route.tag,
+        distanceByLeg: legDistances.map((dist) => parseFloat(dist.toFixed(2))),
       };
     });
 
@@ -230,37 +294,46 @@ router.post("/api/routes", verifyToken, async (req, res) => {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
 
     const prompt = `
-      You are a geocoding validation AI tasked with correcting invalid or ambiguous waypoints in shipping routes to ensure they are geocodable by Google Maps API. For each waypoint in the provided routes, return a specific, geocodable place name (e.g., city, airport, or port with proper formatting like "Mumbai, Maharashtra, India"). Handle the following cases:
-      - Country codes (e.g., "EU", "FR", "IN"): Replace with a major city (e.g., "EU" → "Brussels, Belgium", "FR" → "Paris, France", "IN" → "Mumbai, Maharashtra, India").
-      - Vague or non-specific ports (e.g., "Mumbai Port"): Replace with the city (e.g., "Mumbai, Maharashtra, India").
-      - Invalid or non-existent locations: Replace with a sensible default city in the same region or country, or the closest major city.
-      - Valid waypoints (e.g., "Mumbai BOM", "Port of Rotterdam"): Keep as-is if geocodable, or format properly (e.g., "Mumbai, Maharashtra, India" for consistency).
-      - Ensure waypoints match the transport mode:
+      You are a geocoding validation AI tasked with correcting and standardizing waypoints in shipping routes to ensure they are geocodable by Google Maps API and formatted for display. For each waypoint in the provided routes, return a specific, geocodable place name in the format expected by Google Maps (e.g., cities as "City, Country", ports and airports with their official names and locations like "Jawaharlal Nehru Port, Mumbai, Maharashtra, India"). Handle the following cases:
+
+      - **Cities** (e.g., "Pune", "Tokyo"):
+        - Format as "City, Country" (e.g., "Pune" → "Pune, India", "Tokyo" → "Tokyo, Japan").
+      - **Country codes or vague regions** (e.g., "EU", "FR", "IN"):
+        - Replace with a major city in that region/country (e.g., "EU" → "Brussels, Belgium", "FR" → "Paris, France", "IN" → "Mumbai, Maharashtra, India").
+      - **Ports** (e.g., "Mumbai Port", "Tokyo Port"):
+        - Convert to their official port names as recognized by Google Maps, including the city and country (e.g., "Mumbai Port" → "Jawaharlal Nehru Port, Mumbai, Maharashtra, India", "Tokyo Port" → "Port of Tokyo, Tokyo, Japan").
+      - **Airports** (e.g., "DEL Airport", "NRT Airport"):
+        - Convert to their official airport names as recognized by Google Maps, including the city and country (e.g., "DEL Airport" → "Indira Gandhi International Airport, Delhi, India", "NRT Airport" → "Narita International Airport, Narita, Chiba, Japan").
+      - **Invalid or non-existent locations**:
+        - Replace with a sensible default city in the same region or country, or the closest major city (e.g., "UnknownPort" → "Mumbai, Maharashtra, India" if in India).
+      - **Ensure waypoints match the transport mode**:
         - Land: Major cities or logistics hubs (e.g., "Delhi, India").
-        - Sea: Major ports or nearby cities (e.g., "Rotterdam, Netherlands").
-        - Air: Airports or cities with airports (e.g., "London Heathrow LHR" or "London, United Kingdom").
-      
+        - Sea: Major ports with official names (e.g., "Jawaharlal Nehru Port, Mumbai, Maharashtra, India").
+        - Air: Airports with official names (e.g., "Indira Gandhi International Airport, Delhi, India").
+      - **Already geocodable waypoints** (e.g., "Mumbai BOM", "Port of Rotterdam"):
+        - If already geocodable, format for consistency (e.g., "Mumbai BOM" → "Chhatrapati Shivaji Maharaj International Airport, Mumbai, Maharashtra, India", "Port of Rotterdam" → "Port of Rotterdam, Rotterdam, Netherlands").
+
       **Input**:
       ${JSON.stringify(cleanedRoutesDataForProcessing, null, 2)}
-      
+
       **Output Format**:
-      Return a JSON array matching the input structure, with corrected waypoints. Preserve the "id" and "state" fields. Only modify "waypoints" to ensure they are geocodable. Example:
+      Return a JSON array matching the input structure, with corrected and standardized waypoints. Preserve the "id" and "state" fields. Only modify "waypoints" to ensure they are geocodable and properly formatted for display. Example:
       [
         {
           "id": "segment1",
-          "waypoints": ["Mumbai, Maharashtra, India", "Delhi, India"],
+          "waypoints": ["Pune, India", "Jawaharlal Nehru Port, Mumbai, Maharashtra, India"],
           "state": "land"
         },
         {
           "id": "segment2",
-          "waypoints": ["Mumbai, Maharashtra, India", "Singapore, Singapore"],
+          "waypoints": ["Jawaharlal Nehru Port, Mumbai, Maharashtra, India", "Port of Tokyo, Tokyo, Japan"],
           "state": "sea"
         }
       ]
-      
+
       **Instructions**:
       - Return only the JSON array, with no additional text or explanations.
-      - Ensure all waypoints are specific and geocodable.
+      - Ensure all waypoints are specific, geocodable, and formatted as "Place, City, Country" or "Official Name, City, Country" for ports and airports.
       - If a waypoint cannot be corrected, use a default major city in the same region.
     `;
 
