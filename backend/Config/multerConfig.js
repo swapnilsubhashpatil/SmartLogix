@@ -11,8 +11,8 @@ let credentials;
 
 if (process.env.NODE_ENV === "production") {
   // Cloud Run: Load credentials from Secret Manager mount
-  const secretPath = "/secrets/smartlogix-upload";
-  credentials = JSON.parse(fs.readFileSync(secretPath, "utf8"));
+  storageClient = new Storage(); // No credentials needed
+  visionClient = new vision.ImageAnnotatorClient();
 } else {
   // Local: Load service account from local JSON file
   const localKeyPath = path.resolve(__dirname, "./smartlogix-upload.json");
