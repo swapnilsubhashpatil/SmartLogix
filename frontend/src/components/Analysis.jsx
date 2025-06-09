@@ -18,6 +18,7 @@ import {
   FileCheck,
   Globe,
   User,
+  Inbox,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import axios from "axios";
@@ -178,7 +179,7 @@ const Analysis = () => {
       >
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text-gray-600 mb-1">{title}</p>
+            <p className="text-sm text_gray-600 mb-1">{title}</p>
             <p className="text-2xl font-bold text-gray-900">{value}</p>
             {subtitle && (
               <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
@@ -198,6 +199,35 @@ const Analysis = () => {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <p className="text-red-500">{error}</p>
+      </div>
+    );
+  }
+
+  if (!loading && shipmentData.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <Header title="Analysis" />
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="bg-white mt-8 rounded-xl shadow-lg p-6 flex items-center justify-center flex-col"
+          >
+            <Inbox className="w-12 h-12 text-gray-400 mb-4" />
+            <p className="text-gray-600 text-center">
+              None of your records are compliant and route optimized.For
+              analysis, you need at least one record that is compliant and route
+              optimized.
+            </p>
+            <button
+              onClick={() => navigate("/inventory-management")} // Adjust the route as per your app's routing
+              className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Go to Inventory
+            </button>
+          </motion.div>
+        </div>
       </div>
     );
   }
@@ -230,7 +260,7 @@ const Analysis = () => {
               icon={TrendingUp}
               title="Total Cost"
               value={`$${
-                parseInt(analytics.totalCost)?.toLocaleString() || "0" // Changed ZinLocaleString() to toLocaleString()
+                parseInt(analytics.totalCost)?.toLocaleString() || "0"
               }`}
               subtitle="Shipping costs"
               color="yellow"
