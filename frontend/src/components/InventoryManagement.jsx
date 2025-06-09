@@ -795,7 +795,7 @@ const InventoryManagement = () => {
             sx={{
               position: "fixed",
               bottom: { xs: 16, sm: 24 },
-              right: { xs: 16, sm: 24 },
+              left: { xs: 16, sm: 24 },
               borderRadius: "50%",
               width: { xs: 48, sm: 64 },
               height: { xs: 48, sm: 64 },
