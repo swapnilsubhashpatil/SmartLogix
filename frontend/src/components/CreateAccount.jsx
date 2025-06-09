@@ -22,302 +22,230 @@ const LogisticsGlobe = React.memo(() => {
   const [globeReady, setGlobeReady] = useState(false);
 
   // Memoize logistics data to prevent recreation
-  const LogisticsGlobe = React.memo(() => {
-    const globeEl = useRef();
-    const [globeReady, setGlobeReady] = useState(false);
+  const logisticsData = useMemo(
+    () => ({
+      hubs: [
+        // North America
+        {
+          lat: 40.7128,
+          lng: -74.006,
+          city: "New York",
+          size: 1.2,
+          color: "#60a5fa",
+        },
+        {
+          lat: 19.4326,
+          lng: -99.1332,
+          city: "Mexico City",
+          size: 1.1,
+          color: "#fbbf24",
+        },
+        // South America
+        {
+          lat: -23.5505,
+          lng: -46.6333,
+          city: "Sao Paulo",
+          size: 1.1,
+          color: "#f97316",
+        },
+        // Europe
+        {
+          lat: 51.5074,
+          lng: -0.1278,
+          city: "London",
+          size: 1.2,
+          color: "#34d399",
+        },
+        {
+          lat: 55.7558,
+          lng: 37.6173,
+          city: "Moscow",
+          size: 1.0,
+          color: "#818cf8",
+        },
+        // Africa
+        {
+          lat: -33.9249,
+          lng: 18.4241,
+          city: "Cape Town",
+          size: 1.0,
+          color: "#22d3ee",
+        },
+        // Middle East
+        {
+          lat: 25.2048,
+          lng: 55.2708,
+          city: "Dubai",
+          size: 1.1,
+          color: "#fb7185",
+        },
+        // South Asia
+        {
+          lat: 19.076,
+          lng: 72.8777,
+          city: "Mumbai",
+          size: 1.1,
+          color: "#4ade80",
+        },
+        // East Asia
+        {
+          lat: 35.6895,
+          lng: 139.6917,
+          city: "Tokyo",
+          size: 1.3,
+          color: "#fbbf24",
+        },
+        // Southeast Asia
+        {
+          lat: 1.3521,
+          lng: 103.8198,
+          city: "Singapore",
+          size: 1.2,
+          color: "#a78bfa",
+        },
+        // Oceania
+        {
+          lat: -33.8688,
+          lng: 151.2093,
+          city: "Sydney",
+          size: 1.1,
+          color: "#10b981",
+        },
+        // Central Asia
+        {
+          lat: 43.222,
+          lng: 76.8512,
+          city: "Almaty",
+          size: 1.0,
+          color: "#eab308",
+        },
+        // North Africa
+        {
+          lat: 30.0444,
+          lng: 31.2357,
+          city: "Cairo",
+          size: 1.0,
+          color: "#ef4444",
+        },
+      ],
 
-    // Memoize logistics data to prevent recreation
-    const logisticsData = useMemo(
-      () => ({
-        hubs: [
-          // North America
-          {
-            lat: 40.7128,
-            lng: -74.006,
-            city: "New York",
-            size: 1.2,
-            color: "#60a5fa",
-          },
-          {
-            lat: 19.4326,
-            lng: -99.1332,
-            city: "Mexico City",
-            size: 1.1,
-            color: "#fbbf24",
-          },
-          // South America
-          {
-            lat: -23.5505,
-            lng: -46.6333,
-            city: "Sao Paulo",
-            size: 1.1,
-            color: "#f97316",
-          },
-          // Europe
-          {
-            lat: 51.5074,
-            lng: -0.1278,
-            city: "London",
-            size: 1.2,
-            color: "#34d399",
-          },
-          {
-            lat: 55.7558,
-            lng: 37.6173,
-            city: "Moscow",
-            size: 1.0,
-            color: "#818cf8",
-          },
-          // Africa
-          {
-            lat: -33.9249,
-            lng: 18.4241,
-            city: "Cape Town",
-            size: 1.0,
-            color: "#22d3ee",
-          },
-          // Middle East
-          {
-            lat: 25.2048,
-            lng: 55.2708,
-            city: "Dubai",
-            size: 1.1,
-            color: "#fb7185",
-          },
-          // South Asia
-          {
-            lat: 19.076,
-            lng: 72.8777,
-            city: "Mumbai",
-            size: 1.1,
-            color: "#4ade80",
-          },
-          // East Asia
-          {
-            lat: 35.6895,
-            lng: 139.6917,
-            city: "Tokyo",
-            size: 1.3,
-            color: "#fbbf24",
-          },
-          // Southeast Asia
-          {
-            lat: 1.3521,
-            lng: 103.8198,
-            city: "Singapore",
-            size: 1.2,
-            color: "#a78bfa",
-          },
-          // Oceania
-          {
-            lat: -33.8688,
-            lng: 151.2093,
-            city: "Sydney",
-            size: 1.1,
-            color: "#10b981",
-          },
-          // Central Asia
-          {
-            lat: 43.222,
-            lng: 76.8512,
-            city: "Almaty",
-            size: 1.0,
-            color: "#eab308",
-          },
-          // North Africa
-          {
-            lat: 30.0444,
-            lng: 31.2357,
-            city: "Cairo",
-            size: 1.0,
-            color: "#ef4444",
-          },
-        ],
+      routes: [
+        // Inter-continental and major connections
+        // North America <-> Europe <-> Asia
+        {
+          startLat: 40.7128,
+          startLng: -74.006,
+          endLat: 51.5074,
+          endLng: -0.1278,
+        }, // New York - London
+        {
+          startLat: 51.5074,
+          startLng: -0.1278,
+          endLat: 55.7558,
+          endLng: 37.6173,
+        }, // London - Moscow
+        {
+          startLat: 55.7558,
+          startLng: 37.6173,
+          endLat: 43.222,
+          endLng: 76.8512,
+        }, // Moscow - Almaty
+        {
+          startLat: 43.222,
+          startLng: 76.8512,
+          endLat: 35.6895,
+          endLng: 139.6917,
+        }, // Almaty - Tokyo
+        {
+          startLat: 35.6895,
+          startLng: 139.6917,
+          endLat: 1.3521,
+          endLng: 103.8198,
+        }, // Tokyo - Singapore
+        {
+          startLat: 1.3521,
+          startLng: 103.8198,
+          endLat: -33.8688,
+          endLng: 151.2093,
+        }, // Singapore - Sydney
+        {
+          startLat: -33.8688,
+          startLng: 151.2093,
+          endLat: 19.076,
+          endLng: 72.8777,
+        }, // Sydney - Mumbai
+        {
+          startLat: 19.076,
+          startLng: 72.8777,
+          endLat: 25.2048,
+          endLng: 55.2708,
+        }, // Mumbai - Dubai
+        {
+          startLat: 25.2048,
+          startLng: 55.2708,
+          endLat: 30.0444,
+          endLng: 31.2357,
+        }, // Dubai - Cairo
+        {
+          startLat: 30.0444,
+          startLng: 31.2357,
+          endLat: -33.9249,
+          endLng: 18.4241,
+        }, // Cairo - Cape Town
+        {
+          startLat: -33.9249,
+          startLng: 18.4241,
+          endLat: -23.5505,
+          endLng: -46.6333,
+        }, // Cape Town - Sao Paulo
+        {
+          startLat: -23.5505,
+          startLng: -46.6333,
+          endLat: 19.4326,
+          endLng: -99.1332,
+        }, // Sao Paulo - Mexico City
+        {
+          startLat: 19.4326,
+          startLng: -99.1332,
+          endLat: 40.7128,
+          endLng: -74.006,
+        }, // Mexico City - New York
 
-        routes: [
-          // Inter-continental and major connections
-          // North America <-> Europe <-> Asia
-          {
-            startLat: 40.7128,
-            startLng: -74.006,
-            endLat: 51.5074,
-            endLng: -0.1278,
-          }, // New York - London
-          {
-            startLat: 51.5074,
-            startLng: -0.1278,
-            endLat: 55.7558,
-            endLng: 37.6173,
-          }, // London - Moscow
-          {
-            startLat: 55.7558,
-            startLng: 37.6173,
-            endLat: 43.222,
-            endLng: 76.8512,
-          }, // Moscow - Almaty
-          {
-            startLat: 43.222,
-            startLng: 76.8512,
-            endLat: 35.6895,
-            endLng: 139.6917,
-          }, // Almaty - Tokyo
-          {
-            startLat: 35.6895,
-            startLng: 139.6917,
-            endLat: 1.3521,
-            endLng: 103.8198,
-          }, // Tokyo - Singapore
-          {
-            startLat: 1.3521,
-            startLng: 103.8198,
-            endLat: -33.8688,
-            endLng: 151.2093,
-          }, // Singapore - Sydney
-          {
-            startLat: -33.8688,
-            startLng: 151.2093,
-            endLat: 19.076,
-            endLng: 72.8777,
-          }, // Sydney - Mumbai
-          {
-            startLat: 19.076,
-            startLng: 72.8777,
-            endLat: 25.2048,
-            endLng: 55.2708,
-          }, // Mumbai - Dubai
-          {
-            startLat: 25.2048,
-            startLng: 55.2708,
-            endLat: 30.0444,
-            endLng: 31.2357,
-          }, // Dubai - Cairo
-          {
-            startLat: 30.0444,
-            startLng: 31.2357,
-            endLat: -33.9249,
-            endLng: 18.4241,
-          }, // Cairo - Cape Town
-          {
-            startLat: -33.9249,
-            startLng: 18.4241,
-            endLat: -23.5505,
-            endLng: -46.6333,
-          }, // Cape Town - Sao Paulo
-          {
-            startLat: -23.5505,
-            startLng: -46.6333,
-            endLat: 19.4326,
-            endLng: -99.1332,
-          }, // Sao Paulo - Mexico City
-          {
-            startLat: 19.4326,
-            startLng: -99.1332,
-            endLat: 40.7128,
-            endLng: -74.006,
-          }, // Mexico City - New York
-
-          // Additional cross-connections for network robustness
-          {
-            startLat: 40.7128,
-            startLng: -74.006,
-            endLat: 19.4326,
-            endLng: -99.1332,
-          }, // New York - Mexico City
-          {
-            startLat: 51.5074,
-            startLng: -0.1278,
-            endLat: 30.0444,
-            endLng: 31.2357,
-          }, // London - Cairo
-          {
-            startLat: 1.3521,
-            startLng: 103.8198,
-            endLat: 25.2048,
-            endLng: 55.2708,
-          }, // Singapore - Dubai
-          {
-            startLat: 19.076,
-            startLng: 72.8777,
-            endLat: 43.222,
-            endLng: 76.8512,
-          }, // Mumbai - Almaty
-          {
-            startLat: -33.9249,
-            startLng: 18.4241,
-            endLat: 51.5074,
-            endLng: -0.1278,
-          }, // Cape Town - London
-        ],
-      }),
-      []
-    );
-
-    // Add proper dependency array to useEffect
-    useEffect(() => {
-      if (globeEl.current && !globeReady) {
-        const controls = globeEl.current.controls();
-        controls.autoRotate = true;
-        controls.autoRotateSpeed = 1;
-        controls.enableZoom = false;
-
-        // Set initial camera position
-        globeEl.current.pointOfView({ altitude: 1.8 }, 0);
-
-        // Lock vertical rotation
-        const currentPolar = controls.getPolarAngle();
-        controls.minPolarAngle = currentPolar;
-        controls.maxPolarAngle = currentPolar;
-
-        setGlobeReady(true);
-      }
-    }, [globeReady]); // Only run when globeReady changes
-
-    return (
-      <div className="w-full h-full relative">
-        <Globe
-          ref={globeEl}
-          globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
-          bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
-          backgroundColor="rgba(0,0,0,0)"
-          pointsData={logisticsData.hubs}
-          pointLat="lat"
-          pointLng="lng"
-          pointAltitude={(d) => d.size * 0.03}
-          pointRadius={(d) => d.size * 1.2}
-          pointColor={(d) => d.color}
-          pointsMerge={true}
-          arcsData={logisticsData.routes}
-          arcStartLat="startLat"
-          arcStartLng="startLng"
-          arcEndLat="endLat"
-          arcEndLng="endLng"
-          arcColor={() => ["#60a5fa", "#34d399", "#fbbf24"]}
-          arcAltitude={0.3}
-          arcStroke={0.8}
-          arcDashLength={0.4}
-          arcDashGap={0.2}
-          arcDashInitialGap={() => Math.random()}
-          arcDashAnimateTime={() => Math.random() * 2000 + 1000}
-          arcsTransitionDuration={0}
-          ringsData={logisticsData.hubs}
-          ringLat="lat"
-          ringLng="lng"
-          ringMaxRadius={(d) => d.size * 3}
-          ringPropagationSpeed={2}
-          ringRepeatPeriod={800}
-          ringColor={(d) => d.color}
-          labelsData={logisticsData.hubs}
-          labelLat="lat"
-          labelLng="lng"
-          labelText="city"
-          labelSize={2}
-          labelDotRadius={0.5}
-          labelColor={() => "#ffffff"}
-          labelResolution={2}
-        />
-      </div>
-    );
-  });
+        // Additional cross-connections for network robustness
+        {
+          startLat: 40.7128,
+          startLng: -74.006,
+          endLat: 19.4326,
+          endLng: -99.1332,
+        }, // New York - Mexico City
+        {
+          startLat: 51.5074,
+          startLng: -0.1278,
+          endLat: 30.0444,
+          endLng: 31.2357,
+        }, // London - Cairo
+        {
+          startLat: 1.3521,
+          startLng: 103.8198,
+          endLat: 25.2048,
+          endLng: 55.2708,
+        }, // Singapore - Dubai
+        {
+          startLat: 19.076,
+          startLng: 72.8777,
+          endLat: 43.222,
+          endLng: 76.8512,
+        }, // Mumbai - Almaty
+        {
+          startLat: -33.9249,
+          startLng: 18.4241,
+          endLat: 51.5074,
+          endLng: -0.1278,
+        }, // Cape Town - London
+      ],
+    }),
+    []
+  );
 
   useEffect(() => {
     if (globeEl.current && !globeReady) {
