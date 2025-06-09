@@ -186,6 +186,28 @@ router.get("/api/drafts", verifyToken, async (req, res) => {
   }
 });
 
+router.get("/api/drafts/user/:userId", verifyToken, async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { complianceStatus, routeOptimizationStatus } = req.query;
+
+    if (!mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ error: "Invalid userId format" });
+    }
+
+    const query = { userId };
+    if (complianceStatus === "done") query["statuses.compliance"] = "compliant";
+    if (routeOptimizationStatus === "done")
+      query["statuses.routeOptimization"] = "done";
+
+    const drafts = await Draft.find(query).sort({ timestamp: -1 });
+    res.status(200).json({ drafts });
+  } catch (error) {
+    console.error("Error fetching drafts:", error);
+    res.status(500).json({ error: "Failed to fetch drafts" });
+  }
+});
+
 // Get single draft for draft selector component
 router.get("/api/drafts/:id", verifyToken, async (req, res) => {
   try {
