@@ -22,179 +22,302 @@ const LogisticsGlobe = React.memo(() => {
   const [globeReady, setGlobeReady] = useState(false);
 
   // Memoize logistics data to prevent recreation
-  const logisticsData = useMemo(
-    () => ({
-      hubs: [
-        {
-          lat: 40.7128,
-          lng: -74.006,
-          city: "New York",
-          size: 1.2,
-          color: "#60a5fa",
-        },
-        {
-          lat: 51.5074,
-          lng: -0.1278,
-          city: "London",
-          size: 1.1,
-          color: "#34d399",
-        },
-        {
-          lat: 35.6762,
-          lng: 139.6503,
-          city: "Tokyo",
-          size: 1.3,
-          color: "#fbbf24",
-        },
-        {
-          lat: 31.2304,
-          lng: 121.4737,
-          city: "Shanghai",
-          size: 1.4,
-          color: "#f87171",
-        },
-        {
-          lat: 1.3521,
-          lng: 103.8198,
-          city: "Singapore",
-          size: 1.0,
-          color: "#a78bfa",
-        },
-        {
-          lat: 25.2048,
-          lng: 55.2708,
-          city: "Dubai",
-          size: 1.1,
-          color: "#fb7185",
-        },
-        {
-          lat: -33.8688,
-          lng: 151.2093,
-          city: "Sydney",
-          size: 0.9,
-          color: "#22d3ee",
-        },
-        {
-          lat: 19.076,
-          lng: 72.8777,
-          city: "Mumbai",
-          size: 1.0,
-          color: "#4ade80",
-        },
-        {
-          lat: 52.52,
-          lng: 13.405,
-          city: "Berlin",
-          size: 0.8,
-          color: "#818cf8",
-        },
-        {
-          lat: -23.5505,
-          lng: -46.6333,
-          city: "Sao Paulo",
-          size: 0.9,
-          color: "#f97316",
-        },
-        {
-          lat: 13.0827,
-          lng: 80.2707,
-          city: "Chennai",
-          size: 0.9,
-          color: "#10b981",
-        },
-        {
-          lat: 28.7041,
-          lng: 77.1025,
-          city: "Delhi",
-          size: 0.9,
-          color: "#3b82f6",
-        },
-        {
-          lat: 22.5726,
-          lng: 88.3639,
-          city: "Kolkata",
-          size: 0.9,
-          color: "#ef4444",
-        },
-      ],
-      routes: [
-        {
-          startLat: 40.7128,
-          startLng: -74.006,
-          endLat: 35.6762,
-          endLng: 139.6503,
-        },
-        {
-          startLat: 37.7749,
-          startLng: -122.4194,
-          endLat: 31.2304,
-          endLng: 121.4737,
-        },
-        { startLat: 40.7128, startLng: -74.006, endLat: 52.52, endLng: 13.405 },
-        {
-          startLat: 31.2304,
-          startLng: 121.4737,
-          endLat: 51.5074,
-          endLng: -0.1278,
-        },
-        {
-          startLat: 1.3521,
-          startLng: 103.8198,
-          endLat: 25.2048,
-          endLng: 55.2708,
-        },
-        {
-          startLat: 35.6762,
-          startLng: 139.6503,
-          endLat: 1.3521,
-          endLng: 103.8198,
-        },
-        {
-          startLat: 31.2304,
-          startLng: 121.4737,
-          endLat: 19.076,
-          endLng: 72.8777,
-        },
-        {
-          startLat: 25.2048,
-          startLng: 55.2708,
-          endLat: 51.5074,
-          endLng: -0.1278,
-        },
-        {
-          startLat: 25.2048,
-          startLng: 55.2708,
-          endLat: 19.076,
-          endLng: 72.8777,
-        },
-        {
-          startLat: -33.8688,
-          startLng: 151.2093,
-          endLat: 1.3521,
-          endLng: 103.8198,
-        },
-        {
-          startLat: -23.5505,
-          lng: -46.6333,
-          endLat: 40.7128,
-          endLng: -74.006,
-        },
-        {
-          startLat: 19.076,
-          startLng: 72.8777,
-          endLat: 13.0827,
-          endLng: 80.2707,
-        },
-        {
-          startLat: 28.7041,
-          startLng: 77.1025,
-          endLat: 22.5726,
-          endLng: 88.3639,
-        },
-      ],
-    }),
-    []
-  );
+  const LogisticsGlobe = React.memo(() => {
+    const globeEl = useRef();
+    const [globeReady, setGlobeReady] = useState(false);
+
+    // Memoize logistics data to prevent recreation
+    const logisticsData = useMemo(
+      () => ({
+        hubs: [
+          // North America
+          {
+            lat: 40.7128,
+            lng: -74.006,
+            city: "New York",
+            size: 1.2,
+            color: "#60a5fa",
+          },
+          {
+            lat: 19.4326,
+            lng: -99.1332,
+            city: "Mexico City",
+            size: 1.1,
+            color: "#fbbf24",
+          },
+          // South America
+          {
+            lat: -23.5505,
+            lng: -46.6333,
+            city: "Sao Paulo",
+            size: 1.1,
+            color: "#f97316",
+          },
+          // Europe
+          {
+            lat: 51.5074,
+            lng: -0.1278,
+            city: "London",
+            size: 1.2,
+            color: "#34d399",
+          },
+          {
+            lat: 55.7558,
+            lng: 37.6173,
+            city: "Moscow",
+            size: 1.0,
+            color: "#818cf8",
+          },
+          // Africa
+          {
+            lat: -33.9249,
+            lng: 18.4241,
+            city: "Cape Town",
+            size: 1.0,
+            color: "#22d3ee",
+          },
+          // Middle East
+          {
+            lat: 25.2048,
+            lng: 55.2708,
+            city: "Dubai",
+            size: 1.1,
+            color: "#fb7185",
+          },
+          // South Asia
+          {
+            lat: 19.076,
+            lng: 72.8777,
+            city: "Mumbai",
+            size: 1.1,
+            color: "#4ade80",
+          },
+          // East Asia
+          {
+            lat: 35.6895,
+            lng: 139.6917,
+            city: "Tokyo",
+            size: 1.3,
+            color: "#fbbf24",
+          },
+          // Southeast Asia
+          {
+            lat: 1.3521,
+            lng: 103.8198,
+            city: "Singapore",
+            size: 1.2,
+            color: "#a78bfa",
+          },
+          // Oceania
+          {
+            lat: -33.8688,
+            lng: 151.2093,
+            city: "Sydney",
+            size: 1.1,
+            color: "#10b981",
+          },
+          // Central Asia
+          {
+            lat: 43.222,
+            lng: 76.8512,
+            city: "Almaty",
+            size: 1.0,
+            color: "#eab308",
+          },
+          // North Africa
+          {
+            lat: 30.0444,
+            lng: 31.2357,
+            city: "Cairo",
+            size: 1.0,
+            color: "#ef4444",
+          },
+        ],
+
+        routes: [
+          // Inter-continental and major connections
+          // North America <-> Europe <-> Asia
+          {
+            startLat: 40.7128,
+            startLng: -74.006,
+            endLat: 51.5074,
+            endLng: -0.1278,
+          }, // New York - London
+          {
+            startLat: 51.5074,
+            startLng: -0.1278,
+            endLat: 55.7558,
+            endLng: 37.6173,
+          }, // London - Moscow
+          {
+            startLat: 55.7558,
+            startLng: 37.6173,
+            endLat: 43.222,
+            endLng: 76.8512,
+          }, // Moscow - Almaty
+          {
+            startLat: 43.222,
+            startLng: 76.8512,
+            endLat: 35.6895,
+            endLng: 139.6917,
+          }, // Almaty - Tokyo
+          {
+            startLat: 35.6895,
+            startLng: 139.6917,
+            endLat: 1.3521,
+            endLng: 103.8198,
+          }, // Tokyo - Singapore
+          {
+            startLat: 1.3521,
+            startLng: 103.8198,
+            endLat: -33.8688,
+            endLng: 151.2093,
+          }, // Singapore - Sydney
+          {
+            startLat: -33.8688,
+            startLng: 151.2093,
+            endLat: 19.076,
+            endLng: 72.8777,
+          }, // Sydney - Mumbai
+          {
+            startLat: 19.076,
+            startLng: 72.8777,
+            endLat: 25.2048,
+            endLng: 55.2708,
+          }, // Mumbai - Dubai
+          {
+            startLat: 25.2048,
+            startLng: 55.2708,
+            endLat: 30.0444,
+            endLng: 31.2357,
+          }, // Dubai - Cairo
+          {
+            startLat: 30.0444,
+            startLng: 31.2357,
+            endLat: -33.9249,
+            endLng: 18.4241,
+          }, // Cairo - Cape Town
+          {
+            startLat: -33.9249,
+            startLng: 18.4241,
+            endLat: -23.5505,
+            endLng: -46.6333,
+          }, // Cape Town - Sao Paulo
+          {
+            startLat: -23.5505,
+            startLng: -46.6333,
+            endLat: 19.4326,
+            endLng: -99.1332,
+          }, // Sao Paulo - Mexico City
+          {
+            startLat: 19.4326,
+            startLng: -99.1332,
+            endLat: 40.7128,
+            endLng: -74.006,
+          }, // Mexico City - New York
+
+          // Additional cross-connections for network robustness
+          {
+            startLat: 40.7128,
+            startLng: -74.006,
+            endLat: 19.4326,
+            endLng: -99.1332,
+          }, // New York - Mexico City
+          {
+            startLat: 51.5074,
+            startLng: -0.1278,
+            endLat: 30.0444,
+            endLng: 31.2357,
+          }, // London - Cairo
+          {
+            startLat: 1.3521,
+            startLng: 103.8198,
+            endLat: 25.2048,
+            endLng: 55.2708,
+          }, // Singapore - Dubai
+          {
+            startLat: 19.076,
+            startLng: 72.8777,
+            endLat: 43.222,
+            endLng: 76.8512,
+          }, // Mumbai - Almaty
+          {
+            startLat: -33.9249,
+            startLng: 18.4241,
+            endLat: 51.5074,
+            endLng: -0.1278,
+          }, // Cape Town - London
+        ],
+      }),
+      []
+    );
+
+    // Add proper dependency array to useEffect
+    useEffect(() => {
+      if (globeEl.current && !globeReady) {
+        const controls = globeEl.current.controls();
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 1;
+        controls.enableZoom = false;
+
+        // Set initial camera position
+        globeEl.current.pointOfView({ altitude: 1.8 }, 0);
+
+        // Lock vertical rotation
+        const currentPolar = controls.getPolarAngle();
+        controls.minPolarAngle = currentPolar;
+        controls.maxPolarAngle = currentPolar;
+
+        setGlobeReady(true);
+      }
+    }, [globeReady]); // Only run when globeReady changes
+
+    return (
+      <div className="w-full h-full relative">
+        <Globe
+          ref={globeEl}
+          globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
+          bumpImageUrl="//unpkg.com/three-globe/example/img/earth-topology.png"
+          backgroundColor="rgba(0,0,0,0)"
+          pointsData={logisticsData.hubs}
+          pointLat="lat"
+          pointLng="lng"
+          pointAltitude={(d) => d.size * 0.03}
+          pointRadius={(d) => d.size * 1.2}
+          pointColor={(d) => d.color}
+          pointsMerge={true}
+          arcsData={logisticsData.routes}
+          arcStartLat="startLat"
+          arcStartLng="startLng"
+          arcEndLat="endLat"
+          arcEndLng="endLng"
+          arcColor={() => ["#60a5fa", "#34d399", "#fbbf24"]}
+          arcAltitude={0.3}
+          arcStroke={0.8}
+          arcDashLength={0.4}
+          arcDashGap={0.2}
+          arcDashInitialGap={() => Math.random()}
+          arcDashAnimateTime={() => Math.random() * 2000 + 1000}
+          arcsTransitionDuration={0}
+          ringsData={logisticsData.hubs}
+          ringLat="lat"
+          ringLng="lng"
+          ringMaxRadius={(d) => d.size * 3}
+          ringPropagationSpeed={2}
+          ringRepeatPeriod={800}
+          ringColor={(d) => d.color}
+          labelsData={logisticsData.hubs}
+          labelLat="lat"
+          labelLng="lng"
+          labelText="city"
+          labelSize={2}
+          labelDotRadius={0.5}
+          labelColor={() => "#ffffff"}
+          labelResolution={2}
+        />
+      </div>
+    );
+  });
 
   useEffect(() => {
     if (globeEl.current && !globeReady) {
@@ -674,7 +797,7 @@ const CreateAccount = () => {
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     strokeWidth={2}
-                    d="M12 11c1.104 0 2-.896 2-2s-.896-2-2-2-2 .896-2 2 .896 2 2 2zm0 2c-1.104 0-2 .896-2 2v3h4v-3c0-1.104-.896-2-2-2zm9-5v11a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h2V5a3 3 0 013-3h4a3 3 0 013 3v1h2a2 2 0 012 2z"
+                    d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V9a4 4 0 00-8 0v2h8z"
                   />
                 </svg>
                 <button
@@ -682,21 +805,7 @@ const CreateAccount = () => {
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
                 >
                   {showPassword ? (
-                    <svg
-                      className="w-5 h-5"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                      xmlns="http://www.w3.org/2000/svg"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
-                      />
-                    </svg>
-                  ) : (
+                    // Eye icon
                     <svg
                       className="w-5 h-5"
                       fill="none"
@@ -715,6 +824,22 @@ const CreateAccount = () => {
                         strokeLinejoin="round"
                         strokeWidth={2}
                         d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                      />
+                    </svg>
+                  ) : (
+                    // Eye slash icon
+                    <svg
+                      className="w-5 h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
                       />
                     </svg>
                   )}
