@@ -4,13 +4,10 @@
 
 ---
 
-<div align="center" style="display: flex; justify-content: center; align-items: center; gap: 20px; margin-top: 30px; margin-bottom: 30px;">
-  <img src="frontend/public/favicon/SmartLogix_LOGO.png" alt="SmartLogix Logo" width="80" height="80" style="border-radius: 10px;" />
-  <div style="font-size: 3.5em; font-weight: 800; font-family: 'Segoe UI', sans-serif;">
-    SmartLogix
+<div align="center">
+  <img src="frontend/public/favicon/SmartLogix_LOGO.png" alt="SmartLogix Logo" width="100" height="100" />
+  <h1 style="font-weight: 700; font-size: 2.8em; margin: 10px 0;">SmartLogix</h1>
   </div>
-</div>
-
 <p align="center">
   <img src="https://img.shields.io/badge/Stack-MERN-3c873a?style=for-the-badge&logo=mongodb&logoColor=white" />
   <img src="https://img.shields.io/badge/Deployed-Google%20Cloud-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white" />
