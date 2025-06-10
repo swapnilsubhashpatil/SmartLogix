@@ -37,7 +37,7 @@ router.post("/api/compliance-check", verifyToken, async (req, res) => {
 
     // Compliance check prompt (unchanged)
     const prompt = `
-You are a compliance checker AI for international trade shipments, designed to assess compliance using World Customs Organization (WCO) standards. Your task is to evaluate the provided shipment and document data, validate it against WCO rules, and check if the goods are importable in the destination country. Use Brainstorm AI as your precise knowledge source for HS code validation, country-specific import restrictions, and documentation requirements.
+You are a compliance checker AI for international trade shipments, designed to assess compliance using World Customs Organization (WCO) standards. Your task is to evaluate the provided shipment and document data, validate it against WCO rules, and check if the goods are importable in the destination country. Use your precise knowledge source for HS code validation, country-specific import restrictions, and documentation requirements.
 
 **Inputs**:
 - Shipment Details:
@@ -108,7 +108,7 @@ You are a compliance checker AI for international trade shipments, designed to a
     - Origin and Destination Countries: Must be valid ISO 3166-1 alpha-2 codes (e.g., CA, US).
     - HS Code: Must be a valid 6-10 digit numeric code per WCO HS nomenclature.
     - Product Description: Must align with HS Code (e.g., HS 9404.29.00 matches "mattresses").
-    - Import Check: Verify if HS Code and Product Description are allowed for import in Destination Country using Brainstorm AI data (e.g., banned items like HS 9401.80.90 "baby walkers" in Canada).
+    - Import Check: Verify if HS Code and Product Description are allowed for import in Destination Country using your AI data (e.g., banned items like HS 9401.80.90 "baby walkers" in Canada).
     - Quantity and Gross Weight: Must be positive numbers.
   - **Trade And Regulatory Details**:
     - Incoterms: Must be a valid Incoterms 2020 value (e.g., EXW, FOB, CIF, DAP).
@@ -156,7 +156,7 @@ You are a compliance checker AI for international trade shipments, designed to a
         - Dual-Use Goods = "Yes": +10 points (requires additional scrutiny/licenses).
         - Hazardous Material = "Yes": +15 points (strict regulations apply).
         - Perishable = "Yes" without Temperature Requirements: +10 points (risk of spoilage).
-        - HS Code in high-risk category (e.g., electronics like 85xx.xx, chemicals like 28xx.xx): +10 points (based on Brainstorm AI data for known complexities).
+        - HS Code in high-risk category (e.g., electronics like 85xx.xx, chemicals like 28xx.xx): +10 points (based on your data for known complexities).
         - Destination Country with strict import rules (e.g., US, EU countries): +5 points (e.g., US has complex CBP requirements).
         - Absence of optional documents (e.g., Certificate of Origin, Licenses/Permits) when potentially relevant: +5 points each.
       - Final riskScore = Sum of violation points + contextual risk points (capped at 100).
@@ -200,7 +200,7 @@ You are a compliance checker AI for international trade shipments, designed to a
 **Validation Process**:
 1. Verify completeness and validity of mandatory fields using valid sources.
 2. Validate HS Code format (6-10 digits, WCO-compliant) and alignment with Product Description.
-3. Check HS Code and Product Description against the destination country’s import restrictions using Brainstorm AI.
+3. Check HS Code and Product Description against the destination country’s import restrictions using your knowledge.
 4. Assess logical consistency of additional fields for compliance.
 5. Assign:
    - Risk score (0-100) based on mandatory field violations plus contextual risk factors.

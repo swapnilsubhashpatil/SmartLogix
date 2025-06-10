@@ -45,11 +45,6 @@ const ComplianceForm = () => {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // console.log(
-      //   "Draft API response:",
-      //   JSON.stringify(response.data, null, 2)
-      // );
-
       const draft = response.data.draft || response.data;
       if (!draft || !draft.formData) {
         throw new Error("Invalid draft data received");
@@ -214,10 +209,6 @@ const ComplianceForm = () => {
       };
 
       setFormData(updatedFormData);
-      // console.log(
-      //   "Updated formData:",
-      //   JSON.stringify(updatedFormData, null, 2)
-      // );
     } catch (error) {
       console.error("Error fetching draft:", error);
       const errorMessage =
@@ -235,7 +226,6 @@ const ComplianceForm = () => {
     const params = new URLSearchParams(location.search);
     const draftId = params.get("draftId");
     if (draftId) {
-      // console.log("Fetching draft with ID:", draftId);
       fetchDraft(draftId);
     }
   }, [location]);
@@ -247,7 +237,6 @@ const ComplianceForm = () => {
       if (fieldData.mandatory) {
         if (activeTab === "DocumentVerification") {
           const doc = formData.DocumentVerification[fieldData.field];
-          // For mandatory documents, ensure all sub-items are checked
           if (!Object.values(doc.subItems).every((item) => item)) {
             return false;
           }
@@ -268,6 +257,7 @@ const ComplianceForm = () => {
   };
 
   const handleInputChange = (section, field, value, subField = null) => {
+    if (responseReceived) return; // Prevent input changes if response received
     setFormData((prev) => {
       const updatedSection = { ...prev[section] };
       if (subField) {
@@ -280,6 +270,7 @@ const ComplianceForm = () => {
   };
 
   const handleDocChange = (docName, checked) => {
+    if (responseReceived) return; // Prevent doc changes if response received
     setFormData((prev) => ({
       ...prev,
       DocumentVerification: {
@@ -290,6 +281,7 @@ const ComplianceForm = () => {
   };
 
   const handleSubItemChange = (docName, subItem, checked) => {
+    if (responseReceived) return; // Prevent sub-item changes if response received
     setFormData((prev) => ({
       ...prev,
       DocumentVerification: {
@@ -306,6 +298,7 @@ const ComplianceForm = () => {
   };
 
   const handleNextTab = () => {
+    if (responseReceived) return; // Prevent tab navigation if response received
     const currentIndex = tabOrder.indexOf(activeTab);
     if (currentIndex < tabOrder.length - 1) {
       setActiveTab(tabOrder[currentIndex + 1]);
@@ -313,6 +306,7 @@ const ComplianceForm = () => {
   };
 
   const handlePrevTab = () => {
+    if (responseReceived) return; // Prevent tab navigation if response received
     const currentIndex = tabOrder.indexOf(activeTab);
     if (currentIndex > 0) {
       setActiveTab(tabOrder[currentIndex - 1]);
@@ -320,6 +314,7 @@ const ComplianceForm = () => {
   };
 
   const handleSubmit = async () => {
+    if (responseReceived) return; // Prevent re-submission if response received
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
@@ -365,8 +360,9 @@ const ComplianceForm = () => {
             onChange={(e) => handleInputChange(section, field, e.target.value)}
             className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base ${
               mandatory && !value ? "border-red-500" : "border-neutral-300"
-            }`}
+            } ${responseReceived ? "bg-neutral-200 cursor-not-allowed" : ""}`}
             required={mandatory}
+            disabled={responseReceived}
           >
             <option value="" disabled>
               Select
@@ -395,8 +391,9 @@ const ComplianceForm = () => {
             onChange={(e) => handleInputChange(section, field, e.target.value)}
             className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base ${
               mandatory && !value ? "border-red-500" : "border-neutral-300"
-            }`}
+            } ${responseReceived ? "bg-neutral-200 cursor-not-allowed" : ""}`}
             required={mandatory}
+            disabled={responseReceived}
           >
             <option value="" disabled>
               Select
@@ -417,10 +414,11 @@ const ComplianceForm = () => {
             onChange={(e) => handleInputChange(section, field, e.target.value)}
             className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base ${
               mandatory && !value ? "border-red-500" : "border-neutral-300"
-            }`}
+            } ${responseReceived ? "bg-neutral-200 cursor-not-allowed" : ""}`}
             placeholder={placeholder}
             required={mandatory}
             min="0"
+            disabled={responseReceived}
           />
         );
 
@@ -432,10 +430,11 @@ const ComplianceForm = () => {
             onChange={(e) => handleInputChange(section, field, e.target.value)}
             className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base ${
               mandatory && !value ? "border-red-500" : "border-neutral-300"
-            }`}
+            } ${responseReceived ? "bg-neutral-200 cursor-not-allowed" : ""}`}
             placeholder={placeholder}
             rows={3}
             required={mandatory}
+            disabled={responseReceived}
           />
         ) : (
           <input
@@ -444,9 +443,10 @@ const ComplianceForm = () => {
             onChange={(e) => handleInputChange(section, field, e.target.value)}
             className={`w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 text-sm md:text-base ${
               mandatory && !value ? "border-red-500" : "border-neutral-300"
-            }`}
+            } ${responseReceived ? "bg-neutral-200 cursor-not-allowed" : ""}`}
             placeholder={placeholder}
             required={mandatory}
+            disabled={responseReceived}
           />
         );
 
@@ -462,8 +462,9 @@ const ComplianceForm = () => {
                 mandatory && !value?.currency
                   ? "border-red-500"
                   : "border-neutral-300"
-              }`}
+              } ${responseReceived ? "bg-neutral-200 cursor-not-allowed" : ""}`}
               required={mandatory}
+              disabled={responseReceived}
             >
               <option value="" disabled>
                 Select
@@ -484,10 +485,11 @@ const ComplianceForm = () => {
                 mandatory && !value?.amount
                   ? "border-red-500"
                   : "border-neutral-300"
-              }`}
+              } ${responseReceived ? "bg-neutral-200 cursor-not-allowed" : ""}`}
               placeholder={placeholder}
               required={mandatory}
               min="0"
+              disabled={responseReceived}
             />
           </div>
         );
@@ -504,8 +506,10 @@ const ComplianceForm = () => {
                   !fieldData.mandatory &&
                   handleDocChange(field, e.target.checked)
                 }
-                disabled={fieldData.mandatory}
-                className="mr-2"
+                disabled={fieldData.mandatory || responseReceived}
+                className={`mr-2 ${
+                  responseReceived ? "cursor-not-allowed opacity-50" : ""
+                }`}
               />
               <span className="text-sm md:text-base text-neutral-700">
                 {field}
@@ -531,7 +535,10 @@ const ComplianceForm = () => {
                           e.target.checked
                         )
                       }
-                      className="mr-2"
+                      className={`mr-2 ${
+                        responseReceived ? "cursor-not-allowed opacity-50" : ""
+                      }`}
+                      disabled={responseReceived}
                     />
                     <span className="text-sm md:text-base text-neutral-700">
                       {subItem.field}
@@ -555,15 +562,17 @@ const ComplianceForm = () => {
         response={response}
         page="compliance-check"
       />
-      <div className=" max-w-7xl mx-auto bg-white mt-4 shadow-custom-light rounded-lg mb-4 sm:mb-6 overflow-x-auto">
+      <div className="max-w-7xl mx-auto bg-white mt-4 shadow-custom-light rounded-lg mb-4 sm:mb-6 overflow-x-auto">
         <div className="flex border-b border-neutral-200 whitespace-nowrap">
           {tabOrder.map((tab) => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab)}
+              onClick={() => !responseReceived && setActiveTab(tab)}
               className={`px-4 py-2 sm:px-6 sm:py-3 text-xs sm:text-sm font-medium transition-colors duration-200 ${
                 activeTab === tab
                   ? "border-b-2 border-primary-500 text-primary-500"
+                  : responseReceived
+                  ? "text-neutral-400 cursor-not-allowed"
                   : "text-neutral-700 hover:text-black"
               }`}
             >
@@ -600,9 +609,9 @@ const ComplianceForm = () => {
         <div className="flex flex-col sm:flex-row justify-between mt-4 sm:mt-6 gap-4">
           <button
             onClick={handlePrevTab}
-            disabled={tabOrder.indexOf(activeTab) === 0}
+            disabled={tabOrder.indexOf(activeTab) === 0 || responseReceived}
             className={`py-2 sm:py-3 px-4 sm:px-6 text-base sm:text-lg font-medium rounded-lg transition-colors duration-200 w-full sm:w-auto ${
-              tabOrder.indexOf(activeTab) === 0
+              tabOrder.indexOf(activeTab) === 0 || responseReceived
                 ? "bg-neutral-400 cursor-not-allowed"
                 : "bg-secondary-500 text-white hover:bg-secondary-600"
             }`}
@@ -612,9 +621,11 @@ const ComplianceForm = () => {
           {activeTab !== "IntendedUseDetails" ? (
             <button
               onClick={handleNextTab}
-              disabled={!areCurrentTabMandatoryFieldsFilled()}
+              disabled={
+                !areCurrentTabMandatoryFieldsFilled() || responseReceived
+              }
               className={`py-2 sm:py-3 px-4 sm:px-6 text-base sm:text-lg font-medium rounded-lg transition-colors duration-200 w-full sm:w-auto ${
-                !areCurrentTabMandatoryFieldsFilled()
+                !areCurrentTabMandatoryFieldsFilled() || responseReceived
                   ? "bg-neutral-400 cursor-not-allowed"
                   : "bg-primary-500 text-white hover:bg-primary-600"
               }`}
@@ -624,7 +635,7 @@ const ComplianceForm = () => {
           ) : (
             <button
               onClick={handleSubmit}
-              disabled={isButtonDisabled} // Use combined disabled state
+              disabled={isButtonDisabled}
               className={`py-2 sm:py-3 px-4 sm:px-6 text-base sm:text-lg font-medium rounded-lg transition-colors duration-200 w-full sm:w-auto ${
                 isButtonDisabled
                   ? "bg-neutral-400 cursor-not-allowed"

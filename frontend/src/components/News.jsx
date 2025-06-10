@@ -7,6 +7,8 @@ import {
   FaSearch,
   FaCalendarDay,
   FaCalendarAlt,
+  FaChevronDown,
+  FaChevronUp,
 } from "react-icons/fa";
 import Header from "./Header";
 import Toast from "./Toast";
@@ -46,6 +48,7 @@ const News = () => {
   const [expandedRows, setExpandedRows] = useState({});
   const [rowSummaries, setRowSummaries] = useState({});
   const [rowLoading, setRowLoading] = useState({});
+  const [isSearchOpen, setIsSearchOpen] = useState(false); // State for dropdown visibility
 
   // Generate date tabs for today, yesterday, and past 3 days
   const getDateTabs = () => {
@@ -109,6 +112,7 @@ const News = () => {
     setSearchQuery(tempSearchQuery);
     setActiveDate(0);
     fetchNews(0, tempSearchQuery);
+    setIsSearchOpen(false); // Close dropdown after search
   };
 
   const handleDateClick = (index) => {
@@ -118,7 +122,7 @@ const News = () => {
 
   const handleSearchModeToggle = () => {
     const newMode = searchMode === "direct" ? "summarized" : "direct";
-    setSearchMode(newMode); // Re-fetch with new mode
+    setSearchMode(newMode);
   };
 
   const handleRowToggle = async (article) => {
@@ -266,6 +270,88 @@ const News = () => {
               Showing news for {getDateDisplayText()}
             </p>
 
+            <div className="mb-6">
+              <Button
+                variant="outlined"
+                onClick={() => setIsSearchOpen(!isSearchOpen)}
+                className="w-full sm:w-auto bg-white text-[#00467F] border-[#A5CC82] hover:bg-[#F0F8F4] flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 rounded-md transition duration-200"
+                sx={{
+                  borderRadius: "8px",
+                  textTransform: "none",
+                  minWidth: { xs: "100%", sm: "200px" },
+                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                }}
+              >
+                <FaSearch />
+                Manual Search
+                {isSearchOpen ? <FaChevronUp /> : <FaChevronDown />}
+              </Button>
+              <Collapse in={isSearchOpen} timeout="auto" unmountOnExit>
+                <div className="flex flex-col sm:flex-row gap-4 mt-4">
+                  <div className="relative w-full max-w-md flex-1">
+                    <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 z-10" />
+                    <input
+                      type="text"
+                      id="search"
+                      value={tempSearchQuery}
+                      onChange={(e) => setTempSearchQuery(e.target.value)}
+                      placeholder=" "
+                      className="peer w-full pl-12 pr-4 py-4 bg-white/40 backdrop-blur-sm border-2 border-gray-300/40 rounded-2xl text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/60 transition-all duration-300 hover:bg-white/50 hover:scale-[1.02] hover:shadow-lg hover:border-gray-400/60 active:scale-[0.98]"
+                    />
+                    <label
+                      htmlFor="search"
+                      className="absolute left-12 -top-2.5 bg-white/80 backdrop-blur-sm px-2 py-0.5 rounded-lg text-sm font-medium text-gray-600 transition-all duration-300 peer-placeholder-shown:top-4 peer-placeholder-shown:left-12 peer-placeholder-shown:bg-transparent peer-placeholder-shown:text-gray-500 peer-focus:-top-2.5 peer-focus:left-12 peer-focus:bg-white/80 peer-focus:text-blue-600 z-10"
+                    >
+                      Search News (e.g., "China-US tariff conflict")
+                    </label>
+                  </div>
+                  <Button
+                    variant={
+                      searchMode === "summarized" ? "contained" : "outlined"
+                    }
+                    onClick={handleSearchModeToggle}
+                    className={`
+                      ${
+                        searchMode === "summarized"
+                          ? "bg-gradient-to-r from-blue-500 to-teal-400 text-white"
+                          : "bg-white text-blue-500 border-blue-500 hover:bg-blue-50"
+                      }
+                      flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2
+                    `}
+                    sx={{
+                      borderRadius: "8px",
+                      textTransform: "none",
+                      boxShadow:
+                        searchMode === "summarized"
+                          ? "0 4px 6px rgba(0,0,0,0.1)"
+                          : "none",
+                      height: "50px",
+                      minWidth: { xs: "100px", sm: "120px" },
+                      fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                    }}
+                  >
+                    {searchMode === "direct"
+                      ? "Direct Search"
+                      : "Summarized Search"}
+                  </Button>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    onClick={handleSearch}
+                    startIcon={<FaSearch />}
+                    sx={{
+                      height: "50px",
+                      borderRadius: "12px",
+                      minWidth: { xs: "100px", sm: "120px" },
+                      fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                    }}
+                  >
+                    Search
+                  </Button>
+                </div>
+              </Collapse>
+            </div>
+
             <div className="flex flex-wrap gap-3 sm:gap-4 mb-4 sm:mb-6 justify-center max-w-3xl w-full">
               {getDateTabs().map((tab) => (
                 <Button
@@ -273,13 +359,13 @@ const News = () => {
                   variant={activeDate === tab.key ? "contained" : "outlined"}
                   onClick={() => handleDateClick(tab.key)}
                   className={`
-  ${
-    activeDate === tab.key
-      ? "bg-gradient-to-r from-[#00467F] to-[#A5CC82] text-white"
-      : "bg-white text-[#00467F] border border-[#A5CC82] hover:bg-[#F0F8F4]"
-  }
-  flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 rounded-md transition duration-200
-`}
+                    ${
+                      activeDate === tab.key
+                        ? "bg-gradient-to-r from-[#00467F] to-[#A5CC82] text-white"
+                        : "bg-white text-[#00467F] border border-[#A5CC82] hover:bg-[#F0F8F4]"
+                    }
+                    flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 rounded-md transition duration-200
+                  `}
                   sx={{
                     borderRadius: "8px",
                     textTransform: "none",
@@ -295,67 +381,6 @@ const News = () => {
                   {tab.label}
                 </Button>
               ))}
-            </div>
-
-            <div className="flex flex-col sm:flex-row gap-4 mb-6">
-              <div className="relative w-full max-w-md flex-1">
-                <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 z-10" />
-                <input
-                  type="text"
-                  id="search"
-                  value={tempSearchQuery}
-                  onChange={(e) => setTempSearchQuery(e.target.value)}
-                  placeholder=" "
-                  className="peer w-full pl-12 pr-4 py-4 bg-white/40 backdrop-blur-sm border-2 border-gray-300/40 rounded-2xl text-gray-800 placeholder-transparent focus:outline-none focus:ring-2 focus:ring-blue-400/50 focus:border-blue-400/60 transition-all duration-300 hover:bg-white/50 hover:scale-[1.02] hover:shadow-lg hover:border-gray-400/60 active:scale-[0.98]"
-                />
-                <label
-                  htmlFor="search"
-                  className="absolute left-12 -top-2.5 bg-white/80 backdrop-blur-sm px-2 py-0.5 rounded-lg text-sm font-medium text-gray-600 transition-all duration-300 peer-placeholder-shown:top-4 peer-placeholder-shown:left-12 peer-placeholder-shown:bg-transparent peer-placeholder-shown:text-gray-500 peer-focus:-top-2.5 peer-focus:left-12 peer-focus:bg-white/80 peer-focus:text-blue-600 z-10"
-                >
-                  Search News (e.g., "China-US tariff conflict")
-                </label>
-              </div>
-              <Button
-                variant={searchMode === "summarized" ? "contained" : "outlined"}
-                onClick={handleSearchModeToggle}
-                className={`
-                  ${
-                    searchMode === "summarized"
-                      ? "bg-gradient-to-r from-blue-500 to-teal-400 text-white"
-                      : "bg-white text-blue-500 border-blue-500 hover:bg-blue-50"
-                  }
-                  flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2
-                `}
-                sx={{
-                  borderRadius: "8px",
-                  textTransform: "none",
-                  boxShadow:
-                    searchMode === "summarized"
-                      ? "0 4px 6px rgba(0,0,0,0.1)"
-                      : "none",
-                  height: "50px",
-                  minWidth: { xs: "100px", sm: "120px" },
-                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                }}
-              >
-                {searchMode === "direct"
-                  ? "Direct Search"
-                  : "Summarized Search"}
-              </Button>
-              <Button
-                variant="contained"
-                color="primary"
-                onClick={handleSearch}
-                startIcon={<FaSearch />}
-                sx={{
-                  height: "50px",
-                  borderRadius: "12px",
-                  minWidth: { xs: "100px", sm: "120px" },
-                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
-                }}
-              >
-                Search
-              </Button>
             </div>
 
             <TableContainer
