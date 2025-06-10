@@ -9,8 +9,9 @@ import {
   FaUser,
   FaSearch,
 } from "react-icons/fa";
-import Toast from "./Toast";
-import Header from "./Header";
+import Toast from "./../../components/Toast";
+
+import Header from "../../components/Header";
 
 // MUI Imports
 import Table from "@mui/material/Table";

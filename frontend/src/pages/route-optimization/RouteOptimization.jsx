@@ -31,9 +31,9 @@ import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import InfoIcon from "@mui/icons-material/Info";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { useNavigate, useLocation } from "react-router-dom";
-import RouteResultsSkeleton from "./Skeleton/RouteResultsSkeleton";
-import Toast from "./Toast";
-import Header from "./Header";
+import RouteResultsSkeleton from "../../components/Skeleton/RouteResultsSkeleton";
+import Toast from "./../../components/Toast";
+import Header from "../../components/Header";
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 const RouteOptimization = () => {

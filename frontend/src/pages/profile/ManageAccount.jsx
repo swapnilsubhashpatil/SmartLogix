@@ -14,8 +14,9 @@ import {
   FaSave,
   FaTimes,
 } from "react-icons/fa";
-import Toast from "./Toast";
-import Header from "./Header";
+import Toast from "./../../components/Toast";
+
+import Header from "../../components/Header";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 

@@ -10,8 +10,9 @@ import {
   FaChevronDown,
   FaChevronUp,
 } from "react-icons/fa";
-import Header from "./Header";
-import Toast from "./Toast";
+import Header from "../../components/Header";
+import Toast from "./../../components/Toast";
+
 import {
   Table,
   TableBody,

@@ -35,10 +35,11 @@ import {
 } from "@mui/icons-material";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import Toast from "./Toast";
+import Toast from "../../components/Toast";
+
 import HomeIcon from "@mui/icons-material/Home";
-import { countryOptions } from "./constants";
-import Header from "./Header";
+import { countryOptions } from "../../constants/constants";
+import Header from "../../components/Header";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 

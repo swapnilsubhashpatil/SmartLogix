@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import Papa from "papaparse";
 import axios from "axios";
 import { Home } from "@mui/icons-material";
-import Toast from "./Toast";
-import Header from "./Header";
+import Toast from "./../../components/Toast";
+import Header from "../../components/Header";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 

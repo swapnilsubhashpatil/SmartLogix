@@ -10,7 +10,7 @@ import {
   FaTimes,
   FaDownload,
 } from "react-icons/fa";
-import { navigationStructure } from "./docs_constants";
+import { navigationStructure } from "../../constants/docs_constants";
 import { useNavigate } from "react-router-dom";
 import ProfileCards from "./ProfileCards";
 import axios from "axios";

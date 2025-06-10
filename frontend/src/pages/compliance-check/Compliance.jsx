@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Box, Typography, Button, Card, CardContent } from "@mui/material";
 import { Home } from "@mui/icons-material";
 import HomeIcon from "@mui/icons-material/Home";
-import Header from "./Header";
+import Header from "../../components/Header";
 const ComplianceOverview = () => {
   const navigate = useNavigate();
   const toHome = () => {

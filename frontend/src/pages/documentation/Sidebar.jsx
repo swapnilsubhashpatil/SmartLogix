@@ -8,7 +8,7 @@ import {
   FaChevronUp,
   FaBookOpen,
 } from "react-icons/fa";
-import { navigationStructure } from "./docs_constants";
+import { navigationStructure } from "../../constants/docs_constants";
 
 // Enhanced search function with proper ranking
 const searchDocuments = (query, navigationStructure) => {

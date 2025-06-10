@@ -5,9 +5,9 @@ import { Home, ContentCopy, Send } from "@mui/icons-material";
 import { Tooltip } from "@mui/material";
 import { motion } from "framer-motion";
 import { FaTrash, FaImage } from "react-icons/fa";
-import ProductAnalysisSkeleton from "./Skeleton/ProductAnalysisSkeleton";
-import Toast from "./Toast";
-import Header from "./Header";
+import Toast from "./../../components/Toast";
+
+import Header from "../../components/Header";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 

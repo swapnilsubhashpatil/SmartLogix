@@ -9,7 +9,7 @@ import {
   FaUsers,
   FaInfoCircle,
 } from "react-icons/fa";
-import ProfileCards from "./ProfileCards";
+import ProfileCards from "../pages/documentation/ProfileCards";
 
 export const navigationStructure = {
   overview: {

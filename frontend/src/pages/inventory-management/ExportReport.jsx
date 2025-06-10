@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { Warning } from "@mui/icons-material";
 import HomeIcon from "@mui/icons-material/Home";
-import Header from "./Header";
+import Header from "../../components/Header";
 import {
   Document,
   Page,

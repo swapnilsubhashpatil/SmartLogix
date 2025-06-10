@@ -13,7 +13,7 @@ import {
 } from "chart.js";
 import { useNavigate, useParams } from "react-router-dom";
 import axios from "axios";
-import Toast from "./Toast";
+import Toast from "./../../components/Toast";
 
 // Register Chart.js components
 ChartJS.register(

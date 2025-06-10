@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { FaBars, FaTimes } from "react-icons/fa";
-import Header from "../../Header";
+import Header from "../../components/Header";
 import Sidebar from "./Sidebar";
 import ContentRenderer from "./ContentRenderer";
-import { navigationStructure, getAllSections } from "./docs_constants";
+import {
+  navigationStructure,
+  getAllSections,
+} from "../../constants/docs_constants";
 
 const DocumentationPage = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);

@@ -4,7 +4,7 @@ import { InfoOutlined, Home } from "@mui/icons-material";
 import axios from "axios";
 import { useNavigate, useLocation } from "react-router-dom";
 import ComplianceResponse from "./ComplianceResponse";
-import ComplianceResponseSkeleton from "./Skeleton/ComplianceResponseSkeleton";
+import ComplianceResponseSkeleton from "../../components/Skeleton/ComplianceResponseSkeleton";
 import {
   initialFormData,
   formStructure,
@@ -14,8 +14,8 @@ import {
   currencyOptions,
   booleanOptions,
   transportOptions,
-} from "./constants";
-import Header from "./Header";
+} from "../../constants/constants";
+import Header from "../../components/Header";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 

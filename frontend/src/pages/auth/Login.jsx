@@ -10,13 +10,13 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import axios from "axios";
 import GoogleLogin from "./GoogleLogin";
 import Globe from "react-globe.gl";
-import Toast from "./Toast";
+import Toast from "../../components/Toast";
 import TypewriterText from "./TypewriterText";
 import FeatureCard from "./FeatureCard";
 
 const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
-// Memoized LogisticsGlobe component
+// Move LogisticsGlobe outside and memoize it
 const LogisticsGlobe = React.memo(() => {
   const globeEl = useRef();
   const [globeReady, setGlobeReady] = useState(false);
@@ -247,6 +247,7 @@ const LogisticsGlobe = React.memo(() => {
     []
   );
 
+  // Add proper dependency array to useEffect
   useEffect(() => {
     if (globeEl.current && !globeReady) {
       const controls = globeEl.current.controls();
@@ -264,7 +265,7 @@ const LogisticsGlobe = React.memo(() => {
 
       setGlobeReady(true);
     }
-  }, [globeReady]);
+  }, [globeReady]); // Only run when globeReady changes
 
   return (
     <div className="w-full h-full relative">
@@ -313,9 +314,7 @@ const LogisticsGlobe = React.memo(() => {
   );
 });
 
-const CreateAccount = () => {
-  const [firstName, setFirstName] = useState("");
-  const [lastName, setLastName] = useState("");
+const Login = () => {
   const [emailAddress, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -324,7 +323,7 @@ const CreateAccount = () => {
   const [searchParams] = useSearchParams();
   const [toastProps, setToastProps] = useState({ type: "", message: "" });
 
-  // Memoize features array
+  // Memoize features array to prevent recreation
   const features = useMemo(
     () => [
       {
@@ -352,47 +351,37 @@ const CreateAccount = () => {
     []
   );
 
-  // Handle Google redirect
   useEffect(() => {
     const token = searchParams.get("token");
     if (token) {
       setLoading(true);
       localStorage.setItem("token", token);
-      setToastProps({
-        type: "success",
-        message: "Account Created with Google!",
-      });
+      setToastProps({ type: "success", message: "Google Login Successful!" });
       setTimeout(() => {
         navigate("/dashboard");
         setLoading(false);
       }, 1500);
+      setLoading(false);
     }
   }, [searchParams, navigate]);
 
-  // Memoize handleCreateAccount
-  const handleCreateAccount = useCallback(async () => {
-    if (!firstName || !lastName || !emailAddress || !password) {
+  // Memoize handleLogin to prevent recreation
+  const handleLogin = useCallback(async () => {
+    if (!emailAddress || !password) {
       setToastProps({ type: "warn", message: "Please fill in all fields" });
       return;
     }
 
     try {
       setLoading(true);
-      const response = await axios.post(`${BACKEND_URL}/createAccount`, {
-        firstName,
-        lastName,
+      const response = await axios.post(`${BACKEND_URL}/loginUser`, {
         emailAddress,
         password,
       });
 
-      if (response.data.token) {
-        localStorage.setItem("token", response.data.token);
-      }
+      localStorage.setItem("token", response.data.token);
 
-      setToastProps({
-        type: "success",
-        message: "Account Created Successfully!",
-      });
+      setToastProps({ type: "success", message: "Login Successful!" });
 
       setTimeout(() => {
         navigate("/dashboard");
@@ -401,14 +390,12 @@ const CreateAccount = () => {
     } catch (error) {
       setToastProps({
         type: "error",
-        message: `${
-          error.response?.data?.message || "Account creation failed"
-        }`,
+        message: `${error.response?.data?.message || "Login failed"}`,
       });
       console.log(error.response?.data?.message);
       setLoading(false);
     }
-  }, [firstName, lastName, emailAddress, password, navigate]);
+  }, [emailAddress, password, navigate]);
 
   const FloatingLabel = ({ label, value, focused, children }) => (
     <div className="relative">
@@ -553,7 +540,7 @@ const CreateAccount = () => {
         </div>
       </motion.div>
 
-      {/* Right Side - Create Account Form or Loading */}
+      {/* Right Side - Login Form or Creative Loading */}
       <motion.div
         initial={{ opacity: 0, y: 50 }}
         animate={{ opacity: 1, y: 0 }}
@@ -602,7 +589,7 @@ const CreateAccount = () => {
               }}
               className="mt-8 text-lg font-medium text-primary-600"
             >
-              Creating Your SmartLogix Account...
+              Connecting to SmartLogix...
             </motion.p>
           </motion.div>
         ) : (
@@ -613,7 +600,7 @@ const CreateAccount = () => {
               transition={{ duration: 0.5 }}
               className="text-3xl font-bold text-center text-tertiary-500 mb-2"
             >
-              Create Account
+              Welcome Back
             </motion.h1>
             <motion.p
               initial={{ opacity: 0 }}
@@ -621,7 +608,7 @@ const CreateAccount = () => {
               transition={{ delay: 0.2, duration: 0.5 }}
               className="text-center text-neutral-600 mb-8"
             >
-              Join SmartLogix
+              Log in to SmartLogix
             </motion.p>
 
             <motion.div
@@ -630,57 +617,6 @@ const CreateAccount = () => {
               transition={{ delay: 0.4, duration: 0.6 }}
               className="space-y-6"
             >
-              {/* First Name and Last Name Inputs */}
-              <div className="flex space-x-4">
-                <div className="relative w-1/2">
-                  <input
-                    type="text"
-                    placeholder="First Name"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    className="w-full p-3 pl-10 border border-neutral-300 rounded-custom text-neutral-700 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
-                  <svg
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-neutral-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 11c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
-                    />
-                  </svg>
-                </div>
-                <div className="relative w-1/2">
-                  <input
-                    type="text"
-                    placeholder="Last Name"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    className="w-full p-3 pl-10 border border-neutral-300 rounded-custom text-neutral-700 placeholder-neutral-400 focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  />
-                  <svg
-                    className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-neutral-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 11c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
-                    />
-                  </svg>
-                </div>
-              </div>
-
-              {/* Email Input */}
               <div className="relative">
                 <input
                   type="email"
@@ -774,17 +710,15 @@ const CreateAccount = () => {
                 </button>
               </div>
 
-              {/* Create Account Button */}
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={handleCreateAccount}
+                onClick={handleLogin}
                 className="w-full bg-primary-500 text-white py-3 rounded-custom font-semibold hover:bg-primary-600 transition-colors"
               >
-                Create Account
+                Sign In
               </motion.button>
 
-              {/* Divider */}
               <div className="relative flex items-center justify-center my-6">
                 <div className="absolute inset-0 flex items-center">
                   <div className="w-full border-t border-neutral-300"></div>
@@ -794,16 +728,14 @@ const CreateAccount = () => {
                 </div>
               </div>
 
-              {/* Google Sign Up */}
               <GoogleLogin />
 
-              {/* Sign In Link */}
               <div className="text-center">
                 <Link
-                  to="/"
+                  to="/createAccount"
                   className="text-secondary-500 hover:text-secondary-600 hover:underline transition-colors"
                 >
-                  Already have an account? Sign In
+                  Don't have an account? Sign up
                 </Link>
               </div>
             </motion.div>
@@ -815,4 +747,4 @@ const CreateAccount = () => {
   );
 };
 
-export default CreateAccount;
+export default Login;
