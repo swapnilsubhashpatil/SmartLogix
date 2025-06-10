@@ -5,8 +5,8 @@ import { motion } from "framer-motion";
 import {
   FaNewspaper,
   FaSearch,
-  FaChevronLeft,
-  FaChevronRight,
+  FaCalendarDay,
+  FaCalendarAlt,
 } from "react-icons/fa";
 import Header from "./Header";
 import Toast from "./Toast";
@@ -21,11 +21,10 @@ import {
   Box,
   IconButton,
   Collapse,
-  Pagination,
   Button,
-  PaginationItem,
-  Switch,
-  FormControlLabel,
+  Card,
+  CardContent,
+  Typography,
 } from "@mui/material";
 import { KeyboardArrowDown, KeyboardArrowUp } from "@mui/icons-material";
 
@@ -36,12 +35,11 @@ const News = () => {
   const [news, setNews] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [tempSearchQuery, setTempSearchQuery] = useState("");
-  const [searchMode, setSearchMode] = useState("direct"); // New state for search mode
+  const [searchMode, setSearchMode] = useState("direct");
   const [loading, setLoading] = useState(true);
   const [tableLoading, setTableLoading] = useState(false);
   const [toastProps, setToastProps] = useState({ type: "", message: "" });
-  const [page, setPage] = useState(1);
-  const [totalPages] = useState(5); // Fixed 5 pages for 5 days
+  const [activeDate, setActiveDate] = useState(0); // 0 for today, 1 for yesterday, etc.
   const [query, setQuery] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
@@ -49,11 +47,43 @@ const News = () => {
   const [rowSummaries, setRowSummaries] = useState({});
   const [rowLoading, setRowLoading] = useState({});
 
-  const fetchNews = async (currentPage = 1, search = "") => {
+  // Generate date tabs for today, yesterday, and past 3 days
+  const getDateTabs = () => {
+    const today = new Date();
+    return Array.from({ length: 5 }, (_, index) => {
+      const targetDate = new Date(
+        Date.UTC(
+          today.getUTCFullYear(),
+          today.getUTCMonth(),
+          today.getUTCDate() - index
+        )
+      );
+      const label =
+        index === 0
+          ? "Today"
+          : index === 1
+          ? "Yesterday"
+          : targetDate.toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+            });
+      return {
+        key: index,
+        label,
+        icon: index === 0 ? <FaCalendarDay /> : <FaCalendarAlt />,
+      };
+    });
+  };
+
+  const fetchNews = async (dateIndex = 0, search = "") => {
     setTableLoading(true);
     try {
       const response = await axios.get(`${BACKEND_URL}/api/news`, {
-        params: { search: search || undefined, page: currentPage, searchMode },
+        params: {
+          search: search || undefined,
+          page: dateIndex + 1,
+          searchMode,
+        },
       });
 
       setNews(response.data.articles);
@@ -67,27 +97,28 @@ const News = () => {
       setToastProps({ type: "error", message: errorMessage });
     } finally {
       setTableLoading(false);
-      if (currentPage === 1 && !search) setLoading(false);
+      if (dateIndex === 0 && !search) setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchNews(1);
+    fetchNews(0);
   }, []);
 
   const handleSearch = () => {
     setSearchQuery(tempSearchQuery);
-    setPage(1);
-    fetchNews(1, tempSearchQuery);
+    setActiveDate(0);
+    fetchNews(0, tempSearchQuery);
   };
 
-  const handlePageChange = (event, newPage) => {
-    setPage(newPage);
-    fetchNews(newPage, searchQuery);
+  const handleDateClick = (index) => {
+    setActiveDate(index);
+    fetchNews(index, searchQuery);
   };
 
   const handleSearchModeToggle = () => {
-    setSearchMode((prev) => (prev === "direct" ? "summarized" : "direct"));
+    const newMode = searchMode === "direct" ? "summarized" : "direct";
+    setSearchMode(newMode); // Re-fetch with new mode
   };
 
   const handleRowToggle = async (article) => {
@@ -123,18 +154,16 @@ const News = () => {
     }
   };
 
-  // Helper function to get display text for the date
   const getDateDisplayText = () => {
     const today = new Date();
     const targetDate = new Date(
       Date.UTC(
         today.getUTCFullYear(),
         today.getUTCMonth(),
-        today.getUTCDate() - (page - 1)
+        today.getUTCDate() - activeDate
       )
     );
     const daysDiff = Math.floor((today - targetDate) / (1000 * 60 * 60 * 24));
-
     if (daysDiff === 0) return "today";
     if (daysDiff === 1) return "yesterday";
     return targetDate.toLocaleDateString();
@@ -237,6 +266,37 @@ const News = () => {
               Showing news for {getDateDisplayText()}
             </p>
 
+            <div className="flex flex-wrap gap-3 sm:gap-4 mb-4 sm:mb-6 justify-center max-w-3xl w-full">
+              {getDateTabs().map((tab) => (
+                <Button
+                  key={tab.key}
+                  variant={activeDate === tab.key ? "contained" : "outlined"}
+                  onClick={() => handleDateClick(tab.key)}
+                  className={`
+  ${
+    activeDate === tab.key
+      ? "bg-gradient-to-r from-[#00467F] to-[#A5CC82] text-white"
+      : "bg-white text-[#00467F] border border-[#A5CC82] hover:bg-[#F0F8F4]"
+  }
+  flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 rounded-md transition duration-200
+`}
+                  sx={{
+                    borderRadius: "8px",
+                    textTransform: "none",
+                    boxShadow:
+                      activeDate === tab.key
+                        ? "0 4px 6px rgba(0,0,0,0.1)"
+                        : "none",
+                    minWidth: { xs: "100px", sm: "120px" },
+                    fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                  }}
+                >
+                  {tab.icon}
+                  {tab.label}
+                </Button>
+              ))}
+            </div>
+
             <div className="flex flex-col sm:flex-row gap-4 mb-6">
               <div className="relative w-full max-w-md flex-1">
                 <FaSearch className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 z-10" />
@@ -252,30 +312,47 @@ const News = () => {
                   htmlFor="search"
                   className="absolute left-12 -top-2.5 bg-white/80 backdrop-blur-sm px-2 py-0.5 rounded-lg text-sm font-medium text-gray-600 transition-all duration-300 peer-placeholder-shown:top-4 peer-placeholder-shown:left-12 peer-placeholder-shown:bg-transparent peer-placeholder-shown:text-gray-500 peer-focus:-top-2.5 peer-focus:left-12 peer-focus:bg-white/80 peer-focus:text-blue-600 z-10"
                 >
-                  Search News (e.g., "china us tariff what happened")
+                  Search News (e.g., "China-US tariff conflict")
                 </label>
               </div>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={searchMode === "summarized"}
-                    onChange={handleSearchModeToggle}
-                    color="primary"
-                  />
-                }
-                label={
-                  searchMode === "direct"
-                    ? "Direct Search"
-                    : "Summarized Search"
-                }
-                sx={{ alignSelf: "center" }}
-              />
+              <Button
+                variant={searchMode === "summarized" ? "contained" : "outlined"}
+                onClick={handleSearchModeToggle}
+                className={`
+                  ${
+                    searchMode === "summarized"
+                      ? "bg-gradient-to-r from-blue-500 to-teal-400 text-white"
+                      : "bg-white text-blue-500 border-blue-500 hover:bg-blue-50"
+                  }
+                  flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2
+                `}
+                sx={{
+                  borderRadius: "8px",
+                  textTransform: "none",
+                  boxShadow:
+                    searchMode === "summarized"
+                      ? "0 4px 6px rgba(0,0,0,0.1)"
+                      : "none",
+                  height: "50px",
+                  minWidth: { xs: "100px", sm: "120px" },
+                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                }}
+              >
+                {searchMode === "direct"
+                  ? "Direct Search"
+                  : "Summarized Search"}
+              </Button>
               <Button
                 variant="contained"
                 color="primary"
                 onClick={handleSearch}
                 startIcon={<FaSearch />}
-                sx={{ height: "50px", borderRadius: "12px" }}
+                sx={{
+                  height: "50px",
+                  borderRadius: "12px",
+                  minWidth: { xs: "100px", sm: "120px" },
+                  fontSize: { xs: "0.75rem", sm: "0.875rem" },
+                }}
               >
                 Search
               </Button>
@@ -314,11 +391,32 @@ const News = () => {
                     </TableRow>
                   ) : news.length === 0 ? (
                     <TableRow>
-                      <TableCell
-                        colSpan={5}
-                        className="text-center text-gray-500"
-                      >
-                        No news articles found for {getDateDisplayText()}.
+                      <TableCell colSpan={5} className="text-center">
+                        <Card
+                          sx={{
+                            maxWidth: "500px",
+                            margin: "16px auto",
+                            boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+                          }}
+                        >
+                          <CardContent>
+                            <Typography
+                              variant="h6"
+                              color="textSecondary"
+                              align="center"
+                            >
+                              No News Articles Found
+                            </Typography>
+                            <Typography
+                              variant="body2"
+                              color="textSecondary"
+                              align="center"
+                            >
+                              No news articles found for {getDateDisplayText()}.
+                              Try adjusting your search query or date.
+                            </Typography>
+                          </CardContent>
+                        </Card>
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -329,37 +427,6 @@ const News = () => {
                 </TableBody>
               </Table>
             </TableContainer>
-
-            <div className="flex justify-center mt-6">
-              <Pagination
-                count={totalPages}
-                page={page}
-                onChange={handlePageChange}
-                color="primary"
-                size="large"
-                showFirstButton
-                showLastButton
-                renderItem={(item) => (
-                  <PaginationItem
-                    components={{
-                      previous: () => (
-                        <div className="flex items-center">
-                          <FaChevronLeft className="mr-1" />
-                          Newer
-                        </div>
-                      ),
-                      next: () => (
-                        <div className="flex items-center">
-                          Older
-                          <FaChevronRight className="ml-1" />
-                        </div>
-                      ),
-                    }}
-                    {...item}
-                  />
-                )}
-              />
-            </div>
           </div>
         </motion.div>
       )}

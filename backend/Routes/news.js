@@ -45,16 +45,17 @@ router.get("/news", async (req, res) => {
         const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
         const prompt = `
-          Summarize the following natural language search query into a concise, single sentence (10-15 words max) that captures the core topic or intent.
-          Retain only essential keywords, unique identifiers, proper nouns (people, places, organizations), or specific event names.
-          Exclude filler words, conversational elements, opinions, and vague terms.
-          The output should be a clear, standalone query suitable for news search.
+Summarize the following user query into 1 to 2 high-impact keywords or proper nouns for news search.
+Focus on specific people, places, events, organizations, or major topics.
+Remove filler words, dates, conversational phrases, and general context.
+The goal is to extract core terms that will return the broadest relevant results from a news API.
 
-          Example: "What happened with the US China trade war tariffs in 2024?" → ("US China" OR "US China trade war" OR"tariffs 2024")
+Example: "What happened with the US-China trade war tariffs in 2024?" → ("us china tariffs")
 
-          Query: "${search}"
-          Output only the summarized query, nothing else.
-        `;
+Query: "${search}"
+Return only the keywords.
+`;
+
         const result = await model.generateContent(prompt);
         console.log(result.response.text());
         finalQuery = await result.response.text();
@@ -81,17 +82,25 @@ router.get("/news", async (req, res) => {
     }
 
     // Fetch from NewsAPI
+    const apiParams = {
+      q: finalQuery,
+      searchIn: "title",
+      sortBy: pageNum === 1 ? "publishedAt" : "popularity",
+      pageSize: 10,
+      language: "en",
+      apiKey: process.env.NEWS_API_KEY || "bb3643f430354705a77aca2adb82e330",
+    };
+
+    // For today (pageNum === 1), use only from date; for other days, use both from and to
+    if (pageNum === 1) {
+      apiParams.from = formattedDate;
+    } else {
+      apiParams.from = formattedDate;
+      apiParams.to = formattedDate;
+    }
+
     const response = await axios.get("https://newsapi.org/v2/everything", {
-      params: {
-        q: finalQuery,
-        searchIn: "title",
-        from: formattedDate,
-        to: formattedDate,
-        sortBy: "popularity",
-        pageSize: 10,
-        language: "en",
-        apiKey: process.env.NEWS_API_KEY || "bb3643f430354705a77aca2adb82e330",
-      },
+      params: apiParams,
     });
 
     articles = response.data.articles.map((article) => ({

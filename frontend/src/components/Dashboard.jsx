@@ -320,6 +320,28 @@ function MovexDashboard() {
               </div>
               <div className="space-y-3">
                 <motion.a
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3 }}
+                  whileHover={{ scale: 1.02, x: 4 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="block text-base py-4 px-5 text-gray-900 hover:bg-gray-100/60 hover:text-gray-600 rounded-2xl transition-all duration-200 font-medium border border-transparent hover:border-gray-200/40"
+                  onClick={handleDocsClick}
+                >
+                  Docs
+                </motion.a>
+                <motion.a
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3 }}
+                  whileHover={{ scale: 1.02, x: 4 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="block text-base py-4 px-5 text-gray-900 hover:bg-gray-100/60 hover:text-gray-600 rounded-2xl transition-all duration-200 font-medium border border-transparent hover:border-gray-200/40"
+                  onClick={handleNewsClick}
+                >
+                  News
+                </motion.a>
+                <motion.a
                   href="#about"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}

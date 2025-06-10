@@ -7,6 +7,7 @@ const userModel = require("../Database/userSchema");
 const { verifyToken } = require("../Middleware/auth");
 
 const JWT_SECRET = process.env.JWT_SECRET || "mySuperSecretKey12345!@";
+const TOKEN_EXPIRY = "1h"; // Global token expiration time of 20 seconds
 
 const isProduction = process.env.NODE_ENV === "production";
 
@@ -35,12 +36,11 @@ router.post("/createAccount", async (req, res) => {
       emailAddress,
       password: hashedPassword,
     });
-    // console.log(newUser);
 
     const token = jwt.sign(
       { id: newUser._id, email: newUser.emailAddress },
       JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: TOKEN_EXPIRY }
     );
 
     res.status(201).send({
@@ -75,7 +75,7 @@ router.post("/loginUser", async (req, res) => {
     const token = jwt.sign(
       { id: user._id, email: user.emailAddress },
       JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: TOKEN_EXPIRY }
     );
     res.status(200).send({
       message: "Logged in successfully!",
@@ -101,7 +101,7 @@ router.get(
     const token = jwt.sign(
       { id: req.user._id, email: req.user.emailAddress },
       JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: TOKEN_EXPIRY }
     );
     const redirectUrl = `${FRONTEND_URL}/?token=${token}`;
     res.redirect(redirectUrl);
