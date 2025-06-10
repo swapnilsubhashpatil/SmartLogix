@@ -1,157 +1,373 @@
 <p align="center">
-  <img src="./screenshots/cover.png" alt="SmartLogix Banner" />
+  <img src="./screenshots/cover.png" alt="SmartLogix Banner" width="80%" />
 </p>
 
+---
+
+<p align="center">
+  <img src="frontend/public/favicon/SmartLogix_LOGO.png" alt="SmartLogix Logo" width="40" style="vertical-align: middle;" />
+  <span style="font-size: 2.5em; font-weight: bold; vertical-align: middle;">SmartLogix</span>
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Stack-MERN-3c873a?style=for-the-badge&logo=mongodb&logoColor=white" />
+  <img src="https://img.shields.io/badge/Deployed-Google%20Cloud-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white" />
+  <img src="https://img.shields.io/badge/AI-Powered-brightgreen?style=for-the-badge&logo=keras&logoColor=white" />
+  <img src="https://img.shields.io/badge/Status-Production--Ready-orange?style=for-the-badge&logo=vercel" />
+</p>
+
+> 🚀 _A comprehensive logistics intelligence platform that integrates AI-powered compliance checks, multimodal route optimization, and product analysis to simplify global and domestic shipment planning._
 
 ---
 
-<h1 align="center"> SmartLogix </h1>
+## 📋 About SmartLogix
 
-SmartLogix is a comprehensive logistics intelligence platform that integrates **AI-powered compliance checks**, **multimodal route optimization**, and **product analysis** to simplify global and domestic shipment planning. Developed using the **MERN stack**, it empowers logistics businesses with smarter decision-making.
+SmartLogix is a **next-generation logistics intelligence platform** designed to streamline and enhance the management of global and domestic shipments. Built on the **MERN stack** (MongoDB, Express.js, React.js, Node.js), SmartLogix leverages advanced AI and cloud technologies to provide comprehensive solutions for logistics businesses.
 
----
-
-## 📖 About SmartLogix  
-
-SmartLogix provides a seamless experience for managing international and domestic logistics with the help of advanced AI and cloud technologies. The platform focuses on:  
-
-- Regulatory **compliance validation**
-- **Product classification** using image-based AI analysis
-- **Route optimization** with cost, carbon, and time efficiency
-- Detailed **report generation** and **history tracking**
-
----  
-
-## 🚀 Features  
-
-### 🔐 Authentication  
-- Manual Login with password hashing via **bcrypt**
-- **Google OAuth** for one-click login  
-- Secured user sessions
+The platform simplifies complex logistics operations by integrating **AI-powered compliance checks**, **multimodal route optimization**, and **intelligent product analysis**. SmartLogix is accessible via a secure web interface and offers robust features for **authentication**, **inventory management**, **analytics**, and **user support**.
 
 ---
 
-### 📊 Compliance Check  
+## ✨ Features
 
-- Tab-wise form inputs: Each tab contains **mandatory and optional** fields
-- **CSV import** via drag and drop or template download
-- Input fields autofilled from uploaded CSV
-- Integrated with **Gemini Pro AI** for intelligent compliance evaluation
+### 🔐 Authentication & User Management
 
-#### 📄 Compliance Report Includes:
-- ✅ Compliance status & summary  
-- 🔴 Risk level with reasoning  
-- 📊 Field-wise violations and recommendations  
-- 📈 Compliance score based on form validity  
-- 💡 Additional tips for better compliance  
-- 🕒 **Saved to compliance history**  
+#### ✅ Secure Access Control
+
+- 🔑 Login/Create Account with secure password hashing using **bcrypt**
+- 🔗 Google OAuth integration for one-click authentication
 
 ---
 
-### 🧪 Product Analysis via Image  
+### ✅ Compliance Check
 
-- Upload product image for instant AI-based insights  
-- Powered by **Google Cloud Vision** + Gemini AI  
-- Get:
-  - 📦 HS Code  
-  - 📃 Product description  
-  - ⚠️ Perishable or hazardous info  
-  - 📑 Required export documents  
-  - 💡 Additional tips  
+#### 🤖 AI-Powered Regulatory Validation
 
-- 📤 **Send to Compliance** button for autofill into the form
-
----
-
-### 🛣️ Route Optimization  
-
-- Input shipment **source, destination, and weight**
-- Multimodal routing with:
-  - 🗺️ Route cards showing:
-    - Checkpoints
-    - Transport modes
-    - Total distance
-    - Cost
-    - Time
-    - Carbon score  
-  - 📘 “How it works” section explains calculations
-
-#### Tabs Include:
-1. **Popular Routes** – 3 most used real-world routes  
-2. **Cost Optimized** – Top 3 cheapest paths  
-3. **Time Optimized** – Fastest routes  
-4. **Carbon Efficient** – Eco-friendly logistics suggestions  
-
-#### Each Route Card Offers:
-- 🗺️ **Map View** – Color-tagged paths on world map  
-- ♻️ **Carbon Breakdown** – Emissions, Earth impact, suggestions  
-- 💾 **Save Route** – Store in user’s profile  
+- 📝 Manual form completion with mandatory and optional fields
+- 📁 CSV upload functionality with template download option
+- 🔍 Product analysis integration for auto-filling compliance fields
+- 🧠 Gemini Pro AI integration for intelligent compliance evaluation based on **WCO standards**
+- 📊 Comprehensive compliance reports including:
+  - 🟢 Compliance status and summary
+  - ⚠️ Risk level assessment with detailed reasoning
+  - 🧾 Field-wise violation analysis and recommendations
+  - 🧮 Compliance score based on form validity
+  - 💡 Actionable tips for improved compliance
+- 🕓 Complete history tracking of all compliance checks
 
 ---
 
-### 👤 User Profile  
+### 🔬 Product Analysis
 
-- History of:
-  - ✔️ Compliance reports
-  - 🛣️ Saved routes
+#### 🖼️ Image-Based AI Analysis
 
----
-
-## 🖼 Screenshots  
-
-1. **Login:**  
-   ![Compliance Check](./screenshots/login.png)
-
-2. **Compliance Check:**  
-   ![Compliance Check](screenshots/compliance_check.png)
-
-3. **Compliance Check Report:**  
-   ![Compliance Report](screenshots/compliance_report.png)
-
-4. **Product Analysis:**  
-   ![Product Analysis](screenshots/product_analysis.png)
-
-5. **Route Optimization:**  
-   ![Route Optimization](screenshots/route_optimization.png)
-
-6. **Map Representation:**  
-   ![Map View](screenshots/map_representation.png)
-
-7. **Detailed Carbon Footprint Analysis:**  
-   ![Carbon Analysis](screenshots/detailed_carbon_analysis.png)
-
-8. **User Profile:**  
-   ![Profile](screenshots/profile.png)
+- 📸 Product image upload for instant AI-powered insights
+- ☁️ Google Cloud Vision and Gemini AI integration
+- 🧾 Automated generation of:
+  - 🧾 HS Code classification
+  - 📝 Detailed product descriptions
+  - 🧪 Perishable and hazardous material identification
+  - 📃 Required export documentation lists
+  - 📌 Additional compliance tips
+- 🔗 Direct integration with compliance check forms for seamless data transfer
 
 ---
 
-## 🛠 Tech Stack  
+### 🛣️ Multimodal Route Optimization
 
-| 🧩 Component           | 🔧 Technology                                                                 |
-|------------------------|-------------------------------------------------------------------------------|
-| **Frontend**           | React.js, TailwindCSS                                                         |
-| **Backend**            | Node.js, Express.js                                                           |
-| **Database**           | MongoDB                                                                       |
-| **Authentication**     | Bcrypt for hashing, Google OAuth                                              |
-| **AI/ML APIs**         | Gemini Pro, Google Cloud Vision                                               |
-| **Deployment**         | Frontend: Vercel<br>Backend: Render                                           |
-| **Google APIs**        | Maps API, Geolocation API, Geocoding API, Routes API, Polylines API, Cloud Storage Bucket |
+#### 🧠 Intelligent Route Planning
 
----
+- 🗺️ Input specification for shipment origin, destination, and package details
+- 🔄 Multiple route optimization categories:
+  - ⭐ **Popular Routes**: Top 3 most frequently used real-world routes
+  - 💸 **Cost Optimized**: Most economical shipping paths
+  - ⏱️ **Time Optimized**: Fastest delivery routes
+  - 🌱 **Carbon Efficient**: Environmentally conscious logistics options
 
-## 🧠 Algorithmic Systems  
+#### 📍 Route Card Features
 
-| ⚙️ Module                | 🔍 Description                                                                                     |
-|--------------------------|--------------------------------------------------------------------------------------------------|
-| **Route Optimization**   | Multimodal path planning across Land, Sea, and Air using waypoint logic and Google Routes        |
-| **Cost Estimation**      | Real-world simulation based on distance, transport mode, and scalable cargo volume                |
-| **Time Calculation**     | Duration computed using mode-specific speeds and delays at ports/waypoints                        |
-| **Carbon Score Calculation** | CO₂ footprint estimation using per-mode emission rates normalized per km                        |
-| **Distance Calculation** | Accurate great-circle distance computation between coordinates                                    |
-| **Compliance Check**     | AI-based validation using WCO standards for HS code legality, import rules     |
-| **Risk Scoring Algorithm** | Weighted penalty system (0–100) based on field completeness, document presence, context risks (hazardous, dual-use), banned goods, and route complexity |
-
+- 🔎 Comprehensive route information including waypoints, distance, time estimates, costs, and carbon scores
+- 🗺️ Interactive map visualization with color-coded route paths
+- 🌍 Detailed carbon footprint analysis with environmental impact assessments
+- 💾 Route saving functionality for future reference
+- 📦 Route selection with automatic draft creation and inventory management
 
 ---
 
-💡 **SmartLogix** bridges logistics intelligence with AI to enhance compliance, optimize shipping, and streamline trade documentation—**all in one place**.
+### 📦 Inventory Management
+
+#### 📋 Comprehensive Draft Management System
+
+- **All Drafts**: Complete overview of all draft records
+
+- **Yet to be Checked**: Drafts requiring review process
+
+  - ✍️ Manual draft creation capability
+  - ⚙️ Automatic draft generation from product analysis and route optimization
+  - 🔗 Direct integration with compliance check system for auto-filled forms
+
+- **Noncompliant**: Failed compliance check management
+
+  - 🔁 Re-submission capability for compliance re-evaluation
+  - ✏️ Edit and update functionality for draft improvement
+
+- **Compliant**: Approved drafts awaiting route optimization
+
+  - 🔗 Direct integration with route optimization system
+  - ➡️ Seamless workflow progression
+
+- **Ready for Shipment**: Fully processed drafts
+  - 📤 Complete export reports with comprehensive data including form information, compliance responses, chosen routes, map views, and carbon analysis
+  - 🧾 PDF export functionality for documentation
+
+---
+
+### 👤 User Profile and History
+
+#### 🧑‍💼 Comprehensive User Management
+
+- 📄 Profile information display with logout functionality
+- 🏅 Achievement badges based on route selection patterns
+- ⚙️ Account management features including profile picture updates, username/password editing, and account deletion
+- 📂 Complete draft overview with date filtering and search capabilities
+
+#### 🗂️ Organized History Tracking
+
+- 📜 **Compliance History**: All past compliance evaluations
+- 🗺️ **Saved Routes**: User-saved route collection
+- 🔍 **Product Analysis**: Complete product analysis records
+- 🧹 Individual history item deletion capability
+
+---
+
+### 📊 Analysis Dashboard
+
+#### 📈 Visual Analytics Platform
+
+- 📉 Data visualization for compliant records with optimized routes
+- 📊 Trend analysis and pattern identification tools
+- ⚙️ Operational insights for logistics optimization
+
+---
+
+### 📰 News Section - Disruption Alerts
+
+#### 📡 Real-Time Logistics Intelligence
+
+- 🌀 Disruption event monitoring including natural disasters, geopolitical shifts, and pandemics
+- 📅 Five-day news filtering with date-based organization
+- 📰 Comprehensive news cards featuring:
+  - 🏷️ Article titles and publication dates
+  - 🗞️ Publisher information and source links
+  - 📃 Detailed summaries and shipment impact assessments
+  - ⚠️ Cautionary advice and recommendations
+
+---
+
+### 📚 Documentation and Support
+
+#### 📖 Comprehensive User Resources
+
+- 📘 Complete feature documentation and user guides
+- 📧 Support email contact system
+- 🎥 Platform usage tutorials and resources
+
+---
+
+### 🤖 Chatbot Assistance
+
+#### 🗣️ Intelligent User Support
+
+- 💬 Real-time assistance across all platform features
+- 🤖 Dialogflow CX and React integration for seamless user interaction
+- 🧠 Context-aware help and guidance system
+
+---
+
+## 🖼️ Platform Screenshots
+
+Click on the points below to view the corresponding screenshots (dropdowns).
+
+<details>
+  <summary>🔐 Login</summary>
+
+![Login](./screenshots/login.png)
+
+</details>
+
+<details>
+  <summary>✅ Compliance Check Options</summary>
+
+![Compliance Check Options](./screenshots/compliance.png)
+
+</details>
+
+<details>
+  <summary>📁 CSV Upload</summary>
+
+![CSV Upload](./screenshots/csv-upload.png)
+
+</details>
+
+<details>
+  <summary>🔬 Product Analysis</summary>
+
+![Product Analysis](./screenshots/product-analysis.png)
+
+</details>
+
+<details>
+  <summary>📋 Compliance Check Form</summary>
+
+![Compliance Check Form](./screenshots/compliance-check-form.png)
+
+</details>
+
+<details>
+  <summary>📑 Compliance Report</summary>
+
+![Compliance Report](./screenshots/compliance-check.png)
+
+</details>
+
+<details>
+  <summary>🛣️ Route Optimization</summary>
+
+![Route Optimization](./screenshots/route-optimization.png)
+
+</details>
+
+<details>
+  <summary>🗺️ Map View</summary>
+
+![Map View](./screenshots/map-view.png)
+
+</details>
+
+<details>
+  <summary>🌱 Carbon Footprint Analysis</summary>
+
+![Carbon Analysis](./screenshots/carbon-footprint.png)
+
+</details>
+
+<details>
+  <summary>📦 Inventory Management</summary>
+
+![Inventory Management](./screenshots/inventory.png)
+
+</details>
+
+<details>
+  <summary>📤 Export Report</summary>
+
+![Export Report](./screenshots/export-report.png)
+
+</details>
+
+<details>
+  <summary>👤 User Profile</summary>
+
+![User Profile](./screenshots/profile.png)
+
+</details>
+
+<details>
+  <summary>⚙️ Manage Account</summary>
+
+![Manage Account](./screenshots/manage-account.png)
+
+</details>
+
+<details>
+  <summary>📚 History</summary>
+
+![History](./screenshots/history.png)
+
+</details>
+
+<details>
+  <summary>📊 Analysis Dashboard</summary>
+
+![Analysis Dashboard](./screenshots/analysis.png)
+
+</details>
+
+<details>
+  <summary>📰 News Section</summary>
+
+![News](./screenshots/news.png)
+
+</details>
+
+<details>
+  <summary>📖 Documentation</summary>
+
+![Documentation](./screenshots/documentation.png)
+
+</details>
+
+<details>
+  <summary>🤖 Chat Bot</summary>
+
+![Chat BOT](./screenshots/chat-bot.png)
+
+</details>
+
+---
+
+## 🛠 Tech Stack
+
+| 🧩 Component       | 🔧 Technology                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Frontend**       | ![React](https://img.shields.io/badge/React.js-20232A?style=for-the-badge&logo=react&logoColor=61DAFB) <br> ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=for-the-badge&logo=tailwind-css&logoColor=white) <br> ![Framer Motion](https://img.shields.io/badge/Framer_Motion-black?style=for-the-badge&logo=framer&logoColor=white) <br> ![MUI](https://img.shields.io/badge/MUI-007FFF?style=for-the-badge&logo=mui&logoColor=white) |
+| **Backend**        | ![Node.js](https://img.shields.io/badge/Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white) <br> ![Express.js](https://img.shields.io/badge/Express.js-000000?style=for-the-badge&logo=express&logoColor=white)                                                                                                                                                                                                                                |
+| **Database**       | ![MongoDB](https://img.shields.io/badge/MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white) <br> ![Cloud Storage](https://img.shields.io/badge/Cloud%20Storage-Buckets-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white)                                                                                                                                                                                                              |
+| **Authentication** | ![Google OAuth](https://img.shields.io/badge/Google_OAuth-4285F4?style=for-the-badge&logo=google&logoColor=white) <br> ![JWT](https://img.shields.io/badge/JWT-black?style=for-the-badge&logo=jsonwebtokens&logoColor=white) <br> ![Bcrypt](https://img.shields.io/badge/Bcrypt-grey?style=for-the-badge)                                                                                                                                                     |
+| **APIs & AI**      | ![Google Cloud APIs](https://img.shields.io/badge/Google_Cloud_APIs-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white) <br> ![Carbon API](https://img.shields.io/badge/Carbon_Interface_API-00C853?style=for-the-badge) <br> ![News API](https://img.shields.io/badge/News_API-FF6F00?style=for-the-badge)                                                                                                                                          |
+| **Deployment**     | ![Google Cloud Run](https://img.shields.io/badge/Google_Cloud_Run-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white)                                                                                                                                                                                                                                                                                                                                |
+
+---
+
+## 🤖 Google AI Tools Integrated
+
+| 🔧 Tool/Service                                                                                                                           | 📌 Description                                                         |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------- |
+| ![Gemini](https://img.shields.io/badge/Gemini%20%26%20Pro-Generative_Language_API-34A853?style=for-the-badge&logo=google&logoColor=white) | Used for intelligent compliance, text generation, and decision support |
+| ![Cloud Vision](https://img.shields.io/badge/Cloud_Vision_API-Image_Recognition-34A853?style=for-the-badge&logo=google&logoColor=white)   | AI-powered product image analysis and classification                   |
+| ![Gen App Builder](https://img.shields.io/badge/Gen_App_Builder-AI_Applications-34A853?style=for-the-badge&logo=google&logoColor=white)   | Build generative AI apps for user assistance                           |
+| ![Dialogflow](https://img.shields.io/badge/Dialogflow-CX_Chatbot_AI-FF9800?style=for-the-badge&logo=dialogflow&logoColor=white)           | AI chatbot for real-time, context-aware platform support               |
+
+---
+
+## 🧱 Google Technologies Used
+
+| 🔧 Technology                                                                                                                                  | 📌 Purpose                                                       |
+| ---------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| ![Geocoding API](https://img.shields.io/badge/Geocoding_API-Address_to_Coordinates-4285F4?style=for-the-badge&logo=googlemaps&logoColor=white) | Converts location input into usable geocoordinates               |
+| ![Maps JS API](https://img.shields.io/badge/Maps_JS_API-Interactive_Maps-4285F4?style=for-the-badge&logo=googlemaps&logoColor=white)           | For rendering interactive and dynamic maps                       |
+| ![Routes API](https://img.shields.io/badge/Routes_API-Route_Planning-4285F4?style=for-the-badge&logo=googlemaps&logoColor=white)               | Provides optimal shipping and delivery paths                     |
+| ![Cloud Run](https://img.shields.io/badge/Cloud_Run-Serverless_Backend-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white)            | Deploy and scale backend microservices easily                    |
+| ![Cloud Build](https://img.shields.io/badge/Cloud_Build-CI/CD_Automation-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white)          | Automates deployment and build pipelines                         |
+| ![Cloud Datastore](https://img.shields.io/badge/Cloud_Datastore-NoSQL_Database-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white)    | Flexible NoSQL DB for structured data                            |
+| ![Cloud Storage](https://img.shields.io/badge/Cloud_Storage_Bucket-Object_Storage-4285F4?style=for-the-badge&logo=googlecloud&logoColor=white) | Scalable storage for user uploads, compliance files, and exports |
+
+---
+
+## 🧠 Algorithmic Systems
+
+| ⚙️ **Module**               | 🔍 **Description**                                                                                                                                            |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 🛣️ **Route Optimization**   | Multimodal path planning across Land, Sea, and Air using waypoint logic and Google Routes API for efficient shipment pathways.                                |
+| 💰 **Cost Estimation**      | Real-world simulation based on travel distance, selected transport mode, and dynamic cargo volume to generate cost projections.                               |
+| ⏱️ **Time Calculation**     | Estimated shipment duration calculated using mode-specific average speeds, along with anticipated delays at ports or key waypoints.                           |
+| 🌱 **Carbon Score**         | CO₂ footprint estimation computed via per-mode emission rates, normalized per kilometer for environmental impact analysis.                                    |
+| 📏 **Distance Calculation** | Great-circle (haversine) distance computation between coordinates for precise routing and time/cost accuracy.                                                 |
+| ✅ **Compliance Check**     | AI-driven validation leveraging WCO standards to evaluate HS code legality, import/export regulations, and document completeness.                             |
+| ⚠️ **Risk Scoring**         | Weighted penalty scoring system (0–100) based on form completeness, document presence, contextual risk (e.g., hazardous goods), and route complexity factors. |
+
+---
+
+---
+
+> 💡 **SmartLogix** bridges logistics intelligence with AI to enhance compliance, optimize shipping routes, and streamline global trade documentation — **all in one platform**.

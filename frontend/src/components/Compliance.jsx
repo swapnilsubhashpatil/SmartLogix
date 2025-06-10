@@ -12,13 +12,13 @@ const ComplianceOverview = () => {
 
   const features = [
     {
-      title: "Csv Upload",
+      title: "CSV Upload",
       description:
-        "Upload a CSV file with shipment details to perform a comprehensive compliance check. The system processes the data to identify regulatory gaps, such as missing HS codes, invalid trade routes, or incomplete documentation, ensuring your exports meet global standards.",
+        "Upload a CSV file with shipment details using a provided sample CSV template with specific headers. The system automatically populates the compliance form with the uploaded data, allowing users to quickly complete compliance checks. Users can reuse the same format with updated values for multiple uploads, streamlining the process for faster form completion.",
       useCases: [
-        "Batch compliance validation for multiple shipments.",
-        "Seamless integration with ERP systems for automated checks.",
-        "Pre-submission audits to ensure customs readiness.",
+        "Rapidly fill compliance forms for multiple shipments using a standardized CSV template.",
+        "Reduce manual data entry errors with automated form population.",
+        "Efficiently handle recurring compliance checks with consistent CSV formatting.",
       ],
       action: {
         label: "Upload CSV",
@@ -45,11 +45,11 @@ const ComplianceOverview = () => {
     {
       title: "Product Analysis",
       description:
-        "Analyze product details to ensure compliance with international trade regulations, environmental standards, and safety protocols. Gain insights into product classifications, trade restrictions, and carbon footprint considerations for sustainable exporting.",
+        "Leverage AI to analyze products, from simple to complex, and generate precise HS codes, detailed descriptions, and classifications for perishable or hazardous status. This feature creates a new record with the analyzed data, enabling users to seamlessly proceed with compliance checks using the generated information.",
       useCases: [
-        "Validate HS codes for precise tariff and tax compliance.",
-        "Identify restricted or dual-use items to avoid penalties.",
-        "Ensure products align with destination country regulations and sustainability goals.",
+        "Obtain accurate HS codes and classifications for any product type.",
+        "Automatically generate compliance-ready product records for streamlined processing.",
+        "Ensure regulatory adherence by identifying perishable or hazardous materials.",
       ],
       action: {
         label: "Go to Product Analysis",
@@ -76,11 +76,11 @@ const ComplianceOverview = () => {
     {
       title: "Manual Compliance Check",
       description:
-        "Manually input shipment details via a structured form to conduct an in-depth compliance check. Ideal for single shipments, this feature also integrates route optimization and carbon footprint analysis for informed decision-making.",
+        "Complete a compliance check by manually filling out a structured form with multiple inputs, including mandatory and optional fields. Each input is accompanied by an info button providing guidance on the required information, ensuring accurate and informed data entry for thorough compliance verification.",
       useCases: [
-        "Compliance verification for individual or small-scale shipments.",
-        "Detailed analysis of complex trade routes and regulations.",
-        "Route optimization with carbon impact insights for sustainable shipping.",
+        "Perform detailed compliance checks for individual shipments with guided input fields.",
+        "Access clear instructions via info buttons to accurately complete the form.",
+        "Handle both mandatory and optional fields for flexible compliance requirements.",
       ],
       action: {
         label: "Start Compliance Check",
