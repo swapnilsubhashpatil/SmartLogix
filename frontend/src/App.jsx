@@ -18,7 +18,7 @@ import Compliance from "./components/Compliance";
 import CsvUpload from "./components/CsvUpload";
 import News from "./components/News";
 import ProtectedRoute from "./components/ProtectedRoute"; // Should return <Outlet /> if authenticated
-
+import DocumentationPage from "./components/pages/document/DocumentationPage";
 function App() {
   return (
     <BrowserRouter>
@@ -52,6 +52,7 @@ function App() {
           <Route path="/csv-upload" element={<CsvUpload />} />
           <Route path="/export-report/:draftId" element={<ExportReport />} />
           <Route path="/news" element={<News />} />
+          <Route path="/docs" element={<DocumentationPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

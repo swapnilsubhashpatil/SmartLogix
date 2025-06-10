@@ -96,7 +96,7 @@ function MovexDashboard() {
       navigate(`/profile/${userId}`);
     } catch (error) {
       console.error("Error navigating to profile:", error);
-      navigate("/login"); // Redirect to login if token is invalid
+      navigate("/"); // Redirect to login if token is invalid
     }
   };
 
@@ -105,6 +105,10 @@ function MovexDashboard() {
   };
   const handleNewsClick = () => {
     navigate("/news");
+  };
+
+  const handleDocsClick = () => {
+    navigate("/docs");
   };
 
   const complianceCheck = () => {
@@ -220,6 +224,14 @@ function MovexDashboard() {
 
           <div className="flex items-center">
             <div className="hidden md:flex items-center space-x-4">
+              <motion.a
+                onClick={handleDocsClick}
+                whileHover={{ scale: 1.02, y: -1 }}
+                whileTap={{ scale: 0.98 }}
+                className="cursor-pointer text-gray-700 hover:text-blue-600 text-base font-medium px-4 py-2.5 rounded-2xl hover:bg-white/60 transition-all duration-200 relative backdrop-blur-sm"
+              >
+                Docs
+              </motion.a>
               <motion.a
                 onClick={handleNewsClick}
                 whileHover={{ scale: 1.02, y: -1 }}
