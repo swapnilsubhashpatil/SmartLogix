@@ -8,7 +8,7 @@ router.get("/news", async (req, res) => {
   try {
     const { search, page = 1, searchMode = "direct" } = req.query;
     const pageNum = parseInt(page, 10);
-    if (isNaN(pageNum) || pageNum < 1 || pageNum > 5) {
+    if (isNaN(pageNum) || pageNum < 1 || pageNum > 4) {
       return res.status(400).json({ message: "Invalid page number" });
     }
     if (searchMode !== "direct" && searchMode !== "summarized") {
@@ -20,7 +20,7 @@ router.get("/news", async (req, res) => {
       Date.UTC(
         today.getUTCFullYear(),
         today.getUTCMonth(),
-        today.getUTCDate() - (pageNum - 1)
+        today.getUTCDate() - pageNum
       )
     );
     const formattedDate = targetDate.toISOString().split("T")[0];
@@ -33,7 +33,15 @@ router.get("/news", async (req, res) => {
     )
       .toISOString()
       .split("T")[0];
-    const toDate = today.toISOString().split("T")[0];
+    const toDate = new Date(
+      Date.UTC(
+        today.getUTCFullYear(),
+        today.getUTCMonth(),
+        today.getUTCDate() - 1
+      )
+    )
+      .toISOString()
+      .split("T")[0];
 
     let finalQuery =
       '"pandemic" OR "epidemic" OR "outbreak" OR "disease spread" OR "public health crisis" OR "geopolitical event" OR "political instability" OR "trade war" OR "sanctions" OR "natural disaster" OR "extreme weather" OR "environmental hazard"';
@@ -41,7 +49,6 @@ router.get("/news", async (req, res) => {
 
     if (search) {
       if (searchMode === "summarized") {
-        // Process search query with Gemini for summarization
         const genAI = new GoogleGenerativeAI(process.env.GOOGLE_API_KEY);
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
         const prompt = `
@@ -60,11 +67,9 @@ Return only the keywords.
         console.log(result.response.text());
         finalQuery = await result.response.text();
       } else {
-        // Direct search: use the query as-is
         finalQuery = search;
       }
     } else {
-      // Check MongoDB for cached default news
       const cachedNews = await NewsHistory.findOne({
         date: formattedDate,
         query: "default",
@@ -81,23 +86,16 @@ Return only the keywords.
       }
     }
 
-    // Fetch from NewsAPI
     const apiParams = {
       q: finalQuery,
       searchIn: "title",
-      sortBy: pageNum === 1 ? "publishedAt" : "popularity",
+      sortBy: "popularity",
       pageSize: 10,
       language: "en",
       apiKey: process.env.NEWS_API_KEY || "bb3643f430354705a77aca2adb82e330",
+      from: formattedDate,
+      to: formattedDate,
     };
-
-    // For today (pageNum === 1), use only from date; for other days, use both from and to
-    if (pageNum === 1) {
-      apiParams.from = formattedDate;
-    } else {
-      apiParams.from = formattedDate;
-      apiParams.to = formattedDate;
-    }
 
     const response = await axios.get("https://newsapi.org/v2/everything", {
       params: apiParams,
@@ -111,7 +109,6 @@ Return only the keywords.
       source: article.source.name || "Unknown",
     }));
 
-    // Cache news for default queries only
     if (!search && articles.length > 0) {
       await NewsHistory.findOneAndUpdate(
         { date: formattedDate, query: "default" },

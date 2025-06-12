@@ -5,7 +5,6 @@ import { motion } from "framer-motion";
 import {
   FaNewspaper,
   FaSearch,
-  FaCalendarDay,
   FaCalendarAlt,
   FaChevronDown,
   FaChevronUp,
@@ -42,30 +41,28 @@ const News = () => {
   const [loading, setLoading] = useState(true);
   const [tableLoading, setTableLoading] = useState(false);
   const [toastProps, setToastProps] = useState({ type: "", message: "" });
-  const [activeDate, setActiveDate] = useState(0); // 0 for today, 1 for yesterday, etc.
+  const [activeDate, setActiveDate] = useState(0); // 0 for yesterday, 1 for day before, etc.
   const [query, setQuery] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [expandedRows, setExpandedRows] = useState({});
   const [rowSummaries, setRowSummaries] = useState({});
   const [rowLoading, setRowLoading] = useState({});
-  const [isSearchOpen, setIsSearchOpen] = useState(false); // State for dropdown visibility
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
-  // Generate date tabs for today, yesterday, and past 3 days
+  // Generate date tabs for yesterday and past 3 days
   const getDateTabs = () => {
     const today = new Date();
-    return Array.from({ length: 5 }, (_, index) => {
+    return Array.from({ length: 4 }, (_, index) => {
       const targetDate = new Date(
         Date.UTC(
           today.getUTCFullYear(),
           today.getUTCMonth(),
-          today.getUTCDate() - index
+          today.getUTCDate() - (index + 1)
         )
       );
       const label =
         index === 0
-          ? "Today"
-          : index === 1
           ? "Yesterday"
           : targetDate.toLocaleDateString("en-US", {
               month: "short",
@@ -74,7 +71,7 @@ const News = () => {
       return {
         key: index,
         label,
-        icon: index === 0 ? <FaCalendarDay /> : <FaCalendarAlt />,
+        icon: <FaCalendarAlt />,
       };
     });
   };
@@ -113,7 +110,7 @@ const News = () => {
     setSearchQuery(tempSearchQuery);
     setActiveDate(0);
     fetchNews(0, tempSearchQuery);
-    setIsSearchOpen(false); // Close dropdown after search
+    setIsSearchOpen(false);
   };
 
   const handleDateClick = (index) => {
@@ -165,11 +162,10 @@ const News = () => {
       Date.UTC(
         today.getUTCFullYear(),
         today.getUTCMonth(),
-        today.getUTCDate() - activeDate
+        today.getUTCDate() - (activeDate + 1)
       )
     );
     const daysDiff = Math.floor((today - targetDate) / (1000 * 60 * 60 * 24));
-    if (daysDiff === 0) return "today";
     if (daysDiff === 1) return "yesterday";
     return targetDate.toLocaleDateString();
   };

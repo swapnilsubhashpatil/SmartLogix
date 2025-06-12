@@ -759,7 +759,7 @@ function RouteMap() {
 
             {/* Close button */}
             <button
-              className="absolute bottom-4 sm:bottom-6 left-1/2 transform -translate-x-1/2 z-10 bg-gradient-to-r from-yellow-400 to-orange-400 py-2 sm:py-3 px-4 sm:px-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
+              className="absolute bottom-4 sm:bottom-6 left-1/2 transform-translate-x-1/2 z-10 bg-gradient-to-r from-yellow-400 to-orange-400 py-2 sm:py-3 px-4 sm:px-6 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 transform hover:scale-105"
               onClick={handleBackClick}
             >
               <span className="text-gray-800 font-semibold flex items-center gap-1 sm:gap-2 text-xs sm:text-sm">
