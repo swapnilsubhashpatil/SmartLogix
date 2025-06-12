@@ -637,10 +637,10 @@ const BACKEND_URL = import.meta.env.VITE_BACKEND_URL;
 
 function ExportReport() {
   const { draftId } = useParams();
-  const [user, setUser] = useState("");
+  const [user, setUser] = useState(null); // Initialize as null
   const [draft, setDraft] = useState(null);
   const [carbonData, setCarbonData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Consolidated loading state
   const [error, setError] = useState(null);
   const [carbonLoading, setCarbonLoading] = useState(false);
   const [showDownloadMenu, setShowDownloadMenu] = useState(false);
@@ -651,10 +651,14 @@ function ExportReport() {
   };
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
       try {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("No authentication token found");
+
+        // Fetch user
         const userResponse = await axios.get(`${BACKEND_URL}/protectedRoute`, {
           headers: { Authorization: `Bearer ${token}` },
         });
@@ -663,39 +667,28 @@ function ExportReport() {
             " " +
             userResponse.data.user.lastName
         );
-      } catch (err) {
-        setError(err.message);
-      }
-    };
-    fetchUser();
-  }, []);
 
-  useEffect(() => {
-    const fetchDraftData = async () => {
-      setLoading(true);
-      setError(null);
-      try {
+        // Fetch draft
         if (!draftId) throw new Error("No draft ID provided in URL");
-        const token = localStorage.getItem("token");
-        if (!token) throw new Error("No authentication token found");
-        const response = await axios.get(
+        const draftResponse = await axios.get(
           `${BACKEND_URL}/api/drafts/${draftId}`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-        setDraft(response.data.draft);
+        setDraft(draftResponse.data.draft);
       } catch (err) {
-        setError(`Failed to load draft data: ${err.message}`);
+        setError(`Failed to load data: ${err.message}`);
       } finally {
         setLoading(false);
       }
     };
-    fetchDraftData();
+    fetchData();
   }, [draftId]);
 
   useEffect(() => {
     const fetchAndGenerateCarbonData = async () => {
+      if (!draft) return;
       setCarbonLoading(true);
       try {
         const token = localStorage.getItem("token");
@@ -709,22 +702,20 @@ function ExportReport() {
           setCarbonData(carbonResponse.data);
           return;
         } catch (getError) {
-          // if (getError.response?.status !== 404) {
-          //   throw getError;
-          // }
+          // Continue to generate carbon data if GET fails
         }
 
         const carbonParams = {
           draftId: draftId,
-          origin: draft.routeData.routeDirections[0].waypoints[0], // Use first waypoint of the route
+          origin: draft.routeData.routeDirections[0].waypoints[0],
           destination:
             draft.routeData.routeDirections[
               draft.routeData.routeDirections.length - 1
-            ].waypoints[1], // Use last waypoint of the route
+            ].waypoints[1],
           distance: draft.routeData.totalDistance,
           weight: parseFloat(draft.formData.ShipmentDetails["Gross Weight"]),
           routeDirections: draft.routeData.routeDirections,
-          distanceByLeg: draft.routeData.distanceByLeg, // Include distanceByLeg
+          distanceByLeg: draft.routeData.distanceByLeg,
         };
 
         const carbonResponse = await axios.post(
@@ -749,15 +740,30 @@ function ExportReport() {
     if (draft) fetchAndGenerateCarbonData();
   }, [draftId, draft]);
 
-  if (error || !draft || !user) {
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-4 sm:p-6 flex flex-col">
+        <Header title="Export Report" page="export" />
+        <div className="flex h-screen w-screen items-center justify-center bg-gray-50">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600 mx-auto"></div>
+            <p className="mt-4 text-lg text-gray-700 font-semibold tracking-wide animate-pulse">
+              Generating your report...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
     return (
       <div className="min-h-screen bg-gray-50 p-4 sm:p-6 flex flex-col">
         <Header title="Export Report" page="export" />
         <div className="text-center bg-white p-6 rounded-2xl shadow-xl">
-          <p className="text-red-600 mb-4 font-medium">
-            {error ||
-              "Draft not found. Please check the draft ID and try again."}
-          </p>
+          <p className="text-red-600 mb-4 font-medium">{error}</p>
           <button
             className="bg-amber-400 py-2 px-6 rounded-full shadow-md hover:bg-amber-500 transition-colors duration-300 text-gray-800 font-semibold"
             onClick={() => window.history.back()}
@@ -769,6 +775,7 @@ function ExportReport() {
     );
   }
 
+  // Validate draft data
   if (
     !draft.formData ||
     !draft.formData.ShipmentDetails ||
