@@ -157,12 +157,9 @@ const ComplianceResponse = ({ response }) => {
               <h3 className="text-xl font-semibold text-gray-800">Status</h3>
               <span
                 className={`inline-block px-4 py-2 mt-2 rounded-full text-white font-medium ${
-                  // This is the updated logic for the background color
-                  riskLevel.riskScore < 30
-                    ? "bg-green-500" // Low risk (green)
-                    : riskLevel.riskScore < 60
-                    ? "bg-yellow-500" // Medium risk (yellow)
-                    : "bg-red-500" // High risk (red)
+                  complianceStatus === "Ready for Shipment"
+                    ? "bg-green-500"
+                    : "bg-red-500"
                 }`}
               >
                 {complianceStatus}
