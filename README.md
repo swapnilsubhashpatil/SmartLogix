@@ -23,7 +23,7 @@
 
 SmartLogix is a **next-generation logistics intelligence platform** designed to streamline and enhance the management of global and domestic shipments. Built on the **MERN stack** (MongoDB, Express.js, React.js, Node.js), SmartLogix leverages advanced AI and cloud technologies to provide comprehensive solutions for logistics businesses.
 
-The platform simplifies complex logistics operations by integrating **AI-powered compliance checks**, **multimodal route optimization**, and **intelligent product analysis**. SmartLogix is accessible via a secure web interface and offers robust features for **authentication**, **inventory management**, **analytics**, and **user support**.
+The platform simplifies complex logistics operations by integrating **AI-powered compliance checks**, **multimodal route optimization**, and **intelligent product analysis**. SmartLogix is accessible via secure web interface and offers robust features for **authentication**, **inventory management**, **analytics**, and **user support**.
 
 ---
 
@@ -180,6 +180,14 @@ The platform simplifies complex logistics operations by integrating **AI-powered
 - 💬 Real-time assistance across all platform features
 - 🤖 Dialogflow CX and React integration for seamless user interaction
 - 🧠 Context-aware help and guidance system
+
+---
+
+## 🛠 Workflow Diagram
+
+<p align="center">
+  <img src="./screenshots/wokflow.png" alt="Workflow Diagram"  />
+</p>
 
 ---
 
