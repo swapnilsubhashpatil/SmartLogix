@@ -521,13 +521,15 @@ const InventoryManagement = () => {
         {/* Rest of the component remains unchanged */}
         <div className="space-y-4 sm:space-y-6">
           {loading ? (
-            <div className="flex h-screen w-screen items-center justify-center bg-gray-50">
-              <div className="text-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600 mx-auto"></div>
-                <p className="mt-4 text-lg text-gray-700 font-semibold tracking-wide animate-pulse">
-                  Fetching records...
-                </p>
+            <div className="flex flex-col items-center justify-center py-8 mb-8 min-h-screen">
+              <div className="relative">
+                <div className="w-16 h-16 border-4 border-indigo-200 rounded-full animate-spin">
+                  <div className="absolute top-0 left-0 w-16 h-16 border-4 border-transparent border-t-indigo-500 rounded-full animate-spin"></div>
+                </div>
               </div>
+              <p className="text-gray-600 mt-4 font-medium">
+                Fetching records...
+              </p>
             </div>
           ) : getFilteredDrafts().length === 0 ? (
             <Card
