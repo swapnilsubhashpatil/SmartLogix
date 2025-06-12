@@ -649,23 +649,23 @@ Download empty templates for essential shipping documents to streamline your log
         downloads: [
           {
             name: "Commercial Invoice Template",
-            url: "/docs/feature01.pdf",
-            filename: "commercial-invoice-template.pdf",
+            url: "https://drive.google.com/file/d/1lQLumIlNrwH2FqE8llH6kd8L37ogDqgg/view?usp=drive_link",
+            filename: "Commercial_Invoice.pdf",
           },
           {
             name: "Packing List Template",
-            url: "/docs/sample-packing-list-empty.pdf",
-            filename: "packing-list-template.pdf",
+            url: "https://drive.google.com/file/d/1yHZoNikWA5zzhnkR6ZCBRfZa8fQsgLGv/view?usp=drive_link",
+            filename: "Packing_List.pdf",
           },
           {
             name: "Certificate of Origin Template",
-            url: "/docs/sample-certificate-of-origin-empty.pdf",
-            filename: "certificate-of-origin-template.pdf",
+            url: "https://drive.google.com/file/d/1KXgrZikoPJQHTbD7-u5MduzCVkBrG4bk/view?usp=drive_link",
+            filename: "Certificate_of_Origin.pdf",
           },
           {
             name: "Bill of Lading Template",
-            url: "/docs/sample-bill-of-lading-empty.pdf",
-            filename: "bill-of-lading-template.pdf",
+            url: "https://drive.google.com/file/d/1I9uJHshvAGBrckeGQRmR7q0TCFa4F_pV/view?usp=sharing",
+            filename: "Bill_of_Lading.pdf",
           },
         ],
         examples: [
@@ -699,23 +699,23 @@ View and download filled samples of shipping documents to understand their struc
         downloads: [
           {
             name: "Filled Commercial Invoice",
-            url: "/docs/sample-commercial-invoice-filled.pdf",
-            filename: "filled-commercial-invoice-sample.pdf",
+            url: "https://drive.google.com/file/d/1glevp-heUptSd43bjLlAemdDBOj48rXy/view?usp=drive_link",
+            filename: "Commercial_Invoice.pdf",
           },
           {
             name: "Filled Packing List",
-            url: "/docs/sample-packing-list-filled.pdf",
-            filename: "filled-packing-list-sample.pdf",
+            url: "https://drive.google.com/file/d/1-2BCrn4mrZCj53n-TeTte3201-lZxU2w/view?usp=drive_link",
+            filename: "Packing_List.pdf",
           },
           {
             name: "Filled Certificate of Origin",
-            url: "/docs/sample-certificate-of-origin-filled.pdf",
-            filename: "filled-certificate-of-origin-sample.pdf",
+            url: "https://drive.google.com/file/d/1O-rmGX8avYf73_M7nLwMymWuT_U3B9V8/view?usp=drive_link",
+            filename: "Certificate_of_Origin.pdf",
           },
           {
             name: "Filled Bill of Lading",
-            url: "/docs/sample-bill-of-lading-filled.pdf",
-            filename: "filled-bill-of-lading-sample.pdf",
+            url: "https://drive.google.com/file/d/1vZ7uQt50ehxNG0sujRLplCyBdG6f5g5C/view?usp=drive_link",
+            filename: "Bill_of_Lading.pdf",
           },
         ],
         examples: [
