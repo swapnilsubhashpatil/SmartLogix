@@ -75,75 +75,96 @@ const Analysis = () => {
 
     const totalShipments = shipmentData.length;
     const totalCost = shipmentData.reduce(
-      (sum, item) => sum + item.routeData.totalCost,
+      (sum, item) => sum + (item.routeData?.totalCost || 0),
       0
     );
     const totalEmissions = shipmentData.reduce(
       (sum, item) =>
         sum +
-        parseFloat(item.carbonAnalysis.totalEmissions.replace(" kg CO2e", "")),
+        (item.carbonAnalysis?.totalEmissions
+          ? parseFloat(
+              item.carbonAnalysis.totalEmissions.replace(" kg CO2e", "")
+            )
+          : 0),
       0
     );
     const avgRiskScore =
       shipmentData.reduce(
-        (sum, item) => sum + item.complianceData.riskLevel.riskScore,
+        (sum, item) => sum + (item.complianceData?.riskLevel?.riskScore || 0),
         0
       ) / totalShipments;
 
     // Routes for Compliance Tab
     const routes = shipmentData.map((item) => ({
-      route: `${item.formData.ShipmentDetails["Origin Country"]}→${item.formData.ShipmentDetails["Destination Country"]}`,
-      risk: item.complianceData.riskLevel.riskScore,
+      route: item.formData?.ShipmentDetails
+        ? `${item.formData.ShipmentDetails["Origin Country"]}→${item.formData.ShipmentDetails["Destination Country"]}`
+        : "Unknown Route",
+      risk: item.complianceData?.riskLevel?.riskScore || 0,
     }));
 
     // KPIs for Logistics Tab
     const kpis = {
       avgTime: (
-        shipmentData.reduce((sum, item) => sum + item.routeData.totalTime, 0) /
-          shipmentData.length || 0
+        shipmentData.reduce(
+          (sum, item) => sum + (item.routeData?.totalTime || 0),
+          0
+        ) / shipmentData.length || 0
       ).toFixed(2),
       avgCostPerKm: (
         shipmentData.reduce(
           (sum, item) =>
-            sum + item.routeData.totalCost / item.routeData.totalDistance,
+            sum +
+            (item.routeData?.totalCost && item.routeData?.totalDistance
+              ? item.routeData.totalCost / item.routeData.totalDistance
+              : 0),
           0
         ) / shipmentData.length || 0
       ).toFixed(4),
       avgLegs:
         shipmentData.reduce(
-          (sum, item) => sum + item.routeData.routeDirections.length,
+          (sum, item) => sum + (item.routeData?.routeDirections?.length || 0),
           0
         ) / shipmentData.length || 0,
     };
 
     // Incoterms for Trade Tab
     const incoterms = shipmentData.reduce((acc, item) => {
-      const term = item.formData.TradeAndRegulatoryDetails["Incoterms 2020"];
+      const term =
+        item.formData?.TradeAndRegulatoryDetails?.["Incoterms 2020"] ||
+        "Unknown";
       acc[term] = (acc[term] || 0) + 1;
       return acc;
     }, {});
 
     // Emissions by Mode for Logistics Tab
     const emissionsByMode = shipmentData.map((item) => ({
-      route: `${item.formData.ShipmentDetails["Origin Country"]}→${item.formData.ShipmentDetails["Destination Country"]}`,
-      land: item.carbonAnalysis.routeAnalysis
-        .filter((r) => r.mode === "land")
-        .reduce(
-          (sum, r) => sum + parseFloat(r.emissions.replace(" kg CO2e", "")),
-          0
-        ),
-      sea: item.carbonAnalysis.routeAnalysis
-        .filter((r) => r.mode === "sea")
-        .reduce(
-          (sum, r) => sum + parseFloat(r.emissions.replace(" kg CO2e", "")),
-          0
-        ),
-      air: item.carbonAnalysis.routeAnalysis
-        .filter((r) => r.mode === "air")
-        .reduce(
-          (sum, r) => sum + parseFloat(r.emissions.replace(" kg CO2e", "")),
-          0
-        ),
+      route: item.formData?.ShipmentDetails
+        ? `${item.formData.ShipmentDetails["Origin Country"]}→${item.formData.ShipmentDetails["Destination Country"]}`
+        : "Unknown Route",
+      land:
+        item.carbonAnalysis?.routeAnalysis
+          ?.filter((r) => r.mode === "land")
+          .reduce(
+            (sum, r) =>
+              sum + parseFloat(r.emissions?.replace(" kg CO2e", "") || 0),
+            0
+          ) || 0,
+      sea:
+        item.carbonAnalysis?.routeAnalysis
+          ?.filter((r) => r.mode === "sea")
+          .reduce(
+            (sum, r) =>
+              sum + parseFloat(r.emissions?.replace(" kg CO2e", "") || 0),
+            0
+          ) || 0,
+      air:
+        item.carbonAnalysis?.routeAnalysis
+          ?.filter((r) => r.mode === "air")
+          .reduce(
+            (sum, r) =>
+              sum + parseFloat(r.emissions?.replace(" kg CO2e", "") || 0),
+            0
+          ) || 0,
     }));
 
     return {
@@ -179,7 +200,7 @@ const Analysis = () => {
       >
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-sm text_gray-600 mb-1">{title}</p>
+            <p className="text-sm text-gray-600 mb-1">{title}</p>
             <p className="text-2xl font-bold text-gray-900">{value}</p>
             {subtitle && (
               <p className="text-xs text-gray-500 mt-1">{subtitle}</p>
@@ -216,16 +237,66 @@ const Analysis = () => {
           >
             <Inbox className="w-12 h-12 text-gray-400 mb-4" />
             <p className="text-gray-600 text-center">
-              None of your records are compliant and route optimized.For
-              analysis, you need at least one record that is compliant and route
-              optimized.
+              No compliant and route-optimized records found. Please go to the
+              Inventory tab and ensure at least one record is compliant and
+              route-optimized.
             </p>
             <button
-              onClick={() => navigate("/inventory-management")} // Adjust the route as per your app's routing
+              onClick={() => navigate("/inventory-management")}
               className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
             >
               Go to Inventory
             </button>
+          </motion.div>
+        </div>
+      </div>
+    );
+  }
+
+  // Check for drafts missing carbon analysis
+  const draftsWithoutCarbonAnalysis = shipmentData.filter(
+    (draft) => !draft.carbonAnalysis?.totalEmissions
+  );
+
+  if (!loading && draftsWithoutCarbonAnalysis.length > 0) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-6">
+        <Header title="Analysis" />
+        <div className="max-w-7xl mx-auto">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="bg-white mt-8 rounded-xl shadow-lg p-6 flex flex-col items-center justify-center"
+          >
+            <Inbox className="w-12 h-12 text-gray-400 mb-4" />
+            <p className="text-gray-600 text-center mb-4">
+              Carbon analysis is not present for some drafts. You need to export
+              the report first for the following drafts:
+            </p>
+            <ul className="list-disc pl-5 text-sm text-gray-600 mb-4">
+              {draftsWithoutCarbonAnalysis.map((draft) => (
+                <li key={draft._id}>
+                  {draft.formData?.ShipmentDetails
+                    ? `${draft.formData.ShipmentDetails["Origin Country"]}→${draft.formData.ShipmentDetails["Destination Country"]}`
+                    : `Draft ID: ${draft._id}`}
+                </li>
+              ))}
+            </ul>
+            <div className="flex flex-col gap-2">
+              {draftsWithoutCarbonAnalysis.map((draft) => (
+                <button
+                  key={draft._id}
+                  onClick={() => navigate(`/export-report/${draft._id}`)}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                >
+                  Export Report for{" "}
+                  {draft.formData?.ShipmentDetails
+                    ? `${draft.formData.ShipmentDetails["Origin Country"]}→${draft.formData.ShipmentDetails["Destination Country"]}`
+                    : `Draft ID: ${draft._id}`}
+                </button>
+              ))}
+            </div>
           </motion.div>
         </div>
       </div>
@@ -253,7 +324,7 @@ const Analysis = () => {
             <StatCard
               icon={Package}
               title="Total Shipments"
-              value={analytics.totalShipments}
+              value={analytics.totalShipments || 0}
               color="blue"
             />
             <StatCard
@@ -286,10 +357,10 @@ const Analysis = () => {
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3 }}
-            className="bg-white max-w-1/3 mx-auto rounded-lg shadow-lg p-4 mb-8"
+            className="bg-white mx-auto rounded-lg shadow-lg px-4 py-3 mb-6 max-w-full sm:max-w-md"
           >
             <nav
-              className="flex align-center justify-center space-x-4"
+              className="flex flex-wrap sm:flex-nowrap items-center justify-center sm:justify-between gap-2"
               role="tablist"
             >
               {[
@@ -300,16 +371,16 @@ const Analysis = () => {
                 <button
                   key={value}
                   onClick={() => setActiveTab(value)}
-                  className={`flex items-center px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors min-w-[100px] justify-center ${
                     activeTab === value
                       ? "bg-blue-100 text-blue-700"
-                      : "text-gray-500 hover:bg-blue-50 hover:text-blue-600"
+                      : "text-gray-600 hover:bg-blue-50 hover:text-blue-600"
                   }`}
                   role="tab"
                   aria-current={activeTab === value ? "page" : undefined}
                 >
                   <Icon className="w-4 h-4 mr-2" />
-                  {label}
+                  <span className="whitespace-nowrap">{label}</span>
                 </button>
               ))}
             </nav>
@@ -401,24 +472,30 @@ const Analysis = () => {
                             key={d._id}
                             className="border-b border-gray-100 hover:bg-gray-50"
                           >
-                            <td className="py-3 px-4">{`${d.formData.ShipmentDetails["Origin Country"]}→${d.formData.ShipmentDetails["Destination Country"]}`}</td>
                             <td className="py-3 px-4">
-                              {d.complianceData.scores.ShipmentDetails}
+                              {d.formData?.ShipmentDetails
+                                ? `${d.formData.ShipmentDetails["Origin Country"]}→${d.formData.ShipmentDetails["Destination Country"]}`
+                                : "Unknown Route"}
                             </td>
                             <td className="py-3 px-4">
-                              {
-                                d.complianceData.scores
-                                  .TradeAndRegulatoryDetails
-                              }
+                              {d.complianceData?.scores?.ShipmentDetails ||
+                                "N/A"}
                             </td>
                             <td className="py-3 px-4">
-                              {d.complianceData.scores.PartiesAndIdentifiers}
+                              {d.complianceData?.scores
+                                ?.TradeAndRegulatoryDetails || "N/A"}
                             </td>
                             <td className="py-3 px-4">
-                              {d.complianceData.scores.LogisticsAndHandling}
+                              {d.complianceData?.scores
+                                ?.PartiesAndIdentifiers || "N/A"}
                             </td>
                             <td className="py-3 px-4">
-                              {d.complianceData.scores.IntendedUseDetails}
+                              {d.complianceData?.scores?.LogisticsAndHandling ||
+                                "N/A"}
+                            </td>
+                            <td className="py-3 px-4">
+                              {d.complianceData?.scores?.IntendedUseDetails ||
+                                "N/A"}
                             </td>
                           </tr>
                         ))}
@@ -529,7 +606,7 @@ const Analysis = () => {
                       Avg Transit Time
                     </h4>
                     <p className="text-2xl font-bold text-gray-900">
-                      {analytics.kpis?.avgTime} hours
+                      {analytics.kpis?.avgTime || "0"} hours
                     </p>
                   </div>
                   <div className="bg-gray-50 rounded-lg p-4">
@@ -537,7 +614,7 @@ const Analysis = () => {
                       Avg Cost per km
                     </h4>
                     <p className="text-2xl font-bold text-gray-900">
-                      ${analytics.kpis?.avgCostPerKm}
+                      ${analytics.kpis?.avgCostPerKm || "0"}
                     </p>
                   </div>
                   <div className="bg-gray-50 rounded-lg p-4">
@@ -545,7 +622,7 @@ const Analysis = () => {
                       Avg Legs
                     </h4>
                     <p className="text-2xl font-bold text-gray-900">
-                      {analytics.kpis?.avgLegs}
+                      {analytics.kpis?.avgLegs || "0"}
                     </p>
                   </div>
                 </div>
@@ -569,19 +646,21 @@ const Analysis = () => {
                             key={d._id}
                             className="border-b border-gray-100 hover:bg-gray-50"
                           >
-                            <td className="py-3 px-4">{`${d.formData.ShipmentDetails["Origin Country"]}→${d.formData.ShipmentDetails["Destination Country"]}`}</td>
                             <td className="py-3 px-4">
-                              {d.routeData.totalDistance}
+                              {d.formData?.ShipmentDetails
+                                ? `${d.formData.ShipmentDetails["Origin Country"]}→${d.formData.ShipmentDetails["Destination Country"]}`
+                                : "Unknown Route"}
                             </td>
                             <td className="py-3 px-4">
-                              {
-                                d.formData.LogisticsAndHandling[
-                                  "Means of Transport"
-                                ]
-                              }
+                              {d.routeData?.totalDistance || "N/A"}
                             </td>
                             <td className="py-3 px-4">
-                              {d.routeData.totalCost}
+                              {d.formData?.LogisticsAndHandling?.[
+                                "Means of Transport"
+                              ] || "N/A"}
+                            </td>
+                            <td className="py-3 px-4">
+                              {d.routeData?.totalCost || "N/A"}
                             </td>
                           </tr>
                         ))}
@@ -611,8 +690,12 @@ const Analysis = () => {
                   </h4>
                   {shipmentData.map((d) => (
                     <p key={d._id} className="text-sm text-gray-600 mb-2">
-                      {`${d.formData.ShipmentDetails["Origin Country"]}→${d.formData.ShipmentDetails["Destination Country"]}`}
-                      : {d.carbonAnalysis.earthImpact}
+                      {d.formData?.ShipmentDetails
+                        ? `${d.formData.ShipmentDetails["Origin Country"]}→${d.formData.ShipmentDetails["Destination Country"]}`
+                        : "Unknown Route"}
+                      :{" "}
+                      {d.carbonAnalysis?.earthImpact ||
+                        "No impact data available"}
                     </p>
                   ))}
                 </div>
