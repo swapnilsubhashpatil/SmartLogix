@@ -11,7 +11,7 @@ const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const isProduction = process.env.NODE_ENV === "production";
 
 const callbackURL = isProduction
-  ? "https://backend.smartlogix.page/auth/google/callback"
+  ? "https://smartlogix-888495097274.europe-west1.run.app/auth/google/callback"
   : "http://localhost:5000/auth/google/callback";
 
 // Add validation
